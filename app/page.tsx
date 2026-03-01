@@ -12,6 +12,7 @@ import { EditorTabs } from '@/components/editor-tabs'
 import { CodeEditor } from '@/components/code-editor'
 import { AgentPanel } from '@/components/agent-panel'
 import { SourceSwitcher, SourceModeIndicator } from '@/components/source-switcher'
+import { ActivityBar } from '@/components/activity-bar'
 import { ResizeHandle } from '@/components/resize-handle'
 import { ThemeSwitcher } from '@/components/theme-switcher'
 import { QuickOpen } from '@/components/quick-open'
@@ -102,6 +103,7 @@ function EditorLayout() {
   const [terminalHeight, setTerminalHeight] = useState(260)
   const [engineVisible, setEngineVisible] = useState(false)
   const [gatewayPopoverOpen, setGatewayPopoverOpen] = useState(false)
+  const [cursorPos, setCursorPos] = useState<{ line: number; col: number } | null>(null)
   const [isTauriDesktop, setIsTauriDesktop] = useState(false)
   const [isMacTauri, setIsMacTauri] = useState(false)
 
@@ -332,6 +334,15 @@ function EditorLayout() {
     }
   }, [])
 
+  const handleActivitySelect = useCallback((id: string) => {
+    if (id === 'explorer') setExplorerVisible(v => !v)
+    else if (id === 'agent') setAgentOpen(v => !v)
+    else if (id === 'terminal') setTerminalVisible(v => !v)
+    else if (id === 'engine') setEngineVisible(v => !v)
+    else if (id === 'changes') setChangesVisible(v => !v)
+    else if (id === 'search') setQuickOpenVisible(true)
+  }, [])
+
   const handleRunCommand = useCallback((commandId: CommandId) => {
     if (commandId === 'find-files') {
       setQuickOpenVisible(true)
@@ -376,6 +387,20 @@ function EditorLayout() {
 
       {/* Main content */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
+        {/* Activity Bar */}
+        <ActivityBar
+          active=""
+          onSelect={handleActivitySelect}
+          explorerVisible={explorerVisible}
+          agentOpen={agentOpen}
+          terminalVisible={terminalVisible}
+          engineVisible={engineVisible}
+          dirtyCount={dirtyCount}
+          gatewayConnected={status === 'connected'}
+        />
+
+        {/* Workspace panels */}
+        <div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
         {/* File Explorer */}
         {explorerVisible && (
           <div className="shrink-0 bg-[var(--sidebar-bg)] overflow-hidden border-r border-[color-mix(in_srgb,var(--brand)_28%,var(--border))]" style={{ width: explorerWidth }}>
@@ -449,7 +474,8 @@ function EditorLayout() {
             </div>
           </>
         )}
-      </div>
+      </div>{/* end workspace panels */}
+      </div>{/* end main content row */}
 
       {/* Quick Open (⌘P) */}
       <QuickOpen
@@ -587,6 +613,12 @@ function EditorLayout() {
           )}
         </div>
         <div className="flex items-center gap-2">
+          {cursorPos && (
+            <span className="font-mono text-[var(--text-tertiary)]">
+              Ln {cursorPos.line}, Col {cursorPos.col}
+            </span>
+          )}
+          {cursorPos && activeFile && <div className="w-px h-3 bg-[var(--border)]" />}
           {activeFile && (
             <>
               <span className="font-mono text-[var(--text-tertiary)]">
@@ -595,6 +627,8 @@ function EditorLayout() {
               <div className="w-px h-3 bg-[var(--border)]" />
             </>
           )}
+          <span className="font-mono text-[var(--text-disabled)]">UTF-8</span>
+          <div className="w-px h-3 bg-[var(--border)]" />
           <SourceModeIndicator />
           <div className="w-px h-3 bg-[var(--border)]" />
           <button

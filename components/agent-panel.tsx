@@ -139,6 +139,7 @@ export function AgentPanel() {
   const [activeSuggestionIdx, setActiveSuggestionIdx] = useState(-1)
   const [sending, setSending] = useState(false)
   const [isStreaming, setIsStreaming] = useState(false)
+  const [thinkingTrail, setThinkingTrail] = useState<string[]>([])
   const [activeDiff, setActiveDiff] = useState<{
     proposal: EditProposal
     messageId: string
@@ -201,6 +202,29 @@ export function AgentPanel() {
       const matchesSession = !idempotencyKey && eventSessionKey === CODE_EDITOR_SESSION_KEY
       if (!matchesIdem && !matchesSession) return
 
+      // Track tool_use events for thinking trail
+      if (state === 'tool_use' || state === 'tool_start') {
+        const toolName = p.toolName as string || p.name as string || ''
+        const toolInput = p.input as Record<string, unknown> | undefined
+        if (toolName) {
+          let step = toolName
+          if (toolName === 'read' || toolName === 'Read') {
+            const path = (toolInput?.path || toolInput?.file_path || '') as string
+            step = `Reading ${path.split('/').pop() || path}`
+          } else if (toolName.includes('search') || toolName === 'Grep') {
+            step = `Searching ${(toolInput?.query as string)?.slice(0, 30) || 'files'}`
+          } else if (toolName === 'write' || toolName === 'Write' || toolName === 'edit' || toolName === 'Edit') {
+            const path = (toolInput?.path || toolInput?.file_path || '') as string
+            step = `Editing ${path.split('/').pop() || path}`
+          } else if (toolName.includes('exec') || toolName === 'Bash') {
+            step = 'Running command'
+          }
+          setThinkingTrail(prev => [...prev.slice(-5), step])
+          setIsStreaming(true)
+        }
+        return
+      }
+
       if (state === 'delta') {
         const message = p.message as Record<string, unknown> | undefined
         if (message) {
@@ -216,9 +240,24 @@ export function AgentPanel() {
           if (text) {
             setStreamBuffer(text)
             setIsStreaming(true)
+            // Extract thinking trail from streamed content
+            const trailPatterns = [
+              { re: /Reading\s+`([^`]+)`/g, fmt: (m: RegExpExecArray) => `Reading ${m[1].split('/').pop()}` },
+              { re: /searching\s+(?:for\s+)?["']([^"']+)["']/gi, fmt: (m: RegExpExecArray) => `Searching "${m[1]}"` },
+              { re: /(?:Exploring|Looking at|Checking)\s+`?([^`\n]+)`?/gi, fmt: (m: RegExpExecArray) => `Exploring ${m[1].split('/').pop()}` },
+              { re: /(?:Creating|Writing|Editing)\s+`([^`]+)`/g, fmt: (m: RegExpExecArray) => `Editing ${m[1].split('/').pop()}` },
+            ]
+            for (const { re, fmt } of trailPatterns) {
+              let match
+              while ((match = re.exec(text)) !== null) {
+                const step = fmt(match)
+                setThinkingTrail(prev => prev.includes(step) ? prev : [...prev.slice(-4), step])
+              }
+            }
           }
         }
       } else if (state === 'final') {
+        setThinkingTrail([])
         const message = p.message as Record<string, unknown> | undefined
         let finalText = ''
         if (message) {
@@ -249,6 +288,7 @@ export function AgentPanel() {
         setIsStreaming(false)
         setSending(false)
       } else if (state === 'error') {
+        setThinkingTrail([])
         const errorMsg = (p.errorMessage as string) || 'Unknown error'
         if (idempotencyKey) sentKeysRef.current.delete(idempotencyKey)
         setStreamBuffer('')
@@ -261,6 +301,7 @@ export function AgentPanel() {
         setIsStreaming(false)
         setSending(false)
       } else if (state === 'aborted') {
+        setThinkingTrail([])
         if (idempotencyKey) sentKeysRef.current.delete(idempotencyKey)
         setStreamBuffer(prev => {
           if (prev) {
@@ -712,13 +753,36 @@ export function AgentPanel() {
                 <span className="inline-block w-1.5 h-3.5 bg-[var(--brand)] animate-pulse ml-0.5 align-text-bottom rounded-sm" />
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border)] rounded-bl-sm">
-                <div className="flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand)] animate-typing-dot" />
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand)] animate-typing-dot-2" />
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand)] animate-typing-dot-3" />
-                </div>
+              <div className="flex flex-col gap-1 px-3 py-2.5 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border)] rounded-bl-sm max-w-[90%]">
+                {/* Thinking trail */}
+                {thinkingTrail.length > 0 && (
+                  <div className="flex flex-col gap-0.5 mb-1">
+                    {thinkingTrail.map((step, i) => (
+                      <div key={i} className={`flex items-center gap-1.5 text-[10px] transition-opacity duration-300 ${
+                        i === thinkingTrail.length - 1 ? 'text-[var(--text-secondary)]' : 'text-[var(--text-disabled)]'
+                      }`}>
+                        <Icon icon={
+                          step.startsWith('Reading') ? 'lucide:file-text' :
+                          step.startsWith('Searching') ? 'lucide:search' :
+                          step.startsWith('Exploring') ? 'lucide:folder-open' :
+                          step.startsWith('Editing') ? 'lucide:pencil' :
+                          step.startsWith('Running') ? 'lucide:terminal' :
+                          'lucide:sparkles'
+                        } width={10} height={10} className="shrink-0" />
+                        <span className="truncate">{step}</span>
+                        {i === thinkingTrail.length - 1 && <span className="w-1 h-1 rounded-full bg-[var(--brand)] animate-pulse shrink-0" />}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand)] animate-typing-dot" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand)] animate-typing-dot-2" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand)] animate-typing-dot-3" />
+                  </div>
                 <span className="text-[10px] text-[var(--text-tertiary)] ml-1">Thinking...</span>
+                </div>
               </div>
             )}
           </div>

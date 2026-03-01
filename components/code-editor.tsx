@@ -115,6 +115,13 @@ export function CodeEditor() {
 
   const handleMount: OnMount = useCallback((editor) => {
     editorRef.current = editor
+
+    // Track cursor position
+    editor.onDidChangeCursorPosition((e) => {
+      window.dispatchEvent(new CustomEvent('cursor-change', {
+        detail: { line: e.position.lineNumber, col: e.position.column }
+      }))
+    })
     editor.focus()
 
     editor.onDidDispose(() => {

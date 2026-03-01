@@ -8,6 +8,10 @@ import { EditorProvider } from '@/context/editor-context'
 export const metadata: Metadata = {
   title: 'Code Editor',
   description: 'Gateway-integrated code editor with AI coding agent',
+  icons: {
+    icon: '/favicon.png',
+    apple: '/apple-touch-icon.png',
+  },
 }
 
 async function handleSignOut() {

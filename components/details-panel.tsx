@@ -15,6 +15,33 @@ export function DetailsPanel() {
   const { files } = useEditor()
   const { status } = useGateway()
   const [tab, setTab] = useState<Tab>('details')
+  const [editWidgets, setEditWidgets] = useState(false)
+  
+  const WIDGETS = [
+    { id: 'workspace', icon: 'lucide:settings', label: 'Workspace' },
+    { id: 'todos', icon: 'lucide:list-checks', label: 'To-dos' },
+    { id: 'plan', icon: 'lucide:list-tree', label: 'Plan' },
+    { id: 'terminal', icon: 'lucide:terminal', label: 'Terminal' },
+    { id: 'changes', icon: 'lucide:git-commit-horizontal', label: 'Changes' },
+    { id: 'gateway', icon: 'lucide:cpu', label: 'Gateway' },
+    { id: 'openfiles', icon: 'lucide:files', label: 'Open Files' },
+  ] as const
+  
+  const [enabledWidgets, setEnabledWidgets] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('code-editor:widgets')
+      return saved ? new Set(JSON.parse(saved)) : new Set(['workspace', 'changes', 'gateway', 'openfiles'])
+    } catch { return new Set(['workspace', 'changes', 'gateway', 'openfiles']) }
+  })
+  
+  const toggleWidget = (id: string) => {
+    setEnabledWidgets(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      localStorage.setItem('code-editor:widgets', JSON.stringify([...next]))
+      return next
+    })
+  }
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['workspace', 'changes', 'gateway']))
 
   const repoName = repo?.fullName?.split('/').pop() ?? local.rootPath?.split('/').pop() ?? '—'
@@ -33,6 +60,7 @@ export function DetailsPanel() {
   const Section = ({ id, icon, title, children, badge }: {
     id: string; icon: string; title: string; children: React.ReactNode; badge?: string | number
   }) => {
+    if (!enabledWidgets.has(id)) return null
     const expanded = expandedSections.has(id)
     return (
       <div className="border-b border-[var(--border)]">
@@ -59,20 +87,56 @@ export function DetailsPanel() {
   return (
     <div className="flex flex-col h-full bg-[var(--bg)] overflow-hidden">
       {/* Tab bar */}
-      <div className="flex items-center gap-0 h-8 border-b border-[var(--border)] bg-[var(--bg-elevated)] shrink-0 px-2">
-        {(['details', 'files'] as const).map(t => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`px-3 py-1 text-[10px] font-medium rounded transition-colors cursor-pointer ${
-              tab === t
-                ? 'text-[var(--text-primary)] bg-[var(--bg-subtle)]'
-                : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
-            }`}
-          >
-            {t === 'details' ? 'Details' : 'Files'}
-          </button>
-        ))}
+      <div className="flex items-center justify-between h-8 border-b border-[var(--border)] bg-[var(--bg-elevated)] shrink-0 px-2">
+        <div className="flex items-center gap-0">
+          {(['details', 'files'] as const).map(t => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`px-3 py-1 text-[10px] font-medium rounded transition-colors cursor-pointer ${
+                tab === t
+                  ? 'text-[var(--text-primary)] bg-[var(--bg-subtle)]'
+                  : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
+              }`}
+            >
+              {t === 'details' ? 'Details' : 'Files'}
+            </button>
+          ))}
+        </div>
+        {tab === 'details' && (
+          <div className="relative">
+            <button
+              onClick={() => setEditWidgets(v => !v)}
+              className="text-[9px] text-[var(--text-disabled)] hover:text-[var(--text-tertiary)] transition-colors cursor-pointer"
+            >
+              Edit widgets
+            </button>
+            {editWidgets && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setEditWidgets(false)} />
+                <div className="absolute right-0 top-full mt-1 w-44 bg-[var(--bg-elevated)] border border-[var(--border)] rounded-lg shadow-xl py-1.5 z-50">
+                  <div className="px-3 py-1 text-[9px] font-semibold text-[var(--text-disabled)] uppercase tracking-wider">Widgets</div>
+                  {WIDGETS.map(w => (
+                    <button
+                      key={w.id}
+                      onClick={() => toggleWidget(w.id)}
+                      className="w-full flex items-center gap-2 px-3 py-1.5 text-left hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer"
+                    >
+                      <Icon icon="lucide:grip-vertical" width={8} height={8} className="text-[var(--text-disabled)]" />
+                      <span className={`w-3.5 h-3.5 rounded flex items-center justify-center text-white shrink-0 ${
+                        enabledWidgets.has(w.id) ? 'bg-[var(--brand)]' : 'border border-[var(--border)] bg-[var(--bg)]'
+                      }`}>
+                        {enabledWidgets.has(w.id) && <Icon icon="lucide:check" width={9} height={9} />}
+                      </span>
+                      <Icon icon={w.icon} width={11} height={11} className="text-[var(--text-tertiary)]" />
+                      <span className="text-[10px] text-[var(--text-secondary)]">{w.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Content */}
@@ -100,6 +164,27 @@ export function DetailsPanel() {
                   </div>
                 )}
               </div>
+            </Section>
+
+            {/* To-dos */}
+            <Section id="todos" icon="lucide:list-checks" title="To-dos">
+              <p className="text-[10px] text-[var(--text-disabled)]">No to-dos yet</p>
+            </Section>
+
+            {/* Plan */}
+            <Section id="plan" icon="lucide:list-tree" title="Plan">
+              <p className="text-[10px] text-[var(--text-disabled)]">No active plan</p>
+            </Section>
+
+            {/* Terminal */}
+            <Section id="terminal" icon="lucide:terminal" title="Terminal">
+              <button
+                onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: '`', metaKey: true }))}
+                className="flex items-center gap-1.5 px-2 py-1.5 rounded text-[10px] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer"
+              >
+                <Icon icon="lucide:plus" width={10} height={10} />
+                Open Terminal
+              </button>
             </Section>
 
             {/* Changes */}

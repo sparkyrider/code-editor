@@ -1128,6 +1128,27 @@ p { line-height: 1.6; }
 }
 
 /* ──────────────────────────────────────────────────────────────────
+   Inline Diff Decorations (Cursor-style)
+   ────────────────────────────────────────────────────────────────── */
+.inline-diff-added {
+  background: color-mix(in srgb, var(--color-additions) 12%, transparent) !important;
+  border-left: 2px solid var(--color-additions) !important;
+}
+.inline-diff-removed {
+  background: color-mix(in srgb, var(--color-deletions) 12%, transparent) !important;
+  border-left: 2px solid var(--color-deletions) !important;
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+.inline-diff-modified {
+  background: color-mix(in srgb, var(--warning, #eab308) 10%, transparent) !important;
+  border-left: 2px solid var(--warning, #eab308) !important;
+}
+.inline-diff-glyph-added::before { content: '+'; color: var(--color-additions); font-weight: bold; }
+.inline-diff-glyph-removed::before { content: '-'; color: var(--color-deletions); font-weight: bold; }
+.inline-diff-glyph-modified::before { content: '~'; color: var(--warning, #eab308); font-weight: bold; }
+
+/* ──────────────────────────────────────────────────────────────────
    Scrollbar
    ────────────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar {

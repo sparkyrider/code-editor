@@ -146,6 +146,8 @@ export function CodeEditor() {
     if (typeof window === 'undefined') return false
     return localStorage.getItem('code-editor:read-only') === 'true'
   })
+  const inlineDiffRef = useRef<{ dispose: () => void; accept: () => void; reject: () => void } | null>(null)
+  const [diffBar, setDiffBar] = useState(false)
   const [selToolbar, setSelToolbar] = useState<{ visible: boolean; top: number; left: number; text: string; sl: number; el: number }>({ visible: false, top: 0, left: 0, text: '', sl: 0, el: 0 })
   const [inlineEdit, setInlineEdit] = useState<{
     visible: boolean
@@ -242,6 +244,11 @@ export function CodeEditor() {
       window.dispatchEvent(new CustomEvent('add-to-chat', {
         detail: { path: activeFile || 'untitled', content: model.getValueInRange(sel), startLine: sel.startLineNumber, endLine: sel.endLineNumber }
       }))
+    })
+
+    // Accept/Reject inline diff shortcuts
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
+      if (inlineDiffRef.current) inlineDiffRef.current.accept()
     })
 
     // Selection toolbar
@@ -661,6 +668,28 @@ export function CodeEditor() {
         )}
       </div>
 
+
+      {/* Inline diff accept/reject bar */}
+      {diffBar && inlineDiffRef.current && (
+        <div className="absolute top-2 right-4 z-50 flex items-center gap-1 px-2 py-1 rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] shadow-xl">
+          <span className="text-[10px] text-[var(--text-secondary)] mr-1">Review changes</span>
+          <button
+            onClick={() => inlineDiffRef.current?.accept()}
+            className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-[var(--color-additions)] text-white hover:opacity-90 transition-opacity cursor-pointer"
+          >
+            <Icon icon="lucide:check" width={11} height={11} />
+            Accept
+          </button>
+          <button
+            onClick={() => inlineDiffRef.current?.reject()}
+            className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-[var(--color-deletions)] text-white hover:opacity-90 transition-opacity cursor-pointer"
+          >
+            <Icon icon="lucide:x" width={11} height={11} />
+            Reject
+          </button>
+          <span className="text-[8px] text-[var(--text-disabled)] ml-1">⌘⏎ accept · Esc reject</span>
+        </div>
+      )}
 
       {/* Selection action toolbar */}
       {selToolbar.visible && selToolbar.text && (

@@ -9,6 +9,7 @@ import { useLocal } from '@/context/local-context'
 import { MarkdownPreview } from '@/components/markdown-preview'
 import { DiffViewer } from '@/components/diff-viewer'
 import { parseEditProposals, type EditProposal } from '@/lib/edit-parser'
+import { showInlineDiff, type InlineDiffResult } from '@/lib/inline-diff'
 import { navigateToLine } from '@/lib/line-links'
 import {
   CODE_EDITOR_SESSION_KEY,
@@ -146,6 +147,7 @@ export function AgentPanel() {
   const [modelInfo, setModelInfo] = useState<{ current: string; available: string[] }>({ current: '', available: [] })
   const [modelMenuOpen, setModelMenuOpen] = useState(false)
   const [contextTokens, setContextTokens] = useState(0)
+  const inlineDiffRef = useRef<InlineDiffResult | null>(null)
   const [activeSuggestionIdx, setActiveSuggestionIdx] = useState(-1)
   const [sending, setSending] = useState(false)
   const [isStreaming, setIsStreaming] = useState(false)
@@ -160,6 +162,7 @@ export function AgentPanel() {
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const sessionInitRef = useRef(false)
   const sentKeysRef = useRef(new Set<string>())
+  const handledKeysRef = useRef(new Set<string>())
   const [streamBuffer, setStreamBuffer] = useState('')
 
   // Build flat file list for @ mentions
@@ -331,21 +334,22 @@ export function AgentPanel() {
               .join('')
           }
         }
-        if (idempotencyKey) sentKeysRef.current.delete(idempotencyKey)
+        if (idempotencyKey) {
+          sentKeysRef.current.delete(idempotencyKey)
+          if (handledKeysRef.current.has(idempotencyKey)) return // already handled — prevent duplicate
+          handledKeysRef.current.add(idempotencyKey)
+          // Clean up after 10s
+          setTimeout(() => handledKeysRef.current.delete(idempotencyKey), 10000)
+        }
         setStreamBuffer(prev => {
           const text = finalText || prev || ''
           if (text && !/^NO_REPLY$/i.test(text.trim())) {
             const editProposals = parseEditProposals(text)
-            // Auto-apply edits directly to the editor (Cursor-style)
+            // Show inline diff preview in editor (Cursor-style)
             if (editProposals.length > 0) {
-              for (const proposal of editProposals) {
-                const existing = getFile(proposal.filePath)
-                if (existing) {
-                  updateFileContent(proposal.filePath, proposal.content)
-                } else {
-                  openFile(proposal.filePath, proposal.content, undefined)
-                }
-              }
+              window.dispatchEvent(new CustomEvent('show-inline-diff', {
+                detail: { proposals: editProposals }
+              }))
             }
             setMessages(msgs => [...msgs, {
               id: crypto.randomUUID(),
@@ -608,8 +612,10 @@ export function AgentPanel() {
 
       // Synchronous reply (non-streaming fallback)
       // Only process if the event handler hasn't already consumed this key
-      if (!sentKeysRef.current.has(idemKey)) return // already handled by event
+      if (!sentKeysRef.current.has(idemKey) || handledKeysRef.current.has(idemKey)) return
       sentKeysRef.current.delete(idemKey)
+      handledKeysRef.current.add(idemKey)
+      setTimeout(() => handledKeysRef.current.delete(idemKey), 10000)
       const reply = String(resp?.reply ?? resp?.text ?? '')
       if (reply && !/^NO_REPLY$/i.test(reply.trim())) {
         const editProposals = parseEditProposals(reply)

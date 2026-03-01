@@ -23,7 +23,7 @@ function deobfuscate(encoded: string): string {
 
 export type OAuthStep =
   | { type: 'idle' }
-  | { type: 'device-pending'; userCode: string; verificationUri: string; deviceCode: string; interval: number }
+  | { type: 'device-pending'; userCode: string; verificationUri: string; verificationUriComplete: string; deviceCode: string; interval: number }
   | { type: 'error'; message: string }
 
 type TokenSource = 'gateway' | 'manual' | 'oauth' | 'none'
@@ -160,15 +160,35 @@ export function GitHubAuthProvider({ children }: { children: ReactNode }) {
         device_code: string
         user_code: string
         verification_uri: string
+        verification_uri_complete?: string
         interval: number
       }
+
+      // Use the complete URI (pre-fills the code) for one-click experience
+      const directUrl = data.verification_uri_complete || `${data.verification_uri}?user_code=${data.user_code}`
+
       setOAuthStep({
         type: 'device-pending',
         userCode: data.user_code,
         verificationUri: data.verification_uri,
+        verificationUriComplete: directUrl,
         deviceCode: data.device_code,
         interval: data.interval ?? 5,
       })
+
+      // Auto-open the authorization URL in external browser
+      // On Tauri desktop, use shell.open; on web, window.open
+      try {
+        const w = window as unknown as Record<string, unknown>
+        if (w.__TAURI_INTERNALS__ || w.__TAURI__) {
+          const { open } = await import('@tauri-apps/plugin-shell')
+          await open(directUrl)
+        } else {
+          window.open(directUrl, '_blank', 'noopener,noreferrer')
+        }
+      } catch {
+        // Fallback: user clicks the link manually
+      }
     } catch {
       setOAuthStep({ type: 'error', message: 'Failed to start GitHub authentication.' })
     }

@@ -135,23 +135,30 @@ export function GitHubAuthBadge() {
                     </div>
                   )}
 
-                  {/* OAuth device pending — show code */}
+                  {/* OAuth device pending — browser opened automatically */}
                   {oauthStep.type === 'device-pending' && (
                     <div className="space-y-3">
                       <div className="text-center">
-                        <p className="text-[11px] text-[var(--text-secondary)] mb-2">
-                          Go to{' '}
+                        <div className="flex items-center justify-center gap-1.5 mb-2">
+                          <Icon icon="lucide:external-link" width={12} height={12} className="text-[var(--brand)]" />
+                          <p className="text-[11px] font-medium text-[var(--text-secondary)]">
+                            Authorize in your browser
+                          </p>
+                        </div>
+
+                        <p className="text-[10px] text-[var(--text-tertiary)] mb-3">
+                          A browser window should have opened. If not,{' '}
                           <a
-                            href={oauthStep.verificationUri}
+                            href={oauthStep.verificationUriComplete}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-[var(--brand)] hover:underline font-medium"
+                            className="text-[var(--brand)] hover:underline"
                           >
-                            {oauthStep.verificationUri}
-                          </a>{' '}
-                          and enter:
+                            click here
+                          </a>.
                         </p>
 
+                        <div className="text-[10px] text-[var(--text-tertiary)] mb-2">Your code:</div>
                         <button
                           onClick={() => {
                             navigator.clipboard.writeText(oauthStep.userCode).then(() => {
@@ -172,7 +179,7 @@ export function GitHubAuthBadge() {
 
                       <div className="flex items-center justify-center gap-1.5 text-[10px] text-[var(--text-tertiary)]">
                         <Icon icon="lucide:loader-2" width={10} height={10} className="animate-spin" />
-                        Waiting for authorisation…
+                        Waiting for authorization…
                       </div>
 
                       <button

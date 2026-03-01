@@ -10,6 +10,7 @@ import { EditorTabs } from '@/components/editor-tabs'
 import { CodeEditor } from '@/components/code-editor'
 import { AgentPanel } from '@/components/agent-panel'
 import { RepoSelector } from '@/components/repo-selector'
+import { ResizeHandle } from '@/components/resize-handle'
 
 const STORAGE_REMEMBER = 'code-editor:remember'
 
@@ -188,13 +189,21 @@ function GatewayLogin() {
 
 // ─── Editor Layout ──────────────────────────────────────────────
 
+const EXPLORER_MIN = 160
+const EXPLORER_MAX = 480
+const AGENT_MIN = 260
+const AGENT_MAX = 600
+
 function EditorLayout() {
   const { repo } = useRepo()
-  const { openFile } = useEditor()
+  const { files, openFile } = useEditor()
   const { status } = useGateway()
+  const [explorerWidth, setExplorerWidth] = useState(240)
+  const [agentWidth, setAgentWidth] = useState(360)
   const [agentVisible, setAgentVisible] = useState(true)
-  const explorerWidth = 240
-  const agentWidth = 360
+  const [explorerVisible, setExplorerVisible] = useState(true)
+
+  const dirtyCount = files.filter(f => f.dirty).length
 
   // Handle file-select events from explorer
   useEffect(() => {
@@ -217,11 +226,44 @@ function EditorLayout() {
     return () => window.removeEventListener('file-select', handler)
   }, [repo, openFile])
 
+  const handleExplorerResize = useCallback((delta: number) => {
+    setExplorerWidth(w => Math.min(EXPLORER_MAX, Math.max(EXPLORER_MIN, w + delta)))
+  }, [])
+
+  const handleAgentResize = useCallback((delta: number) => {
+    // Negative delta = dragging left = wider agent
+    setAgentWidth(w => Math.min(AGENT_MAX, Math.max(AGENT_MIN, w - delta)))
+  }, [])
+
+  // Keyboard shortcut: Cmd+B toggle explorer, Cmd+J toggle agent
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey) {
+        if (e.key === 'b') { e.preventDefault(); setExplorerVisible(v => !v) }
+        if (e.key === 'j') { e.preventDefault(); setAgentVisible(v => !v) }
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
+
   return (
     <div className="flex flex-col h-screen">
       {/* Top bar */}
       <header className="flex items-center justify-between px-4 h-11 border-b border-[var(--border)] bg-[var(--bg-elevated)] shrink-0">
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setExplorerVisible(v => !v)}
+            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+              explorerVisible
+                ? 'text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]'
+                : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]'
+            }`}
+            title={`${explorerVisible ? 'Hide' : 'Show'} explorer (⌘B)`}
+          >
+            <Icon icon="lucide:panel-left" width={16} height={16} />
+          </button>
+
           <div className="flex items-center gap-2">
             <Icon icon="lucide:code" width={18} height={18} className="text-[var(--brand)]" />
             <span className="text-[13px] font-bold text-[var(--text-primary)]">code-editor</span>
@@ -247,7 +289,7 @@ function EditorLayout() {
                 ? 'text-[var(--brand)] bg-[color-mix(in_srgb,var(--brand)_10%,transparent)]'
                 : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]'
             }`}
-            title={agentVisible ? 'Hide agent panel' : 'Show agent panel'}
+            title={`${agentVisible ? 'Hide' : 'Show'} agent (⌘J)`}
           >
             <Icon icon="lucide:sparkles" width={15} height={15} />
           </button>
@@ -257,9 +299,14 @@ function EditorLayout() {
       {/* Main content */}
       <div className="flex flex-1 min-h-0">
         {/* File Explorer */}
-        <div className="shrink-0 border-r border-[var(--border)] bg-[var(--bg)]" style={{ width: explorerWidth }}>
-          <FileExplorer />
-        </div>
+        {explorerVisible && (
+          <>
+            <div className="shrink-0 bg-[var(--bg)]" style={{ width: explorerWidth }}>
+              <FileExplorer />
+            </div>
+            <ResizeHandle direction="horizontal" onResize={handleExplorerResize} />
+          </>
+        )}
 
         {/* Editor area */}
         <div className="flex-1 flex flex-col min-w-0">
@@ -269,9 +316,12 @@ function EditorLayout() {
 
         {/* Agent Panel */}
         {agentVisible && (
-          <div className="shrink-0 border-l border-[var(--border)]" style={{ width: agentWidth }}>
-            <AgentPanel />
-          </div>
+          <>
+            <ResizeHandle direction="horizontal" onResize={handleAgentResize} />
+            <div className="shrink-0" style={{ width: agentWidth }}>
+              <AgentPanel />
+            </div>
+          </>
         )}
       </div>
 
@@ -280,6 +330,11 @@ function EditorLayout() {
         <div className="flex items-center gap-3">
           {repo && <span className="font-mono">{repo.fullName}</span>}
           {repo && <span>{repo.branch}</span>}
+          {dirtyCount > 0 && (
+            <span className="text-[var(--brand)]">
+              {dirtyCount} modified
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-3">
           <span>code-editor v0.1.0</span>
@@ -288,6 +343,7 @@ function EditorLayout() {
     </div>
   )
 }
+
 
 // ─── Root Page ──────────────────────────────────────────────────
 

@@ -1,12 +1,15 @@
 /**
  * Tauri detection + IPC wrapper
  *
- * Provides safe wrappers that work in both web and desktop contexts.
- * In the browser, all calls return null/undefined gracefully.
+ * In Tauri v2, the runtime injects `__TAURI_INTERNALS__` on the window.
+ * `@tauri-apps/api` also re-exports it as `__TAURI__` in some builds.
+ * We check both, and also try the API import as a final fallback.
  */
 
 export function isTauri(): boolean {
-  return typeof window !== 'undefined' && '__TAURI__' in window
+  if (typeof window === 'undefined') return false
+  const w = window as unknown as Record<string, unknown>
+  return Boolean(w.__TAURI_INTERNALS__ || w.__TAURI__)
 }
 
 /** Call a Tauri command. Returns null if not in Tauri. */

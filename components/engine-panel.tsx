@@ -16,7 +16,10 @@ export function EnginePanel() {
   const [status, setStatus] = useState<EngineStatus | null>(null)
   const [loading, setLoading] = useState(false)
   const [actionMsg, setActionMsg] = useState<string | null>(null)
-  const isDesktop = isTauri()
+  const [isDesktop, setIsDesktop] = useState(false)
+
+  // Detect Tauri on mount (client-side only)
+  useEffect(() => { setIsDesktop(isTauri()) }, [])
 
   const fetchStatus = useCallback(async () => {
     const result = await tauriInvoke<EngineStatus>('engine_status')

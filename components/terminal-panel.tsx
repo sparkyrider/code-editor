@@ -19,6 +19,7 @@ interface TerminalPanelProps {
 export function TerminalPanel({ visible, height, onHeightChange }: TerminalPanelProps) {
   const [tabs, setTabs] = useState<TerminalTab[]>([])
   const [activeTab, setActiveTab] = useState<number | null>(null)
+  const [isDesktop, setIsDesktop] = useState(false)
   const termRef = useRef<HTMLDivElement>(null)
   const xtermRef = useRef<any>(null)     // Terminal instance
   const fitRef = useRef<any>(null)       // FitAddon instance
@@ -26,8 +27,8 @@ export function TerminalPanel({ visible, height, onHeightChange }: TerminalPanel
   const startY = useRef(0)
   const startH = useRef(0)
 
-  // Desktop check
-  const isDesktop = isTauri()
+  // Detect Tauri on mount (client-side only)
+  useEffect(() => { setIsDesktop(isTauri()) }, [])
 
   // Create a new terminal session
   const createTerminal = useCallback(async () => {

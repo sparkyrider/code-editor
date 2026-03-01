@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import Editor, { type OnMount } from '@monaco-editor/react'
+import Editor, { type OnMount, type BeforeMount } from '@monaco-editor/react'
 import loader from '@monaco-editor/loader'
 import { Icon } from '@iconify/react'
 import { useEditor } from '@/context/editor-context'
@@ -17,6 +17,7 @@ export function CodeEditor() {
     const initMonaco = async () => {
       const monaco = await import('monaco-editor')
       loader.config({ monaco })
+
       if (mounted) setMonacoReady(true)
     }
 
@@ -29,6 +30,18 @@ export function CodeEditor() {
 
   const file = files.find(f => f.path === activeFile)
 
+  const handleBeforeMount: BeforeMount = useCallback((monaco) => {
+    // Disable red squiggly lines — Monaco has no tsconfig/types context
+    monaco.languages.typescript?.typescriptDefaults?.setDiagnosticsOptions({
+      noSemanticValidation: true,
+      noSyntaxValidation: false,
+    })
+    monaco.languages.typescript?.javascriptDefaults?.setDiagnosticsOptions({
+      noSemanticValidation: true,
+      noSyntaxValidation: false,
+    })
+  }, [])
+
   const handleMount: OnMount = useCallback((editor) => {
     editorRef.current = editor
     editor.focus()
@@ -39,6 +52,25 @@ export function CodeEditor() {
       updateFileContent(activeFile, value)
     }
   }, [activeFile, updateFileContent])
+
+  // Listen for line navigation events from agent panel
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { startLine, endLine } = (e as CustomEvent).detail
+      const editor = editorRef.current
+      if (!editor) return
+      editor.revealLineInCenter(startLine)
+      editor.setSelection({
+        startLineNumber: startLine,
+        startColumn: 1,
+        endLineNumber: endLine ?? startLine,
+        endColumn: editor.getModel()?.getLineMaxColumn(endLine ?? startLine) ?? 1,
+      })
+      editor.focus()
+    }
+    window.addEventListener('editor-navigate', handler)
+    return () => window.removeEventListener('editor-navigate', handler)
+  }, [])
 
   const fileIcon = file?.kind === 'image'
     ? 'lucide:image'
@@ -132,6 +164,7 @@ export function CodeEditor() {
             language={file.language}
             theme="vs-dark"
             onChange={handleChange}
+            beforeMount={handleBeforeMount}
             onMount={handleMount}
             options={{
               fontSize: 13,

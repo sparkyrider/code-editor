@@ -8,6 +8,7 @@ import { useRepo } from '@/context/repo-context'
 import { MarkdownPreview } from '@/components/markdown-preview'
 import { DiffViewer } from '@/components/diff-viewer'
 import { parseEditProposals, type EditProposal } from '@/lib/edit-parser'
+import { navigateToLine } from '@/lib/line-links'
 import {
   CODE_EDITOR_SESSION_KEY,
   SESSION_INIT_STORAGE_KEY,
@@ -235,6 +236,8 @@ export function AgentPanel() {
       }
 
       // Synchronous reply (non-streaming fallback)
+      // Only process if the event handler hasn't already consumed this key
+      if (!sentKeysRef.current.has(idemKey)) return // already handled by event
       sentKeysRef.current.delete(idemKey)
       const reply = String(resp?.reply ?? resp?.text ?? '')
       if (reply && !/^NO_REPLY$/i.test(reply.trim())) {
@@ -405,7 +408,25 @@ export function AgentPanel() {
               {msg.role === 'user' ? (
                 <p className="whitespace-pre-wrap break-words">{msg.content}</p>
               ) : (
-                <div className="prose-chat">
+                <div
+                  className="prose-chat"
+                  onClick={(e) => {
+                    // Click-to-navigate: detect line references in clicked text
+                    const target = e.target as HTMLElement
+                    const text = target.textContent ?? ''
+                    // Match "line N", "lines N-M", "LN", path:N patterns
+                    const lineMatch = text.match(/(?:lines?\s+|L)(\d+)(?:\s*[-–]\s*L?(\d+))?/i)
+                      || text.match(/([\w./\-]+\.\w+)[:#]L?(\d+)/)
+                    if (lineMatch) {
+                      const start = parseInt(lineMatch[1] ?? '', 10)
+                      const end = lineMatch[2] ? parseInt(lineMatch[2], 10) : undefined
+                      if (!isNaN(start)) {
+                        e.preventDefault()
+                        navigateToLine(start, end)
+                      }
+                    }
+                  }}
+                >
                   <MarkdownPreview content={msg.content} />
                 </div>
               )}

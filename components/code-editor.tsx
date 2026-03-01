@@ -233,8 +233,9 @@ export function CodeEditor() {
       }))
     })
 
+    const monaco = monacoInstanceRef.current
     // ⌘L: Send selection to agent chat
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyL, () => {
+    if (monaco) editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyL, () => {
       const sel = editor.getSelection()
       const model = editor.getModel()
       if (!sel || sel.isEmpty() || !model) return

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Icon } from '@iconify/react'
+import { KnotLogo } from '@/components/knot-logo'
 
 export default function Landing({ onEnter }: { onEnter?: () => void }) {
   const [ready, setReady] = useState(false)
@@ -49,7 +50,7 @@ export default function Landing({ onEnter }: { onEnter?: () => void }) {
       >
         <div className="landing-header-left">
           <div className="landing-logo-mark">
-            <Icon icon="lucide:code" width={16} height={16} />
+            <KnotLogo size={18} />
           </div>
           <span className="landing-wordmark">Code Editor</span>
         </div>
@@ -68,7 +69,7 @@ export default function Landing({ onEnter }: { onEnter?: () => void }) {
       {/* Centered content */}
       <main className="landing-center">
         <div className="landing-icon-ring">
-          <Icon icon="lucide:code" width={28} height={28} className="landing-icon" />
+          <KnotLogo size={36} className="landing-icon" />
         </div>
 
         <h1 className="landing-title">

@@ -5,6 +5,7 @@ import { GatewayProvider } from '@/context/gateway-context'
 import { RepoProvider } from '@/context/repo-context'
 import { EditorProvider } from '@/context/editor-context'
 import { LocalProvider } from '@/context/local-context'
+import { ViewProvider } from '@/context/view-context'
 import { GitHubAuthProvider } from '@/context/github-auth-context'
 
 export const metadata: Metadata = {
@@ -26,7 +27,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <RepoProvider>
                   <EditorProvider>
                     <LocalProvider>
+                      <ViewProvider>
                       {children}
+                      </ViewProvider>
                     </LocalProvider>
                   </EditorProvider>
                 </RepoProvider>

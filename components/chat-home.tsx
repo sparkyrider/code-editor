@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Icon } from '@iconify/react'
+import { KnotLogo } from '@/components/knot-logo'
 import { ModeSelector } from '@/components/mode-selector'
 import type { AgentMode } from '@/components/mode-selector'
 import { useRepo } from '@/context/repo-context'
@@ -41,8 +42,8 @@ export function ChatHome({ onSend, onSelectFolder, onCloneRepo }: Props) {
       <div className="w-full max-w-[640px]">
         {/* Brand + prompt */}
         <div className="text-center mb-8">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[color-mix(in_srgb,var(--brand)_20%,var(--bg-elevated))] to-[var(--bg-elevated)] border border-[var(--border)] flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <Icon icon="lucide:code" width={24} height={24} className="text-[var(--brand)]" />
+          <div className="w-12 h-12 flex items-center justify-center mx-auto mb-4">
+            <KnotLogo size={48} />
           </div>
           <h1 className="text-[20px] font-semibold text-[var(--text-primary)] tracking-tight mb-1">
             What do you want to build?

@@ -1,6 +1,7 @@
 'use client'
 
 import { Icon } from '@iconify/react'
+import { KnotLogo } from '@/components/knot-logo'
 
 interface ActivityBarProps {
   active: string
@@ -47,6 +48,9 @@ export function ActivityBar({
   return (
     <div className="flex flex-col items-center justify-between w-[42px] shrink-0 bg-[var(--bg-secondary)] border-r border-[var(--border)] py-1.5">
       <div className="flex flex-col items-center gap-0.5">
+        <div className="flex items-center justify-center w-[34px] h-[34px] mb-1">
+          <KnotLogo size={22} />
+        </div>
         {items.map(item => {
           const act = isActive(item.id)
           return (

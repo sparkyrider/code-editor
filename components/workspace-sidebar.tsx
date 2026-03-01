@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Icon } from '@iconify/react'
+import { KnotLogo } from '@/components/knot-logo'
 import { isTauri } from '@/lib/tauri'
 
 export interface ChatSession {
@@ -224,9 +225,7 @@ export function WorkspaceSidebar({ activeId, onSelect, onNew, collapsed, onToggl
       <div className={`shrink-0 ${isTauriDesktop ? 'pt-7' : ''}`}>
         {/* Branding */}
         <div data-tauri-drag-region className="flex items-center gap-2 px-3 pt-2.5 pb-1 tauri-drag-region">
-          <div className="w-5 h-5 rounded-md bg-[var(--brand)] flex items-center justify-center">
-            <Icon icon="lucide:code-2" width={11} height={11} className="text-white" />
-          </div>
+          <KnotLogo size={20} />
           <div className="flex-1 min-w-0">
             <div className="text-[11px] font-bold text-[var(--text-primary)] leading-tight">Knot Code</div>
             {repoName && (

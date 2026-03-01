@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Editor, { type OnMount, type BeforeMount } from '@monaco-editor/react'
 import loader from '@monaco-editor/loader'
 import { Icon } from '@iconify/react'
+import { KnotLogo } from '@/components/knot-logo'
 import { useEditor } from '@/context/editor-context'
 import { useTheme } from '@/context/theme-context'
 import { registerEditorTheme } from '@/lib/monaco-theme'
@@ -26,8 +27,8 @@ function WelcomeView() {
       <div className="w-full max-w-[520px] px-8">
         {/* App identity */}
         <div className="flex items-center gap-3 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[color-mix(in_srgb,var(--brand)_25%,var(--bg-elevated))] to-[var(--bg-elevated)] border border-[var(--border)] flex items-center justify-center shadow-sm">
-            <Icon icon="lucide:code" width={20} height={20} className="text-[var(--brand)]" />
+          <div className="w-10 h-10 flex items-center justify-center">
+            <KnotLogo size={40} />
           </div>
           <div>
             <h1 className="text-[15px] font-semibold text-[var(--text-primary)] tracking-tight">Knot Code</h1>

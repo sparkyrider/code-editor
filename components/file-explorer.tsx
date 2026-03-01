@@ -124,6 +124,8 @@ function DirItem({ dir, depth }: { dir: TreeDir; depth: number }) {
 
 function FileItem({ file, depth }: { file: TreeFile; depth: number }) {
   const { activeFile } = useEditor()
+  const local = useLocal()
+  const gitStatus = local.gitInfo?.status.find(s => s.path === file.path)?.status
   const isActive = activeFile === file.path
   const icon = getFileIcon(file.path)
 
@@ -227,13 +229,32 @@ export function FileExplorer() {
 
       {/* Tree */}
       <div className="flex-1 overflow-y-auto py-1">
-        {treeLoading && effectiveTree.length === 0 && (
+        {/* Local mode: no folder selected */}
+        {local.localMode && !local.rootPath && effectiveTree.length === 0 && (
+          <div className="flex flex-col items-center gap-3 px-4 py-8 text-center">
+            <Icon icon="lucide:folder-open" width={32} height={32} className="text-[var(--text-disabled)]" />
+            <div>
+              <p className="text-[12px] text-[var(--text-secondary)] mb-1">No folder open</p>
+              <p className="text-[10px] text-[var(--text-tertiary)]">Open a project folder to browse and edit files locally.</p>
+            </div>
+            <button
+              onClick={local.openFolder}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer"
+              style={{ backgroundColor: 'var(--brand)', color: 'var(--brand-contrast, #fff)' }}
+            >
+              <Icon icon="lucide:folder-plus" width={13} height={13} />
+              Open Folder
+            </button>
+          </div>
+        )}
+        {/* Loading */}
+        {treeLoading && effectiveTree.length === 0 && !local.localMode && (
           <div className="flex items-center gap-2 px-3 py-4 text-[11px] text-[var(--text-secondary)]">
             <Icon icon="lucide:loader-2" width={14} height={14} className="animate-spin text-[var(--brand)]" />
             Loading tree...
           </div>
         )}
-        {treeError && (
+        {treeError && !local.localMode && (
           <div className="px-3 py-2 text-[11px] text-[var(--color-deletions)]">{treeError}</div>
         )}
         {filteredTree.map(node =>

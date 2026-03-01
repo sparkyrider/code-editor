@@ -76,7 +76,25 @@ export function LocalProvider({ children }: { children: ReactNode }) {
   const [gitInfo, setGitInfo] = useState<GitInfo | null>(null)
   const [available, setAvailable] = useState(false)
 
-  useEffect(() => { setAvailable(isTauri()) }, [])
+  // On mount: default to local mode on desktop, restore last folder
+  useEffect(() => {
+    const desktop = isTauri()
+    setAvailable(desktop)
+
+    if (desktop) {
+      const recent = getRecentFolders()
+      const lastMode = localStorage.getItem('code-editor:source-mode')
+      // Default to local unless user explicitly chose remote
+      if (lastMode !== 'remote' && recent.length > 0) {
+        setRootPathState(recent[0])
+        setLocalMode(true)
+        loadTree(recent[0])
+      } else if (lastMode !== 'remote') {
+        // Desktop with no recent folders — still show local mode (empty)
+        setLocalMode(true)
+      }
+    }
+  }, [])  // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadTree = useCallback(async (root: string) => {
     const tree = await tauriInvoke<FileEntry[]>('local_read_tree', { root })
@@ -89,6 +107,7 @@ export function LocalProvider({ children }: { children: ReactNode }) {
     setRootPathState(path)
     setLocalMode(true)
     saveRecentFolder(path)
+    localStorage.setItem('code-editor:source-mode', 'local')
     loadTree(path)
   }, [loadTree])
 
@@ -106,6 +125,7 @@ export function LocalProvider({ children }: { children: ReactNode }) {
     setRootPathState(null)
     setLocalTree([])
     setGitInfo(null)
+    localStorage.setItem('code-editor:source-mode', 'remote')
   }, [])
 
   const readFile = useCallback(async (path: string): Promise<string> => {

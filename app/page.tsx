@@ -12,6 +12,7 @@ import { EditorTabs } from '@/components/editor-tabs'
 import { CodeEditor } from '@/components/code-editor'
 import { AgentPanel } from '@/components/agent-panel'
 import { RepoSelector } from '@/components/repo-selector'
+import { SourceSwitcher } from '@/components/source-switcher'
 import { ResizeHandle } from '@/components/resize-handle'
 import { ThemeSwitcher } from '@/components/theme-switcher'
 import { QuickOpen } from '@/components/quick-open'
@@ -508,36 +509,8 @@ function EditorLayout() {
           </div>
           <div className="w-px h-5 bg-[var(--border)]" />
           <div className={isTauriDesktop ? 'tauri-no-drag' : ''}>
-            <RepoSelector />
+            {local.available ? <SourceSwitcher /> : <RepoSelector />}
           </div>
-          {local.available && (
-            <div className={isTauriDesktop ? 'tauri-no-drag' : ''}>
-              {local.localMode ? (
-                <div className="flex items-center gap-1.5">
-                  <span className="flex items-center gap-1 text-[11px] text-[var(--color-additions)]">
-                    <Icon icon="lucide:folder-open" width={12} height={12} />
-                    Local
-                  </span>
-                  <button
-                    onClick={local.exitLocalMode}
-                    className="text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] cursor-pointer"
-                    title="Switch to GitHub mode"
-                  >
-                    <Icon icon="lucide:x" width={12} height={12} />
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={local.openFolder}
-                  className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer"
-                  title="Open local folder"
-                >
-                  <Icon icon="lucide:folder-open" width={13} height={13} />
-                  Open Folder
-                </button>
-              )}
-            </div>
-          )}
         </div>
 
         <div className="flex items-center gap-1.5">

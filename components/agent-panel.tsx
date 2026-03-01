@@ -345,6 +345,20 @@ export function AgentPanel() {
     setActiveDiff({ proposal, messageId, original: existing?.content ?? '' })
   }, [getFile])
 
+  const handleQuickApply = useCallback((proposal: EditProposal) => {
+    const existing = getFile(proposal.filePath)
+    if (existing) {
+      updateFileContent(proposal.filePath, proposal.content)
+    } else {
+      openFile(proposal.filePath, proposal.content, undefined)
+    }
+    appendMessage({
+      id: crypto.randomUUID(), role: 'system',
+      content: `Applied edit to \`${proposal.filePath}\`. File is modified — use /commit to save.`,
+      timestamp: Date.now(),
+    })
+  }, [getFile, updateFileContent, openFile, appendMessage])
+
   const handleApplyEdit = useCallback(() => {
     if (!activeDiff) return
     const { proposal } = activeDiff
@@ -504,19 +518,34 @@ export function AgentPanel() {
             {msg.editProposals && msg.editProposals.length > 0 && (
               <div className="flex flex-col gap-1 mt-1.5">
                 {msg.editProposals.map((proposal, i) => (
-                  <button
-                    key={i}
-                    onClick={() => handleShowDiff(proposal, msg.id)}
-                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-medium border transition-colors cursor-pointer"
-                    style={{
-                      borderColor: 'color-mix(in srgb, var(--brand) 30%, transparent)',
-                      backgroundColor: 'color-mix(in srgb, var(--brand) 8%, transparent)',
-                      color: 'var(--brand)',
-                    }}
-                  >
-                    <Icon icon="lucide:git-compare" width={12} height={12} />
-                    Review diff: {proposal.filePath}
-                  </button>
+                  <div key={i} className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleQuickApply(proposal)}
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-l-md text-[10px] font-medium border transition-colors cursor-pointer"
+                      style={{
+                        borderColor: 'color-mix(in srgb, var(--color-additions) 40%, transparent)',
+                        backgroundColor: 'color-mix(in srgb, var(--color-additions) 12%, transparent)',
+                        color: 'var(--color-additions)',
+                      }}
+                      title="Apply changes directly"
+                    >
+                      <Icon icon="lucide:check" width={12} height={12} />
+                      Apply
+                    </button>
+                    <button
+                      onClick={() => handleShowDiff(proposal, msg.id)}
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-r-md text-[10px] font-medium border border-l-0 transition-colors cursor-pointer"
+                      style={{
+                        borderColor: 'color-mix(in srgb, var(--brand) 30%, transparent)',
+                        backgroundColor: 'color-mix(in srgb, var(--brand) 8%, transparent)',
+                        color: 'var(--brand)',
+                      }}
+                      title="Review changes in diff viewer"
+                    >
+                      <Icon icon="lucide:git-compare" width={12} height={12} />
+                      Diff: {proposal.filePath}
+                    </button>
+                  </div>
                 ))}
               </div>
             )}

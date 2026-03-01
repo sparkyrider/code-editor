@@ -24,7 +24,7 @@ interface ChatMessage {
 }
 
 export function AgentPanel() {
-  const { sendRequest, status } = useGateway()
+  const { sendRequest, onEvent, status } = useGateway()
   const { files, activeFile, getFile, openFile, updateFileContent } = useEditor()
   const { repo } = useRepo()
 
@@ -41,6 +41,8 @@ export function AgentPanel() {
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const sessionInitRef = useRef(false)
+  const sentKeysRef = useRef(new Set<string>())
+  const [streamBuffer, setStreamBuffer] = useState('')
 
   const isConnected = status === 'connected'
 
@@ -76,12 +78,104 @@ export function AgentPanel() {
     }).catch(() => { /* non-fatal */ })
   }, [isConnected, sendRequest])
 
+  // ─── Listen for chat events (streaming replies) ───────────────
+  useEffect(() => {
+    const unsub = onEvent('chat', (payload: unknown) => {
+      const p = payload as Record<string, unknown>
+      const state = p.state as string | undefined
+      const idempotencyKey = p.idempotencyKey as string | undefined
+      const eventSessionKey = p.sessionKey as string | undefined
+
+      // Match by idempotency key or session key fallback
+      const matchesIdem = !!(idempotencyKey && sentKeysRef.current.has(idempotencyKey))
+      const matchesSession = !idempotencyKey && eventSessionKey === CODE_EDITOR_SESSION_KEY
+      if (!matchesIdem && !matchesSession) return
+
+      if (state === 'delta') {
+        const message = p.message as Record<string, unknown> | undefined
+        if (message) {
+          const content = message.content as string | Array<Record<string, unknown>> | undefined
+          let text = ''
+          if (typeof content === 'string') text = content
+          else if (Array.isArray(content)) {
+            text = content
+              .filter((b) => b.type === 'text' || b.type === 'output_text')
+              .map((b) => (b.text as string) || '')
+              .join('')
+          }
+          if (text) {
+            setStreamBuffer(text)
+            setIsStreaming(true)
+          }
+        }
+      } else if (state === 'final') {
+        const message = p.message as Record<string, unknown> | undefined
+        let finalText = ''
+        if (message) {
+          const content = message.content as string | Array<Record<string, unknown>> | undefined
+          if (typeof content === 'string') finalText = content
+          else if (Array.isArray(content)) {
+            finalText = content
+              .filter((b) => b.type === 'text' || b.type === 'output_text')
+              .map((b) => (b.text as string) || '')
+              .join('')
+          }
+        }
+        if (idempotencyKey) sentKeysRef.current.delete(idempotencyKey)
+        setStreamBuffer(prev => {
+          const text = finalText || prev || ''
+          if (text && !/^NO_REPLY$/i.test(text.trim())) {
+            const editProposals = parseEditProposals(text)
+            setMessages(msgs => [...msgs, {
+              id: crypto.randomUUID(),
+              role: 'assistant' as const,
+              content: text,
+              timestamp: Date.now(),
+              editProposals: editProposals.length > 0 ? editProposals : undefined,
+            }])
+          }
+          return ''
+        })
+        setIsStreaming(false)
+        setSending(false)
+      } else if (state === 'error') {
+        const errorMsg = (p.errorMessage as string) || 'Unknown error'
+        if (idempotencyKey) sentKeysRef.current.delete(idempotencyKey)
+        setStreamBuffer('')
+        setMessages(msgs => [...msgs, {
+          id: crypto.randomUUID(),
+          role: 'system' as const,
+          content: 'Error: ' + errorMsg,
+          timestamp: Date.now(),
+        }])
+        setIsStreaming(false)
+        setSending(false)
+      } else if (state === 'aborted') {
+        if (idempotencyKey) sentKeysRef.current.delete(idempotencyKey)
+        setStreamBuffer(prev => {
+          if (prev) {
+            setMessages(msgs => [...msgs, {
+              id: crypto.randomUUID(),
+              role: 'assistant' as const,
+              content: prev + ' [cancelled]',
+              timestamp: Date.now(),
+            }])
+          }
+          return ''
+        })
+        setIsStreaming(false)
+        setSending(false)
+      }
+    })
+    return unsub
+  }, [onEvent])
+
   // ─── Auto-scroll ──────────────────────────────────────────────
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [messages])
+  }, [messages, streamBuffer])
 
   // ─── Build per-message context ────────────────────────────────
   const buildContext = useCallback(() => {
@@ -124,16 +218,26 @@ export function AgentPanel() {
     try {
       const context = buildContext()
       const fullMessage = context ? `${context}\n\n${text}` : text
+      const idemKey = `ce-${Date.now()}`
+      sentKeysRef.current.add(idemKey)
 
       setIsStreaming(true)
       const resp = (await sendRequest('chat.send', {
         sessionKey: CODE_EDITOR_SESSION_KEY,
         message: fullMessage,
-        idempotencyKey: `ce-${Date.now()}`,
+        idempotencyKey: idemKey,
       })) as Record<string, unknown> | undefined
 
+      const respStatus = resp?.status as string | undefined
+      if (respStatus === 'started' || respStatus === 'in_flight') {
+        // Streaming — reply will arrive via onEvent('chat') handler
+        return
+      }
+
+      // Synchronous reply (non-streaming fallback)
+      sentKeysRef.current.delete(idemKey)
       const reply = String(resp?.reply ?? resp?.text ?? '')
-      if (reply) {
+      if (reply && !/^NO_REPLY$/i.test(reply.trim())) {
         const editProposals = parseEditProposals(reply)
         appendMessage({
           id: crypto.randomUUID(),
@@ -143,15 +247,16 @@ export function AgentPanel() {
           editProposals: editProposals.length > 0 ? editProposals : undefined,
         })
       }
+      setIsStreaming(false)
+      setSending(false)
     } catch (err) {
       appendMessage({
         id: crypto.randomUUID(), role: 'system',
         content: `Error: ${err instanceof Error ? err.message : 'Unknown error'}`,
         timestamp: Date.now(),
       })
-    } finally {
-      setSending(false)
       setIsStreaming(false)
+      setSending(false)
     }
   }, [input, sending, isConnected, sendRequest, buildContext, appendMessage])
 
@@ -330,10 +435,19 @@ export function AgentPanel() {
         ))}
 
         {isStreaming && (
-          <div className="flex justify-start">
-            <div className="px-3 py-2 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border)] rounded-bl-sm">
-              <Icon icon="lucide:loader-2" width={14} height={14} className="text-[var(--brand)] animate-spin" />
-            </div>
+          <div className="flex flex-col items-start">
+            {streamBuffer ? (
+              <div className="max-w-[90%] min-w-0 rounded-xl px-3 py-2 text-[12px] leading-relaxed bg-[var(--bg-subtle)] border border-[var(--border)] text-[var(--text-primary)] rounded-bl-sm">
+                <div className="prose-chat">
+                  <MarkdownPreview content={streamBuffer} />
+                </div>
+                <span className="inline-block w-1.5 h-3.5 bg-[var(--brand)] animate-pulse ml-0.5 align-text-bottom rounded-sm" />
+              </div>
+            ) : (
+              <div className="px-3 py-2 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border)] rounded-bl-sm">
+                <Icon icon="lucide:loader-2" width={14} height={14} className="text-[var(--brand)] animate-spin" />
+              </div>
+            )}
           </div>
         )}
       </div>

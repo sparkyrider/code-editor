@@ -133,17 +133,23 @@ export function CommandPalette({ open, onClose, onRun }: CommandPaletteProps) {
               key={command.id}
               onClick={() => run(index)}
               className={cn(
-                'flex w-full items-center justify-between rounded-lg px-3 py-2 text-left transition-colors',
+                'flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-all duration-150 cursor-pointer',
                 index === selectedIndex
-                  ? 'bg-[color-mix(in_srgb,var(--brand)_12%,transparent)]'
-                  : 'hover:bg-[var(--bg-subtle)]',
+                  ? 'bg-[color-mix(in_srgb,var(--brand)_12%,transparent)] border-l-2 border-l-[var(--brand)]'
+                  : 'hover:bg-[var(--bg-subtle)] border-l-2 border-l-transparent',
               )}
             >
               <div>
-                <p className="text-[13px] text-[var(--text-primary)]">{command.label}</p>
+                <p className={cn("text-[13px]", index === selectedIndex ? 'text-[var(--text-primary)] font-medium' : 'text-[var(--text-primary)]')}>{command.label}</p>
                 <p className="text-[11px] text-[var(--text-tertiary)]">{command.hint}</p>
               </div>
-              <Icon icon="lucide:corner-down-left" width={13} height={13} className="text-[var(--text-tertiary)]" />
+              {index === selectedIndex ? (
+                <kbd className="rounded border border-[var(--border)] bg-[var(--bg-subtle)] px-1.5 py-0.5 text-[9px] text-[var(--text-tertiary)]">
+                  ↵
+                </kbd>
+              ) : (
+                <Icon icon="lucide:corner-down-left" width={13} height={13} className="text-[var(--text-disabled)]" />
+              )}
             </button>
           ))}
         </div>

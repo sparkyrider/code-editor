@@ -61,13 +61,14 @@ export function ShortcutsOverlay({ open, onClose }: ShortcutsOverlayProps) {
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="w-full max-w-[520px] rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] shadow-2xl overflow-hidden"
+        className="w-full max-w-[520px] rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] shadow-2xl overflow-hidden animate-scale-in"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border)]">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border)] relative">
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[var(--brand)] to-transparent opacity-30" />
           <div className="flex items-center gap-2">
             <Icon icon="lucide:keyboard" width={16} height={16} className="text-[var(--brand)]" />
             <span className="text-[14px] font-semibold text-[var(--text-primary)]">Keyboard Shortcuts</span>
@@ -84,18 +85,19 @@ export function ShortcutsOverlay({ open, onClose }: ShortcutsOverlayProps) {
         <div className="p-5 space-y-5 max-h-[70vh] overflow-y-auto">
           {SECTIONS.map(section => (
             <div key={section.title}>
-              <h3 className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)] mb-2">
+              <h3 className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)] mb-2.5 flex items-center gap-2">
                 {section.title}
+                <span className="flex-1 h-px bg-[var(--border)]" />
               </h3>
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 {section.shortcuts.map(s => (
-                  <div key={s.desc} className="flex items-center justify-between py-1">
-                    <span className="text-[12px] text-[var(--text-secondary)]">{s.desc}</span>
+                  <div key={s.desc} className="flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-[var(--bg-subtle)] transition-colors group">
+                    <span className="text-[12px] text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">{s.desc}</span>
                     <div className="flex items-center gap-1">
                       {s.keys.map((key, i) => (
                         <kbd
                           key={i}
-                          className={`px-1.5 py-0.5 rounded text-[10px] font-mono border ${
+                          className={`px-1.5 py-0.5 rounded text-[10px] font-mono border shadow-sm ${
                             key.startsWith('/')
                               ? 'bg-[color-mix(in_srgb,var(--brand)_10%,transparent)] border-[color-mix(in_srgb,var(--brand)_25%,transparent)] text-[var(--brand)]'
                               : 'bg-[var(--bg-subtle)] border-[var(--border)] text-[var(--text-primary)]'

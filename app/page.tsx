@@ -107,10 +107,14 @@ function GatewayLogin() {
   return (
     <div className="h-full overflow-hidden flex items-center justify-center px-4 bg-[var(--bg)]">
       <div className="w-full max-w-[400px] space-y-5 animate-fade-in-up">
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] p-6 sm:p-8 shadow-xl">
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] p-6 sm:p-8 shadow-xl relative overflow-hidden">
+          {/* Subtle gradient accent at top */}
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[var(--brand)] to-transparent opacity-40" />
+
           <div className="text-center mb-6">
-            <div className="w-10 h-10 rounded-lg mx-auto mb-4 flex items-center justify-center bg-[var(--brand)]">
-              <Icon icon="lucide:code" width={20} height={20} className="text-white" />
+            <div className="relative w-12 h-12 rounded-xl mx-auto mb-4 flex items-center justify-center bg-gradient-to-br from-[var(--brand)] to-[color-mix(in_srgb,var(--brand)_80%,#000)] shadow-lg">
+              <Icon icon="lucide:code" width={22} height={22} className="text-white" />
+              <div className="absolute -inset-1 rounded-xl bg-[var(--brand)] opacity-15 blur-md" />
             </div>
             <h1 className="text-base font-semibold tracking-tight text-[var(--text-primary)]">
               code-editor
@@ -208,15 +212,21 @@ function GatewayLogin() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed relative overflow-hidden group"
               style={{
                 backgroundColor: 'var(--brand)',
                 color: 'white',
               }}
             >
-              {loading
-                ? status === 'authenticating' ? 'Authenticating\u2026' : 'Connecting\u2026'
-                : 'Connect'}
+              {loading && (
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" style={{ backgroundSize: '200% 100%' }} />
+              )}
+              <span className="flex items-center justify-center gap-2">
+                {loading && <Icon icon="lucide:loader-2" width={14} height={14} className="animate-spin" />}
+                {loading
+                  ? status === 'authenticating' ? 'Authenticating\u2026' : 'Connecting\u2026'
+                  : 'Connect'}
+              </span>
             </button>
           </form>
 
@@ -509,9 +519,14 @@ function EditorLayout() {
       {/* Top bar */}
       <header data-tauri-drag-region className={`flex items-center justify-between h-11 border-b border-[var(--border)] bg-[var(--bg-elevated)] shrink-0 ${isTauriDesktop ? 'tauri-drag-region' : ''} ${isMacTauri ? 'pl-20 pr-4' : 'px-4'}`}>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Icon icon="lucide:code" width={18} height={18} className="text-[var(--brand)]" />
-            <span className="text-[13px] font-bold text-[var(--text-primary)]">code-editor</span>
+          <div className="flex items-center gap-2 group">
+            <div className="relative">
+              <Icon icon="lucide:code" width={18} height={18} className="text-[var(--brand)] transition-transform duration-300 group-hover:scale-110" />
+              <span className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full border border-[var(--bg-elevated)] transition-colors ${
+                status === 'connected' ? 'bg-[var(--color-additions)]' : 'bg-[var(--text-tertiary)]'
+              }`} />
+            </div>
+            <span className="text-[13px] font-bold tracking-tight text-[var(--text-primary)]">code-editor</span>
           </div>
           <div className="w-px h-5 bg-[var(--border)]" />
           <div className={isTauriDesktop ? 'tauri-no-drag' : ''}>
@@ -519,19 +534,11 @@ function EditorLayout() {
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5">
-          {/* <span className={`flex items-center gap-1 text-[10px] mr-1 ${
-            status === 'connected' ? 'text-[var(--color-additions)]' : 'text-[var(--text-tertiary)]'
-          }`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${
-              status === 'connected' ? 'bg-[var(--color-additions)]' : 'bg-[var(--text-tertiary)]'
-            }`} />
-            gateway
-          </span> */}
-
+        <div className="flex items-center gap-1">
           <div className={isTauriDesktop ? 'tauri-no-drag' : ''}>
             <GitHubAuthBadge />
           </div>
+          <div className="w-px h-4 bg-[var(--border)] mx-0.5" />
           <div className={isTauriDesktop ? 'tauri-no-drag' : ''}>
             <ThemeSwitcher />
           </div>
@@ -692,26 +699,63 @@ function EditorLayout() {
 
       {/* Status bar */}
       <footer className="flex items-center justify-between px-3 h-6 border-t border-[var(--border)] bg-[var(--bg-elevated)] text-[9px] text-[var(--text-tertiary)] shrink-0">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          <span className={`flex items-center gap-1 ${
+            status === 'connected' ? 'text-[var(--color-additions)]' : 'text-[var(--text-tertiary)]'
+          }`}>
+            <span className={`w-1.5 h-1.5 rounded-full transition-colors ${
+              status === 'connected' ? 'bg-[var(--color-additions)] animate-breathe' : 'bg-[var(--text-disabled)]'
+            }`} />
+            {status === 'connected' ? 'Gateway' : 'Offline'}
+          </span>
+          <div className="w-px h-3 bg-[var(--border)]" />
           {local.localMode && local.rootPath && (
-            <span className="font-mono">{local.rootPath.split('/').pop()}</span>
+            <span className="font-mono flex items-center gap-1">
+              <Icon icon="lucide:folder" width={9} height={9} />
+              {local.rootPath.split('/').pop()}
+            </span>
           )}
           {local.localMode && local.gitInfo?.is_repo && (
-            <span>{local.gitInfo.branch}</span>
+            <span className="flex items-center gap-1">
+              <Icon icon="lucide:git-branch" width={9} height={9} />
+              {local.gitInfo.branch}
+            </span>
           )}
-          {!local.localMode && repo && <span className="font-mono">{repo.fullName}</span>}
-          {!local.localMode && repo && <span>{repo.branch}</span>}
+          {!local.localMode && repo && (
+            <span className="font-mono flex items-center gap-1">
+              <Icon icon="lucide:github" width={9} height={9} />
+              {repo.fullName}
+            </span>
+          )}
+          {!local.localMode && repo && (
+            <span className="flex items-center gap-1">
+              <Icon icon="lucide:git-branch" width={9} height={9} />
+              {repo.branch}
+            </span>
+          )}
           {dirtyCount > 0 && (
-            <button
-              onClick={() => setChangesVisible(true)}
-              className="text-[var(--brand)] hover:underline cursor-pointer"
-              title="Review changes before committing"
-            >
-              {dirtyCount} modified
-            </button>
+            <>
+              <div className="w-px h-3 bg-[var(--border)]" />
+              <button
+                onClick={() => setChangesVisible(true)}
+                className="flex items-center gap-1 text-[var(--brand)] hover:underline cursor-pointer transition-colors"
+                title="Review changes before committing"
+              >
+                <Icon icon="lucide:file-pen" width={9} height={9} />
+                {dirtyCount} modified
+              </button>
+            </>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          {activeFile && (
+            <>
+              <span className="font-mono text-[var(--text-tertiary)]">
+                {activeFile.split('.').pop()?.toUpperCase()}
+              </span>
+              <div className="w-px h-3 bg-[var(--border)]" />
+            </>
+          )}
           <button
             onClick={() => setTerminalVisible(v => !v)}
             className={`flex items-center gap-1 cursor-pointer hover:text-[var(--text-secondary)] transition-colors ${terminalVisible ? 'text-[var(--brand)]' : ''
@@ -728,9 +772,10 @@ function EditorLayout() {
             title="Toggle Gateway Engine (⌘⇧E)"
           >
             <Icon icon="lucide:cpu" width={10} height={10} />
-            <span>Gateway Engine</span>
+            <span>Engine</span>
           </button>
-          <span>code-editor v0.1.0</span>
+          <div className="w-px h-3 bg-[var(--border)]" />
+          <span className="text-[var(--text-disabled)]">v0.1.0</span>
         </div>
       </footer>
     </div>

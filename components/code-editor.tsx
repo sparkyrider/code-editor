@@ -364,17 +364,38 @@ export function CodeEditor() {
   if (!file) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-center bg-[var(--bg)]">
-        <Icon icon="lucide:code" width={48} height={48} className="text-[var(--text-tertiary)] mb-4" />
+        <div className="relative mb-5">
+          <Icon icon="lucide:code" width={48} height={48} className="text-[var(--text-disabled)]" />
+          <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[var(--bg-subtle)] border border-[var(--border)] flex items-center justify-center">
+            <Icon icon="lucide:sparkles" width={10} height={10} className="text-[var(--brand)] animate-sparkle" />
+          </div>
+        </div>
         <p className="text-[14px] font-medium text-[var(--text-secondary)]">No file open</p>
-        <p className="text-[12px] text-[var(--text-tertiary)] mt-1 max-w-[280px]">
+        <p className="text-[12px] text-[var(--text-tertiary)] mt-1 max-w-[280px] leading-relaxed">
           Select a file from the explorer or use the agent to generate code
         </p>
-        <div className="flex flex-wrap gap-2 mt-4 justify-center">
-          {['/edit', '/explain', '/generate', '/search'].map(cmd => (
-            <span key={cmd} className="text-[10px] font-mono px-2 py-1 rounded bg-[var(--bg-subtle)] border border-[var(--border)] text-[var(--text-tertiary)]">
+        <div className="flex flex-wrap gap-2 mt-5 justify-center">
+          {[
+            { cmd: '/edit', icon: 'lucide:pencil' },
+            { cmd: '/explain', icon: 'lucide:book-open' },
+            { cmd: '/generate', icon: 'lucide:plus' },
+            { cmd: '/search', icon: 'lucide:search' },
+          ].map(({ cmd, icon }) => (
+            <span key={cmd} className="flex items-center gap-1 text-[10px] font-mono px-2 py-1 rounded-md bg-[var(--bg-subtle)] border border-[var(--border)] text-[var(--text-tertiary)] hover:border-[var(--brand)] hover:text-[var(--brand)] transition-colors">
+              <Icon icon={icon} width={10} height={10} />
               {cmd}
             </span>
           ))}
+        </div>
+        <div className="mt-6 flex items-center gap-2 text-[10px] text-[var(--text-disabled)]">
+          <kbd className="px-1.5 py-0.5 rounded border border-[var(--border)] bg-[var(--bg-subtle)] text-[var(--text-tertiary)]">⌘P</kbd>
+          <span>Quick open</span>
+          <span className="mx-1">·</span>
+          <kbd className="px-1.5 py-0.5 rounded border border-[var(--border)] bg-[var(--bg-subtle)] text-[var(--text-tertiary)]">⌘B</kbd>
+          <span>Explorer</span>
+          <span className="mx-1">·</span>
+          <kbd className="px-1.5 py-0.5 rounded border border-[var(--border)] bg-[var(--bg-subtle)] text-[var(--text-tertiary)]">⌘J</kbd>
+          <span>Agent</span>
         </div>
       </div>
     )
@@ -385,21 +406,20 @@ export function CodeEditor() {
       {/* Breadcrumb navigation */}
       <div className="flex items-center justify-between gap-2 px-3 py-1 border-b border-[var(--border)] bg-[var(--bg)] shrink-0">
         <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar min-w-0">
-          <Icon icon={fileIcon} width={12} height={12} className="text-[var(--text-tertiary)] shrink-0" />
+          <Icon icon={fileIcon} width={12} height={12} className="text-[var(--text-tertiary)] shrink-0 mr-0.5" />
           {file.path.split('/').map((segment, i, arr) => (
             <div key={i} className="flex items-center gap-0.5 shrink-0">
               {i > 0 && (
-                <Icon icon="lucide:chevron-right" width={10} height={10} className="text-[var(--text-tertiary)]" />
+                <Icon icon="lucide:chevron-right" width={8} height={8} className="text-[var(--text-disabled)]" />
               )}
               <button
-                className={`text-[10px] font-mono px-1 py-0.5 rounded transition-colors cursor-pointer ${
+                className={`text-[10px] font-mono px-1 py-0.5 rounded transition-all duration-150 cursor-pointer ${
                   i === arr.length - 1
-                    ? 'text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]'
+                    ? 'text-[var(--text-primary)] font-medium hover:bg-[var(--bg-subtle)]'
                     : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]'
                 }`}
                 onClick={() => {
                   if (i < arr.length - 1) {
-                    // Navigate to directory — dispatch search with prefix
                     const dirPath = arr.slice(0, i + 1).join('/')
                     window.dispatchEvent(new CustomEvent('quick-open-prefill', { detail: { query: dirPath + '/' } }))
                   }
@@ -411,7 +431,10 @@ export function CodeEditor() {
             </div>
           ))}
           {file.dirty && (
-            <span className="text-[9px] text-[var(--brand)] font-medium ml-1 shrink-0">modified</span>
+            <span className="flex items-center gap-1 text-[9px] text-[var(--brand)] font-medium ml-1.5 shrink-0 px-1.5 py-0.5 rounded-full bg-[color-mix(in_srgb,var(--brand)_8%,transparent)]">
+              <span className="w-1 h-1 rounded-full bg-[var(--brand)]" />
+              modified
+            </span>
           )}
         </div>
         <div className="flex items-center gap-1.5 shrink-0">

@@ -87,30 +87,38 @@ function buildTree(nodes: TreeNode[]): (TreeDir | TreeFile)[] {
 
 function DirItem({ dir, depth }: { dir: TreeDir; depth: number }) {
   const [expanded, setExpanded] = useState(depth < 1)
+  const childFileCount = dir.children.filter(c => c.type === 'file').length
+  const childDirCount = dir.children.filter(c => c.type === 'dir').length
 
   return (
     <div>
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-1.5 w-full text-left py-[3px] hover:bg-[var(--bg-subtle)] rounded-sm transition-colors cursor-pointer group"
+        className="flex items-center gap-1.5 w-full text-left py-[3px] hover:bg-[var(--bg-subtle)] rounded-sm transition-all duration-150 cursor-pointer group"
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
       >
         <Icon
           icon={expanded ? 'lucide:chevron-down' : 'lucide:chevron-right'}
           width={12} height={12}
-          className="text-[var(--text-tertiary)] shrink-0"
+          className="text-[var(--text-tertiary)] shrink-0 transition-transform duration-200"
+          style={{ transform: expanded ? 'rotate(0deg)' : 'rotate(0deg)' }}
         />
         <Icon
           icon={expanded ? 'lucide:folder-open' : 'lucide:folder'}
           width={14} height={14}
-          className="text-[var(--brand)] shrink-0"
+          className="text-[var(--brand)] shrink-0 transition-transform duration-150 group-hover:scale-110"
         />
-        <span className="text-[12px] text-[var(--text-secondary)] truncate group-hover:text-[var(--text-primary)]">
+        <span className="text-[12px] text-[var(--text-secondary)] truncate group-hover:text-[var(--text-primary)] transition-colors">
           {dir.name}
         </span>
+        {!expanded && (childFileCount + childDirCount) > 0 && (
+          <span className="ml-auto mr-2 text-[9px] text-[var(--text-disabled)] opacity-0 group-hover:opacity-100 transition-opacity">
+            {childDirCount > 0 && `${childDirCount}d`}{childDirCount > 0 && childFileCount > 0 && ' '}{childFileCount > 0 && `${childFileCount}f`}
+          </span>
+        )}
       </button>
       {expanded && (
-        <div>
+        <div className="animate-fade-in" style={{ animationDuration: '0.15s' }}>
           {dir.children.map(child =>
             child.type === 'dir'
               ? <DirItem key={child.path} dir={child} depth={depth + 1} />
@@ -122,15 +130,24 @@ function DirItem({ dir, depth }: { dir: TreeDir; depth: number }) {
   )
 }
 
+const GIT_STATUS_COLORS: Record<string, { color: string; label: string }> = {
+  M: { color: 'var(--warning, #eab308)', label: 'Modified' },
+  A: { color: 'var(--color-additions, #22c55e)', label: 'Added' },
+  D: { color: 'var(--color-deletions, #ef4444)', label: 'Deleted' },
+  R: { color: 'var(--info, #3b82f6)', label: 'Renamed' },
+  U: { color: 'var(--color-additions, #22c55e)', label: 'Untracked' },
+  '?': { color: 'var(--text-tertiary)', label: 'Untracked' },
+}
+
 function FileItem({ file, depth }: { file: TreeFile; depth: number }) {
   const { activeFile } = useEditor()
   const local = useLocal()
   const gitStatus = local.gitInfo?.status.find(s => s.path === file.path)?.status
   const isActive = activeFile === file.path
   const icon = getFileIcon(file.path)
+  const statusInfo = gitStatus ? GIT_STATUS_COLORS[gitStatus] : null
 
   const handleClick = async () => {
-    // File opening is handled by the parent via onFileSelect
     const event = new CustomEvent('file-select', { detail: { path: file.path, sha: file.sha } })
     window.dispatchEvent(event)
   }
@@ -138,17 +155,28 @@ function FileItem({ file, depth }: { file: TreeFile; depth: number }) {
   return (
     <button
       onClick={handleClick}
-      className={`flex items-center gap-1.5 w-full text-left py-[3px] rounded-sm transition-colors cursor-pointer group ${
+      className={`flex items-center gap-1.5 w-full text-left py-[3px] rounded-sm transition-all duration-150 cursor-pointer group ${
         isActive
           ? 'bg-[color-mix(in_srgb,var(--brand)_12%,transparent)] text-[var(--text-primary)]'
           : 'hover:bg-[var(--bg-subtle)] text-[var(--text-secondary)]'
       }`}
       style={{ paddingLeft: `${(depth + 1) * 16 + 8}px` }}
     >
-      <Icon icon={icon.icon} width={14} height={14} style={{ color: icon.color }} className="shrink-0" />
-      <span className="text-[12px] truncate group-hover:text-[var(--text-primary)]">
+      <Icon icon={icon.icon} width={14} height={14} style={{ color: icon.color }} className="shrink-0 transition-transform duration-150 group-hover:scale-110" />
+      <span className={`text-[12px] truncate group-hover:text-[var(--text-primary)] transition-colors ${
+        statusInfo ? '' : ''
+      }`} style={statusInfo ? { color: statusInfo.color } : undefined}>
         {file.name}
       </span>
+      {statusInfo && (
+        <span
+          className="ml-auto mr-2 text-[9px] font-bold shrink-0 opacity-70"
+          style={{ color: statusInfo.color }}
+          title={statusInfo.label}
+        >
+          {gitStatus}
+        </span>
+      )}
     </button>
   )
 }
@@ -195,6 +223,8 @@ export function FileExplorer() {
     )
   }
 
+  const fileCount = useMemo(() => effectiveTree.filter(n => n.type === 'blob').length, [effectiveTree])
+
   return (
     <div className="flex flex-col h-full bg-[var(--sidebar-bg)]">
       {/* Brand accent bar */}
@@ -202,17 +232,23 @@ export function FileExplorer() {
       {/* Header */}
       <div className="px-3 py-2 border-b border-[color-mix(in_srgb,var(--brand)_20%,var(--border))] bg-[color-mix(in_srgb,var(--brand)_4%,var(--sidebar-bg))] shrink-0">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[11px] font-semibold text-[var(--text-primary)] truncate uppercase tracking-wider">
-            Explorer
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-semibold text-[var(--text-primary)] truncate uppercase tracking-wider">
+              Explorer
+            </span>
+            {fileCount > 0 && (
+              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-full bg-[color-mix(in_srgb,var(--brand)_10%,transparent)] text-[var(--text-tertiary)] border border-[color-mix(in_srgb,var(--brand)_15%,transparent)]">
+                {fileCount}
+              </span>
+            )}
+          </div>
           <button
-            
             disabled={treeLoading}
             onClick={() => local.localMode ? local.refresh() : loadTree()}
-            className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+            className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all cursor-pointer"
             title="Refresh"
           >
-            <Icon icon={treeLoading ? 'lucide:loader-2' : 'lucide:refresh-cw'} width={12} height={12} className={treeLoading ? 'animate-spin' : ''} />
+            <Icon icon={treeLoading ? 'lucide:loader-2' : 'lucide:refresh-cw'} width={12} height={12} className={`transition-transform ${treeLoading ? 'animate-spin' : 'hover:rotate-45'}`} />
           </button>
         </div>
         <div className="relative mt-1.5">

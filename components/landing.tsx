@@ -405,7 +405,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
         </Reveal>
 
         <Reveal delay={120}>
-          <h1 className="kn-headline">Your Code.<br className="sm:hidden" /> Your Agent.<br className="sm:hidden" /> Your Machine.</h1>
+          <h1 className="kn-headline">Your Code. Your Agent.<br /> <span style={{ background: 'linear-gradient(90deg, var(--kn-accent), var(--kn-accent-bright, #C4B5FD))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Your Machine.</span></h1>
         </Reveal>
 
         <Reveal delay={200}>
@@ -486,7 +486,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
           </Reveal>
 
           {/* Agent Chat */}
-          <Reveal delay={160} className="kn-bento-card col-span-1">
+          <Reveal delay={160} className="kn-bento-card col-span-1 sm:col-span-2">
             <div className="flex items-center gap-3 mb-3">
               <div className="kn-ico-wrap"><Icon icon="lucide:message-circle" width={20} height={20} style={{ color: 'var(--kn-text-muted)' }} /></div>
               <h3 className="text-sm font-semibold" style={{ color: 'var(--kn-text-secondary)' }}>Agent Chat</h3>

@@ -10,6 +10,8 @@
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
+    "run:web": "node scripts/run.mjs web",
+    "run:desktop": "node scripts/run.mjs desktop",
     "release": "node scripts/release.mjs"
   },
   "dependencies": {

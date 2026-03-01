@@ -490,27 +490,46 @@ export function AgentPanel() {
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-3 min-h-0">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center text-center py-8">
-            <Icon icon="lucide:sparkles" width={24} height={24} className="text-[var(--brand)] mb-2" />
-            <p className="text-[12px] font-medium text-[var(--text-secondary)]">Coding Agent</p>
-            <p className="text-[10px] text-[var(--text-tertiary)] mt-1 max-w-[200px]">
-              Full-stack expert. Ask me to edit, explain, refactor, or generate code.
+            <div className="relative mb-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[color-mix(in_srgb,var(--brand)_15%,transparent)] to-[color-mix(in_srgb,var(--brand)_5%,transparent)] border border-[color-mix(in_srgb,var(--brand)_20%,transparent)] flex items-center justify-center">
+                <Icon icon="lucide:sparkles" width={22} height={22} className="text-[var(--brand)] animate-sparkle" />
+              </div>
+              <span className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[var(--sidebar-bg)] ${
+                isConnected ? 'bg-[var(--color-additions)]' : 'bg-[var(--text-tertiary)]'
+              }`} />
+            </div>
+            <p className="text-[13px] font-semibold text-[var(--text-primary)]">Coding Agent</p>
+            <p className="text-[11px] text-[var(--text-tertiary)] mt-1 max-w-[220px] leading-relaxed">
+              Full-stack expert. Edit, explain, refactor, or generate code.
             </p>
-            <div className="flex flex-wrap gap-1.5 mt-3 justify-center">
-              {['/edit', '/explain', '/refactor', '/generate'].map(cmd => (
+            <div className="flex flex-wrap gap-1.5 mt-4 justify-center">
+              {[
+                { cmd: '/edit', icon: 'lucide:pencil' },
+                { cmd: '/explain', icon: 'lucide:book-open' },
+                { cmd: '/refactor', icon: 'lucide:refresh-cw' },
+                { cmd: '/generate', icon: 'lucide:plus' },
+              ].map(({ cmd, icon }) => (
                 <button
                   key={cmd}
                   onClick={() => setInput(cmd + ' ')}
-                  className="text-[10px] font-mono px-2 py-1 rounded bg-[var(--bg-subtle)] border border-[var(--border)] text-[var(--text-tertiary)] hover:border-[var(--brand)] hover:text-[var(--brand)] transition-colors cursor-pointer"
+                  className="flex items-center gap-1 text-[10px] font-mono px-2.5 py-1.5 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border)] text-[var(--text-tertiary)] hover:border-[var(--brand)] hover:text-[var(--brand)] hover:bg-[color-mix(in_srgb,var(--brand)_5%,transparent)] transition-all cursor-pointer"
                 >
+                  <Icon icon={icon} width={10} height={10} />
                   {cmd}
                 </button>
               ))}
             </div>
+            {!isConnected && (
+              <p className="text-[9px] text-[var(--color-deletions)] mt-3 flex items-center gap-1">
+                <Icon icon="lucide:wifi-off" width={9} height={9} />
+                Connect to gateway for AI features
+              </p>
+            )}
           </div>
         )}
 
         {messages.map(msg => (
-          <div key={msg.id} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+          <div key={msg.id} className={`group/msg flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} animate-fade-in-up`} style={{ animationDuration: '0.2s' }}>
             <div className={`max-w-[90%] min-w-0 rounded-xl px-3 py-2 text-[12px] leading-relaxed ${
               msg.role === 'user'
                 ? 'bg-[color-mix(in_srgb,var(--brand)_15%,transparent)] text-[var(--text-primary)] rounded-br-sm'
@@ -544,6 +563,11 @@ export function AgentPanel() {
                 </div>
               )}
             </div>
+
+            {/* Timestamp — shows on hover */}
+            <span className="text-[8px] text-[var(--text-disabled)] mt-0.5 opacity-0 group-hover/msg:opacity-100 transition-opacity font-mono">
+              {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
 
             {/* Edit proposal buttons */}
             {msg.editProposals && msg.editProposals.length > 0 && (
@@ -579,17 +603,22 @@ export function AgentPanel() {
         ))}
 
         {isStreaming && (
-          <div className="flex flex-col items-start">
+          <div className="flex flex-col items-start animate-fade-in" style={{ animationDuration: '0.15s' }}>
             {streamBuffer ? (
-              <div className="max-w-[90%] min-w-0 rounded-xl px-3 py-2 text-[12px] leading-relaxed bg-[var(--bg-subtle)] border border-[var(--border)] text-[var(--text-primary)] rounded-bl-sm">
+              <div className="max-w-[90%] min-w-0 rounded-xl px-3 py-2 text-[12px] leading-relaxed bg-[var(--bg-subtle)] border border-[color-mix(in_srgb,var(--brand)_20%,var(--border))] text-[var(--text-primary)] rounded-bl-sm">
                 <div className="prose-chat">
                   <MarkdownPreview content={streamBuffer} />
                 </div>
                 <span className="inline-block w-1.5 h-3.5 bg-[var(--brand)] animate-pulse ml-0.5 align-text-bottom rounded-sm" />
               </div>
             ) : (
-              <div className="px-3 py-2 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border)] rounded-bl-sm">
-                <Icon icon="lucide:loader-2" width={14} height={14} className="text-[var(--brand)] animate-spin" />
+              <div className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border)] rounded-bl-sm">
+                <div className="flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand)] animate-typing-dot" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand)] animate-typing-dot-2" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand)] animate-typing-dot-3" />
+                </div>
+                <span className="text-[10px] text-[var(--text-tertiary)] ml-1">Thinking...</span>
               </div>
             )}
           </div>
@@ -621,7 +650,7 @@ export function AgentPanel() {
 
       {/* Input */}
       <div className="px-3 pb-3 pt-1 shrink-0">
-        <div className="relative">
+        <div className="relative group/input">
           <textarea
             ref={inputRef}
             value={input}
@@ -629,16 +658,30 @@ export function AgentPanel() {
             onKeyDown={handleKeyDown}
             placeholder={activeFile ? `Ask about ${activeFile.split('/').pop()}...` : 'Ask or type /command...'}
             rows={1}
-            className="w-full resize-none rounded-lg bg-[var(--bg-subtle)] border border-[var(--border)] px-3 py-2 pr-10 text-[12px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none focus:border-[var(--brand)] transition-colors"
+            className="w-full resize-none rounded-lg bg-[var(--bg-subtle)] border border-[var(--border)] px-3 py-2.5 pr-10 text-[12px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none focus:border-[var(--brand)] focus:shadow-[0_0_0_1px_color-mix(in_srgb,var(--brand)_20%,transparent)] transition-all"
           />
           <button
             onClick={sendMessage}
             disabled={!input.trim() || sending}
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded text-[var(--brand)] disabled:opacity-25 disabled:cursor-not-allowed cursor-pointer transition-opacity"
+            className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md transition-all cursor-pointer ${
+              input.trim() && !sending
+                ? 'bg-[var(--brand)] text-white hover:opacity-90'
+                : 'text-[var(--text-disabled)] cursor-not-allowed'
+            }`}
             title="Send (Enter)"
           >
-            <Icon icon={isStreaming ? 'lucide:square' : 'lucide:send'} width={14} height={14} />
+            <Icon icon={isStreaming ? 'lucide:square' : 'lucide:arrow-up'} width={12} height={12} />
           </button>
+        </div>
+        <div className="flex items-center justify-between mt-1.5 px-0.5">
+          <span className="text-[8px] text-[var(--text-disabled)]">
+            {activeFile && (
+              <>Context: <span className="text-[var(--text-tertiary)]">{activeFile.split('/').pop()}</span></>
+            )}
+          </span>
+          <span className="text-[8px] text-[var(--text-disabled)]">
+            <kbd className="px-1 rounded border border-[var(--border)] text-[7px]">Enter</kbd> send · <kbd className="px-1 rounded border border-[var(--border)] text-[7px]">Shift+Enter</kbd> newline
+          </span>
         </div>
       </div>
     </div>

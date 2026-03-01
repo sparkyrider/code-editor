@@ -46,6 +46,10 @@ interface LocalContextValue {
   commitFiles: (message: string, paths: string[]) => Promise<string>
   /** Get diff for a file */
   getDiff: (path: string) => Promise<string>
+  /** Local branches */
+  branches: string[]
+  /** Switch to a different local branch */
+  switchBranch: (branch: string) => Promise<void>
   /** Always true — local mode works via Tauri or the browser File System Access API */
   available: boolean
   /** Whether we're using the web File System Access API (vs Tauri) */
@@ -125,6 +129,7 @@ export function LocalProvider({ children }: { children: ReactNode }) {
   const [rootPath, setRootPathState] = useState<string | null>(null)
   const [localTree, setLocalTree] = useState<FileEntry[]>([])
   const [gitInfo, setGitInfo] = useState<GitInfo | null>(null)
+  const [branches, setBranches] = useState<string[]>([])
   const [desktop, setDesktop] = useState(false)
 
   const webDirHandleRef = useRef<FileSystemDirectoryHandle | null>(null)
@@ -203,6 +208,7 @@ export function LocalProvider({ children }: { children: ReactNode }) {
     setRootPathState(null)
     setLocalTree([])
     setGitInfo(null)
+    setBranches([])
     webDirHandleRef.current = null
     localStorage.setItem('code-editor:source-mode', 'remote')
   }, [])
@@ -245,6 +251,14 @@ export function LocalProvider({ children }: { children: ReactNode }) {
     if (handle) await loadTreeWeb(handle)
   }, [desktop, rootPath, loadTreeTauri, loadTreeWeb])
 
+  const switchBranch = useCallback(async (branch: string) => {
+    if (!rootPath) return
+    const result = await tauriInvoke<string>('local_git_checkout', { root: rootPath, branch })
+    if (result !== null) {
+      await loadTreeTauri(rootPath)
+    }
+  }, [rootPath, loadTreeTauri])
+
   const commitFiles = useCallback(async (message: string, paths: string[]): Promise<string> => {
     if (!desktop || !rootPath) throw new Error('Git commit requires the desktop app')
     const result = await tauriInvoke<string>('local_git_commit', { root: rootPath, message, paths })
@@ -260,11 +274,11 @@ export function LocalProvider({ children }: { children: ReactNode }) {
 
   return (
     <LocalContext.Provider value={{
-      localMode, rootPath, localTree, gitInfo,
+      localMode, rootPath, localTree, gitInfo, branches,
       available: true,
       isWebFS: !desktop && localMode,
       openFolder, setRootPath, exitLocalMode,
-      readFile, writeFile, refresh, commitFiles, getDiff,
+      readFile, writeFile, refresh, commitFiles, getDiff, switchBranch,
     }}>
       {children}
     </LocalContext.Provider>

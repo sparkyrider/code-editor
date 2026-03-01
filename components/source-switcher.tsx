@@ -5,6 +5,80 @@ import { Icon } from '@iconify/react'
 import { useLocal, getRecentFolders } from '@/context/local-context'
 import { RepoSelector } from '@/components/repo-selector'
 
+function BranchDropdown({ current, branches, onSwitch }: {
+  current: string
+  branches: string[]
+  onSwitch: (branch: string) => Promise<void>
+}) {
+  const [open, setOpen] = useState(false)
+  const [switching, setSwitching] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-1 text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
+        title="Switch branch"
+      >
+        <Icon icon="lucide:git-branch" width={11} height={11} />
+        <span className="text-[11px] font-mono">{current}</span>
+        <Icon icon="lucide:chevron-down" width={9} height={9} />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-[calc(100%+4px)] z-[92] w-[220px] max-h-[300px] overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] shadow-2xl">
+          <div className="px-3 py-1.5 text-[10px] text-[var(--text-disabled)] uppercase tracking-wider border-b border-[var(--border)]">
+            Branches
+          </div>
+          {branches.map(branch => {
+            const isActive = branch === current
+            return (
+              <button
+                key={branch}
+                disabled={switching}
+                onClick={async () => {
+                  if (isActive) { setOpen(false); return }
+                  setSwitching(true)
+                  await onSwitch(branch)
+                  setSwitching(false)
+                  setOpen(false)
+                }}
+                className={`flex items-center gap-2 w-full px-3 py-1.5 text-[11px] font-mono transition-colors cursor-pointer disabled:opacity-50 ${
+                  isActive
+                    ? 'bg-[color-mix(in_srgb,var(--brand)_10%,transparent)] text-[var(--brand)]'
+                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                <Icon
+                  icon={isActive ? 'lucide:check' : 'lucide:git-branch'}
+                  width={11} height={11}
+                  className="shrink-0"
+                />
+                <span className="truncate flex-1 text-left">{branch}</span>
+              </button>
+            )
+          })}
+          {branches.length === 0 && (
+            <div className="px-3 py-3 text-[11px] text-[var(--text-tertiary)] text-center">
+              No branches found
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function SourceSwitcher() {
   const local = useLocal()
   const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -81,10 +155,11 @@ export function SourceSwitcher() {
               {folderName || 'Open Folder'}
             </span>
             {local.gitInfo?.is_repo && (
-              <span className="text-[var(--text-tertiary)]">
-                <Icon icon="lucide:git-branch" width={11} height={11} className="inline mr-0.5" />
-                {local.gitInfo.branch}
-              </span>
+              <BranchDropdown
+                current={local.gitInfo.branch}
+                branches={local.branches}
+                onSwitch={local.switchBranch}
+              />
             )}
             <Icon icon="lucide:chevron-down" width={11} height={11} className="text-[var(--text-tertiary)]" />
           </button>

@@ -171,3 +171,8 @@ pub fn local_git_branches(root: String) -> Result<Vec<String>, String> {
     let output = run_git(&root, &["branch", "--format=%(refname:short)"])?;
     Ok(output.lines().map(|l| l.trim().to_string()).filter(|l| !l.is_empty()).collect())
 }
+
+#[tauri::command]
+pub fn local_git_checkout(root: String, branch: String) -> Result<String, String> {
+    run_git(&root, &["checkout", &branch])
+}

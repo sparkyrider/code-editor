@@ -77,7 +77,7 @@ pub fn create_terminal(
     drop(pair.slave); // Release slave side
 
     let reader = pair.master.try_clone_reader().map_err(|e| e.to_string())?;
-    let writer = pair.master.try_clone_writer().map_err(|e| e.to_string())?;
+    let writer = pair.master.take_writer().map_err(|e| e.to_string())?;
 
     let mut next_id = state.next_id.lock().unwrap();
     let id = *next_id;

@@ -15,6 +15,8 @@ import { ThemeSwitcher } from '@/components/theme-switcher'
 import { QuickOpen } from '@/components/quick-open'
 import { ShortcutsOverlay } from '@/components/shortcuts-overlay'
 import { CommandPalette, type CommandId } from '@/components/command-palette'
+import { TerminalPanel } from '@/components/terminal-panel'
+import { EnginePanel } from '@/components/engine-panel'
 
 const STORAGE_REMEMBER = 'code-editor:remember'
 
@@ -266,6 +268,9 @@ function EditorLayout() {
   const [quickOpenVisible, setQuickOpenVisible] = useState(false)
   const [shortcutsVisible, setShortcutsVisible] = useState(false)
   const [commandPaletteVisible, setCommandPaletteVisible] = useState(false)
+  const [terminalVisible, setTerminalVisible] = useState(false)
+  const [terminalHeight, setTerminalHeight] = useState(260)
+  const [sidebarTab, setSidebarTab] = useState<'agent' | 'engine'>('agent')
   const [isTauriDesktop, setIsTauriDesktop] = useState(false)
   const [isMacTauri, setIsMacTauri] = useState(false)
 
@@ -319,6 +324,8 @@ function EditorLayout() {
         if (e.key === 'j') { e.preventDefault(); setAgentOpen(v => !v) }
         if (e.key === 'p') { e.preventDefault(); setQuickOpenVisible(v => !v) }
       }
+      // ⌘` toggle terminal
+      if ((e.metaKey || e.ctrlKey) && e.key === '`') { e.preventDefault(); setTerminalVisible(v => !v); return }
       // ? key (not in input)
       if (e.key === '?' && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
         e.preventDefault()
@@ -419,12 +426,40 @@ function EditorLayout() {
           <CodeEditor />
         </div>
 
-        {/* Agent Side Panel (expanded from bubble) */}
+        {/* Sidebar: Agent + Engine tabs */}
         {agentOpen && (
           <>
             <ResizeHandle direction="horizontal" onResize={handleAgentResize} />
-            <div className="shrink-0 overflow-hidden" style={{ width: agentWidth }}>
-              <AgentPanel />
+            <div className="shrink-0 flex flex-col overflow-hidden border-l border-[var(--border)]" style={{ width: agentWidth }}>
+              {/* Sidebar tab bar */}
+              <div className="flex items-center h-9 bg-[var(--bg-secondary)] border-b border-[var(--border)] px-2 gap-1 shrink-0">
+                <button
+                  onClick={() => setSidebarTab('agent')}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-[12px] transition-colors cursor-pointer ${
+                    sidebarTab === 'agent'
+                      ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  }`}
+                >
+                  <Icon icon="lucide:sparkles" width={12} height={12} />
+                  Agent
+                </button>
+                <button
+                  onClick={() => setSidebarTab('engine')}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-[12px] transition-colors cursor-pointer ${
+                    sidebarTab === 'engine'
+                      ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  }`}
+                >
+                  <Icon icon="lucide:cpu" width={12} height={12} />
+                  Engine
+                </button>
+              </div>
+              {/* Tab content */}
+              <div className="flex-1 min-h-0 overflow-hidden">
+                {sidebarTab === 'agent' ? <AgentPanel /> : <EnginePanel />}
+              </div>
             </div>
           </>
         )}
@@ -468,6 +503,13 @@ function EditorLayout() {
         onRun={handleRunCommand}
       />
 
+      {/* Terminal Panel (⌘\`) */}
+      <TerminalPanel
+        visible={terminalVisible}
+        height={terminalHeight}
+        onHeightChange={setTerminalHeight}
+      />
+
       {/* Status bar */}
       <footer className="flex items-center justify-between px-3 h-6 border-t border-[var(--border)] bg-[var(--bg-elevated)] text-[9px] text-[var(--text-tertiary)] shrink-0">
         <div className="flex items-center gap-3">
@@ -480,6 +522,16 @@ function EditorLayout() {
           )}
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setTerminalVisible(v => !v)}
+            className={`flex items-center gap-1 cursor-pointer hover:text-[var(--text-secondary)] transition-colors ${
+              terminalVisible ? 'text-[var(--brand)]' : ''
+            }`}
+            title="Toggle terminal (⌘\`)"
+          >
+            <Icon icon="lucide:terminal" width={10} height={10} />
+            <span>Terminal</span>
+          </button>
           <span>code-editor v0.1.0</span>
         </div>
       </footer>

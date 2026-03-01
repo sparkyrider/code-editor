@@ -23,6 +23,7 @@ const SERVER_ROUTES = [
   [resolve(root, 'app/api'),      resolve(root, '.tauri-api-tmp')],
   [resolve(root, 'app/callback'), resolve(root, '.tauri-callback-tmp')],
   [resolve(root, 'app/download'), resolve(root, '.tauri-download-tmp')],
+  [resolve(root, 'app/sign-in'),  resolve(root, '.tauri-sign-in-tmp')],
 ]
 
 function hide() {

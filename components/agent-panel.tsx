@@ -191,6 +191,7 @@ export function AgentPanel() {
     })
   }, [repo, activeFile, files, getFile])
 
+
   // ─── Message helpers ──────────────────────────────────────────
   const appendMessage = useCallback((msg: ChatMessage) => {
     setMessages(prev => [...prev, msg])
@@ -271,7 +272,73 @@ export function AgentPanel() {
     }
   }, [sendMessage])
 
-  // ─── Diff review flow ─────────────────────────────────────────
+  // ─── Handle ⌘K inline edit requests ────────────────────────────
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { filePath, instruction, selectedText, startLine, endLine } = (e as CustomEvent).detail
+      if (!isConnected || sending) return
+
+      const prompt = [
+        `[Inline Edit Request]`,
+        `File: ${filePath}`,
+        `Lines ${startLine}-${endLine}:`,
+        '```',
+        selectedText,
+        '```',
+        '',
+        `Instruction: ${instruction}`,
+        '',
+        'Respond with [EDIT ' + filePath + '] containing the complete updated file.',
+      ].join('\n')
+
+      // Inject as user message and send
+      setInput('')
+      setSending(true)
+      appendMessage({ id: crypto.randomUUID(), role: 'user', content: `⌘K: ${instruction}`, timestamp: Date.now() })
+
+      const context = buildContext()
+      const fullMessage = context ? `${context}\n\n${prompt}` : prompt
+      const idemKey = `ce-inline-${Date.now()}`
+      sentKeysRef.current.add(idemKey)
+      setIsStreaming(true)
+
+      sendRequest('chat.send', {
+        sessionKey: CODE_EDITOR_SESSION_KEY,
+        message: fullMessage,
+        idempotencyKey: idemKey,
+      }).then((resp) => {
+        const r = resp as Record<string, unknown> | undefined
+        const status = r?.status as string | undefined
+        if (status === 'started' || status === 'in_flight') return
+        if (!sentKeysRef.current.has(idemKey)) return
+        sentKeysRef.current.delete(idemKey)
+        const reply = String(r?.reply ?? r?.text ?? '')
+        if (reply && !/^NO_REPLY$/i.test(reply.trim())) {
+          const editProposals = parseEditProposals(reply)
+          appendMessage({
+            id: crypto.randomUUID(), role: 'assistant', content: reply, timestamp: Date.now(),
+            editProposals: editProposals.length > 0 ? editProposals : undefined,
+          })
+        }
+        setIsStreaming(false)
+        setSending(false)
+      }).catch((err: unknown) => {
+        appendMessage({
+          id: crypto.randomUUID(), role: 'system',
+          content: `Error: ${err instanceof Error ? err.message : 'Unknown error'}`,
+          timestamp: Date.now(),
+        })
+        setIsStreaming(false)
+        setSending(false)
+      })
+    }
+    window.addEventListener('inline-edit-request', handler)
+    return () => window.removeEventListener('inline-edit-request', handler)
+  }, [isConnected, sending, sendRequest, buildContext, appendMessage])
+
+
+
+    // ─── Diff review flow ─────────────────────────────────────────
   const handleShowDiff = useCallback((proposal: EditProposal, messageId: string) => {
     const existing = getFile(proposal.filePath)
     setActiveDiff({ proposal, messageId, original: existing?.content ?? '' })

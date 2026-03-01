@@ -12,6 +12,7 @@ import { AgentPanel } from '@/components/agent-panel'
 import { RepoSelector } from '@/components/repo-selector'
 import { ResizeHandle } from '@/components/resize-handle'
 import { ThemeSwitcher } from '@/components/theme-switcher'
+import { QuickOpen } from '@/components/quick-open'
 
 const STORAGE_REMEMBER = 'code-editor:remember'
 
@@ -260,6 +261,7 @@ function EditorLayout() {
   const [agentWidth, setAgentWidth] = useState(360)
   const [agentOpen, setAgentOpen] = useState(false)
   const [explorerVisible, setExplorerVisible] = useState(true)
+  const [quickOpenVisible, setQuickOpenVisible] = useState(false)
 
   const dirtyCount = files.filter(f => f.dirty).length
 
@@ -308,6 +310,7 @@ function EditorLayout() {
       if (e.metaKey || e.ctrlKey) {
         if (e.key === 'b') { e.preventDefault(); setExplorerVisible(v => !v) }
         if (e.key === 'j') { e.preventDefault(); setAgentOpen(v => !v) }
+        if (e.key === 'p') { e.preventDefault(); setQuickOpenVisible(v => !v) }
       }
     }
     window.addEventListener('keydown', handler)
@@ -406,6 +409,16 @@ function EditorLayout() {
           <Icon icon="lucide:sparkles" width={20} height={20} />
         </button>
       )}
+
+      {/* Quick Open (⌘P) */}
+      <QuickOpen
+        open={quickOpenVisible}
+        onClose={() => setQuickOpenVisible(false)}
+        onSelect={(path, sha) => {
+          const event = new CustomEvent('file-select', { detail: { path, sha } })
+          window.dispatchEvent(event)
+        }}
+      />
 
       {/* Status bar */}
       <footer className="flex items-center justify-between px-3 h-6 border-t border-[var(--border)] bg-[var(--bg-elevated)] text-[9px] text-[var(--text-tertiary)] shrink-0">

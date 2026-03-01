@@ -5,11 +5,20 @@ import Editor, { type OnMount, type BeforeMount } from '@monaco-editor/react'
 import loader from '@monaco-editor/loader'
 import { Icon } from '@iconify/react'
 import { useEditor } from '@/context/editor-context'
+import { registerEditorTheme } from '@/lib/monaco-theme'
+import { InlineEdit } from '@/components/inline-edit'
 
 export function CodeEditor() {
   const { files, activeFile, updateFileContent } = useEditor()
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null)
   const [monacoReady, setMonacoReady] = useState(false)
+  const [inlineEdit, setInlineEdit] = useState<{
+    visible: boolean
+    position: { top: number; left: number }
+    selectedText: string
+    startLine: number
+    endLine: number
+  }>({ visible: false, position: { top: 0, left: 0 }, selectedText: '', startLine: 0, endLine: 0 })
 
   useEffect(() => {
     let mounted = true
@@ -40,11 +49,46 @@ export function CodeEditor() {
       noSemanticValidation: true,
       noSyntaxValidation: false,
     })
+    // Register custom theme matching our CSS variables
+    registerEditorTheme(monaco)
   }, [])
 
   const handleMount: OnMount = useCallback((editor) => {
     editorRef.current = editor
     editor.focus()
+  }, [])
+
+  // ⌘K: Inline edit at selection (global keyboard listener)
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        const editor = editorRef.current
+        if (!editor) return
+
+        const selection = editor.getSelection()
+        const model = editor.getModel()
+        if (!selection || !model) return
+
+        const selectedText = model.getValueInRange(selection)
+        const pos = editor.getScrolledVisiblePosition(selection.getStartPosition())
+        const domNode = editor.getDomNode()
+        const rect = domNode?.getBoundingClientRect()
+
+        setInlineEdit({
+          visible: true,
+          position: {
+            top: (rect?.top ?? 0) + (pos?.top ?? 0) + (pos?.height ?? 20) + 4,
+            left: (rect?.left ?? 0) + (pos?.left ?? 0),
+          },
+          selectedText: selectedText || model.getLineContent(selection.startLineNumber),
+          startLine: selection.startLineNumber,
+          endLine: selection.endLineNumber,
+        })
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
   }, [])
 
   const handleChange = useCallback((value: string | undefined) => {
@@ -101,14 +145,58 @@ export function CodeEditor() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      {/* File path bar */}
-      <div className="flex items-center gap-2 px-3 py-1 border-b border-[var(--border)] bg-[var(--bg)] shrink-0">
-        <Icon icon={fileIcon} width={12} height={12} className="text-[var(--text-tertiary)]" />
-        <span className="text-[10px] text-[var(--text-tertiary)] font-mono truncate">{file.path}</span>
+      {/* Breadcrumb navigation */}
+      <div className="flex items-center gap-0.5 px-3 py-1 border-b border-[var(--border)] bg-[var(--bg)] shrink-0 overflow-x-auto no-scrollbar">
+        <Icon icon={fileIcon} width={12} height={12} className="text-[var(--text-tertiary)] shrink-0" />
+        {file.path.split('/').map((segment, i, arr) => (
+          <div key={i} className="flex items-center gap-0.5 shrink-0">
+            {i > 0 && (
+              <Icon icon="lucide:chevron-right" width={10} height={10} className="text-[var(--text-tertiary)]" />
+            )}
+            <button
+              className={`text-[10px] font-mono px-1 py-0.5 rounded transition-colors cursor-pointer ${
+                i === arr.length - 1
+                  ? 'text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]'
+                  : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]'
+              }`}
+              onClick={() => {
+                if (i < arr.length - 1) {
+                  // Navigate to directory — dispatch search with prefix
+                  const dirPath = arr.slice(0, i + 1).join('/')
+                  window.dispatchEvent(new CustomEvent('quick-open-prefill', { detail: { query: dirPath + '/' } }))
+                }
+              }}
+              title={arr.slice(0, i + 1).join('/')}
+            >
+              {segment}
+            </button>
+          </div>
+        ))}
         {file.dirty && (
-          <span className="text-[9px] text-[var(--brand)] font-medium">modified</span>
+          <span className="text-[9px] text-[var(--brand)] font-medium ml-1 shrink-0">modified</span>
         )}
       </div>
+
+      {/* ⌘K Inline Edit */}
+      <InlineEdit
+        visible={inlineEdit.visible}
+        position={inlineEdit.position}
+        selectedText={inlineEdit.selectedText}
+        filePath={file.path}
+        onSubmit={(instruction) => {
+          // Dispatch to agent with selection context
+          window.dispatchEvent(new CustomEvent('inline-edit-request', {
+            detail: {
+              filePath: file.path,
+              instruction,
+              selectedText: inlineEdit.selectedText,
+              startLine: inlineEdit.startLine,
+              endLine: inlineEdit.endLine,
+            },
+          }))
+        }}
+        onClose={() => setInlineEdit(prev => ({ ...prev, visible: false }))}
+      />
 
       {/* Preview / Monaco */}
       <div className="flex-1 min-h-0">
@@ -162,7 +250,7 @@ export function CodeEditor() {
             height="100%"
             defaultValue={file.content}
             language={file.language}
-            theme="vs-dark"
+            theme="code-editor"
             onChange={handleChange}
             beforeMount={handleBeforeMount}
             onMount={handleMount}

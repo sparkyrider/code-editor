@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react'
 
 export type OpenFileKind = 'text' | 'image' | 'video' | 'audio'
 
@@ -97,6 +97,15 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const getFile = useCallback((path: string) => files.find(f => f.path === path), [files])
+
+  // Persist open tab paths to localStorage
+  useEffect(() => {
+    try {
+      const paths = files.map(f => f.path)
+      localStorage.setItem('code-editor:open-tabs', JSON.stringify(paths))
+      if (activeFile) localStorage.setItem('code-editor:active-tab', activeFile)
+    } catch {}
+  }, [files, activeFile])
 
   return (
     <EditorContext.Provider value={{ files, activeFile, setActiveFile, openFile, closeFile, updateFileContent, markClean, getFile }}>

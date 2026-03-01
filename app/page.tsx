@@ -6,6 +6,7 @@ import { useGateway } from '@/context/gateway-context'
 import { useRepo } from '@/context/repo-context'
 import { useEditor } from '@/context/editor-context'
 import { useLocal, getRecentFolders } from '@/context/local-context'
+import { GitHubAuthBadge } from '@/components/github-auth'
 import { FileExplorer } from '@/components/file-explorer'
 import { EditorTabs } from '@/components/editor-tabs'
 import { CodeEditor } from '@/components/code-editor'
@@ -549,6 +550,9 @@ function EditorLayout() {
             gateway
           </span> */}
 
+          <div className={isTauriDesktop ? 'tauri-no-drag' : ''}>
+            <GitHubAuthBadge />
+          </div>
           <div className={isTauriDesktop ? 'tauri-no-drag' : ''}>
             <ThemeSwitcher />
           </div>

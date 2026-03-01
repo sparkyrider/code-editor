@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 /**
- * Resolve the GitHub token from the request Authorization header,
- * falling back to the GITHUB_TOKEN environment variable.
+ * Resolve the GitHub token from the request Authorization header.
+ * No env var fallback — token is provided by the client
+ * (sourced from OpenClaw gateway or user-entered).
  */
 export function resolveToken(req: NextRequest): string | null {
   const authHeader = req.headers.get('authorization')
   if (authHeader?.startsWith('Bearer ')) return authHeader.slice(7)
-  return process.env.GITHUB_TOKEN ?? null
+  return null
 }
 
 export function githubHeaders(token: string) {

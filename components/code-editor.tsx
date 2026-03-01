@@ -14,6 +14,123 @@ import { MarkdownPreview } from '@/components/markdown-preview'
 import { MarkdownModeToggle, type MarkdownViewMode } from '@/components/markdown-mode-toggle'
 import { VimCheatsheet } from '@/components/vim-cheatsheet'
 
+function WelcomeView() {
+  const recentFolders = (() => {
+    try {
+      const raw = localStorage.getItem('code-editor:recent-folders')
+      return raw ? (JSON.parse(raw) as string[]).slice(0, 5) : []
+    } catch { return [] }
+  })()
+
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center bg-[var(--bg)] select-none">
+      <div className="w-full max-w-[520px] px-8">
+        {/* App identity */}
+        <div className="flex items-center gap-3 mb-8">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[color-mix(in_srgb,var(--brand)_25%,var(--bg-elevated))] to-[var(--bg-elevated)] border border-[var(--border)] flex items-center justify-center shadow-sm">
+            <Icon icon="lucide:code" width={20} height={20} className="text-[var(--brand)]" />
+          </div>
+          <div>
+            <h1 className="text-[15px] font-semibold text-[var(--text-primary)] tracking-tight">Knot Code</h1>
+            <p className="text-[11px] text-[var(--text-tertiary)]">AI-powered code editor</p>
+          </div>
+        </div>
+
+        {/* Start section */}
+        <div className="mb-6">
+          <h2 className="text-[11px] font-medium text-[var(--text-disabled)] uppercase tracking-wider mb-2.5">Start</h2>
+          <div className="flex flex-col gap-0.5">
+            {[
+              { icon: 'lucide:folder-open', label: 'Open Folder', hint: '⌘O', action: () => window.dispatchEvent(new CustomEvent('open-folder')) },
+              { icon: 'lucide:file-plus', label: 'New File', hint: '⌘N', action: () => window.dispatchEvent(new CustomEvent('file-select', { detail: { path: 'untitled', sha: '' } })) },
+              { icon: 'lucide:search', label: 'Quick Open', hint: '⌘P', action: () => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'p', metaKey: true })) },
+              { icon: 'lucide:terminal', label: 'Open Terminal', hint: '⌘\`', action: () => window.dispatchEvent(new KeyboardEvent('keydown', { key: '\`', metaKey: true })) },
+            ].map(item => (
+              <button
+                key={item.label}
+                onClick={item.action}
+                className="flex items-center gap-2.5 w-full px-2.5 py-1.5 -mx-2.5 rounded-lg text-left text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer group"
+              >
+                <Icon icon={item.icon} width={14} height={14} className="text-[var(--text-tertiary)] group-hover:text-[var(--brand)] transition-colors shrink-0" />
+                <span className="flex-1">{item.label}</span>
+                <span className="text-[10px] font-mono text-[var(--text-disabled)] group-hover:text-[var(--text-tertiary)]">{item.hint}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Recent */}
+        {recentFolders.length > 0 && (
+          <div className="mb-6">
+            <h2 className="text-[11px] font-medium text-[var(--text-disabled)] uppercase tracking-wider mb-2.5">Recent</h2>
+            <div className="flex flex-col gap-0.5">
+              {recentFolders.map(folder => {
+                const name = folder.split('/').pop() || folder
+                const parent = folder.split('/').slice(-2, -1)[0] || ''
+                return (
+                  <button
+                    key={folder}
+                    onClick={() => window.dispatchEvent(new CustomEvent('open-recent', { detail: { path: folder } }))}
+                    className="flex items-center gap-2.5 w-full px-2.5 py-1.5 -mx-2.5 rounded-lg text-left text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer group"
+                  >
+                    <Icon icon="lucide:folder" width={14} height={14} className="text-[var(--text-tertiary)] group-hover:text-[var(--brand)] transition-colors shrink-0" />
+                    <span className="flex-1 truncate">{name}</span>
+                    <span className="text-[10px] text-[var(--text-disabled)] truncate max-w-[140px]">{parent}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Agent */}
+        <div className="mb-6">
+          <h2 className="text-[11px] font-medium text-[var(--text-disabled)] uppercase tracking-wider mb-2.5">Agent</h2>
+          <button
+            onClick={() => {
+              window.dispatchEvent(new KeyboardEvent('keydown', { key: 'j', metaKey: true }))
+            }}
+            className="flex items-center gap-2.5 w-full px-2.5 py-1.5 -mx-2.5 rounded-lg text-left text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer group"
+          >
+            <Icon icon="lucide:bot" width={14} height={14} className="text-[var(--text-tertiary)] group-hover:text-[var(--brand)] transition-colors shrink-0" />
+            <span className="flex-1">Open Agent Panel</span>
+            <span className="text-[10px] font-mono text-[var(--text-disabled)] group-hover:text-[var(--text-tertiary)]">⌘J</span>
+          </button>
+          <div className="flex gap-1.5 mt-2 px-2.5">
+            {['/edit', '/explain', '/generate', '/search'].map(cmd => (
+              <span key={cmd} className="text-[9px] font-mono px-1.5 py-0.5 rounded border border-[var(--border)] bg-[var(--bg-subtle)] text-[var(--text-disabled)]">
+                {cmd}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Keyboard shortcuts */}
+        <div>
+          <h2 className="text-[11px] font-medium text-[var(--text-disabled)] uppercase tracking-wider mb-2.5">Keyboard</h2>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-[11px]">
+            {[
+              ['⌘P', 'Quick Open'],
+              ['⌘B', 'Toggle Explorer'],
+              ['⌘J', 'Toggle Agent'],
+              ['⌘K', 'Inline Edit'],
+              ['⌘S', 'Save'],
+              ['⌘⇧F', 'Search Files'],
+              ['⌘\`', 'Terminal'],
+              ['?', 'All Shortcuts'],
+            ].map(([key, label]) => (
+              <div key={key} className="flex items-center gap-2 py-0.5">
+                <kbd className="inline-flex items-center justify-center min-w-[28px] px-1 py-0.5 rounded border border-[var(--border)] bg-[var(--bg-subtle)] text-[9px] font-mono text-[var(--text-tertiary)] shrink-0">{key}</kbd>
+                <span className="text-[var(--text-disabled)]">{label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function CodeEditor() {
   const { files, activeFile, updateFileContent } = useEditor()
   const { sendRequest, status: gatewayStatus } = useGateway()
@@ -387,43 +504,7 @@ export function CodeEditor() {
   )
 
   if (!file) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center text-center bg-[var(--bg)]">
-        <div className="relative mb-5">
-          <Icon icon="lucide:code" width={48} height={48} className="text-[var(--text-disabled)]" />
-          <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[var(--bg-subtle)] border border-[var(--border)] flex items-center justify-center">
-            <Icon icon="lucide:sparkles" width={10} height={10} className="text-[var(--brand)] animate-sparkle" />
-          </div>
-        </div>
-        <p className="text-[14px] font-medium text-[var(--text-secondary)]">No file open</p>
-        <p className="text-[12px] text-[var(--text-tertiary)] mt-1 max-w-[280px] leading-relaxed">
-          Select a file from the explorer or use the agent to generate code
-        </p>
-        <div className="flex flex-wrap gap-2 mt-5 justify-center">
-          {[
-            { cmd: '/edit', icon: 'lucide:pencil' },
-            { cmd: '/explain', icon: 'lucide:book-open' },
-            { cmd: '/generate', icon: 'lucide:plus' },
-            { cmd: '/search', icon: 'lucide:search' },
-          ].map(({ cmd, icon }) => (
-            <span key={cmd} className="flex items-center gap-1 text-[10px] font-mono px-2 py-1 rounded-md bg-[var(--bg-subtle)] border border-[var(--border)] text-[var(--text-tertiary)] hover:border-[var(--brand)] hover:text-[var(--brand)] transition-colors">
-              <Icon icon={icon} width={10} height={10} />
-              {cmd}
-            </span>
-          ))}
-        </div>
-        <div className="mt-6 flex items-center gap-2 text-[10px] text-[var(--text-disabled)]">
-          <kbd className="px-1.5 py-0.5 rounded border border-[var(--border)] bg-[var(--bg-subtle)] text-[var(--text-tertiary)]">⌘P</kbd>
-          <span>Quick open</span>
-          <span className="mx-1">·</span>
-          <kbd className="px-1.5 py-0.5 rounded border border-[var(--border)] bg-[var(--bg-subtle)] text-[var(--text-tertiary)]">⌘B</kbd>
-          <span>Explorer</span>
-          <span className="mx-1">·</span>
-          <kbd className="px-1.5 py-0.5 rounded border border-[var(--border)] bg-[var(--bg-subtle)] text-[var(--text-tertiary)]">⌘J</kbd>
-          <span>Agent</span>
-        </div>
-      </div>
-    )
+    return <WelcomeView />
   }
 
   return (

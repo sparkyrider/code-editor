@@ -20,6 +20,7 @@ import { ShortcutsOverlay } from '@/components/shortcuts-overlay'
 import { CommandPalette, type CommandId } from '@/components/command-palette'
 import { fetchFileContentsByName as fetchFileContents, createOrUpdateFileByName as createOrUpdateFile, commitFilesByName as commitFiles } from '@/lib/github-api'
 import { TerminalPanel } from '@/components/terminal-panel'
+import { isTauri } from '@/lib/tauri'
 import { ChangesPanel } from '@/components/changes-panel'
 import { GatewayConnectBanner, GatewayConnectPopover } from '@/components/gateway-connect'
 import Landing from '@/components/landing'
@@ -354,18 +355,8 @@ function EditorLayout() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Top bar */}
-      <header data-tauri-drag-region className={`flex items-center justify-between h-11 border-b border-[var(--border)] bg-[var(--bg-elevated)] shrink-0 ${isTauriDesktop ? 'tauri-drag-region' : ''} ${isMacTauri ? 'pl-20 pr-4' : 'px-4'}`}>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 group">
-            <div className="relative">
-              <Icon icon="lucide:code" width={18} height={18} className="text-[var(--brand)] transition-transform duration-300 group-hover:scale-110" />
-              <span className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full border border-[var(--bg-elevated)] transition-colors ${
-                status === 'connected' ? 'bg-[var(--color-additions)]' : 'bg-[var(--text-tertiary)]'
-              }`} />
-            </div>
-            <span className="text-[13px] font-bold tracking-tight text-[var(--text-primary)]">code-editor</span>
-          </div>
-          <div className="w-px h-5 bg-[var(--border)]" />
+      <header data-tauri-drag-region className={`flex items-center justify-between h-9 border-b border-[var(--border)] bg-[var(--bg-elevated)] shrink-0 ${isTauriDesktop ? 'tauri-drag-region' : ''} ${isMacTauri ? 'pl-20 pr-4' : 'px-4'}`}>
+        <div className="flex items-center gap-2.5">
           <div className={isTauriDesktop ? 'tauri-no-drag' : ''}>
             <SourceSwitcher />
           </div>
@@ -662,10 +653,16 @@ function EditorLayout() {
 
 export default function EditorPage() {
   const [showEditor, setShowEditor] = useState(false)
+  const [isDesktop, setIsDesktop] = useState(false)
 
-  if (!showEditor) {
-    return <Landing onEnter={() => setShowEditor(true)} />
+  useEffect(() => {
+    setIsDesktop(isTauri())
+  }, [])
+
+  // Desktop: skip landing, go straight to editor
+  if (isDesktop || showEditor) {
+    return <EditorLayout />
   }
 
-  return <EditorLayout />
+  return <Landing onEnter={() => setShowEditor(true)} />
 }

@@ -77,13 +77,9 @@ function getRedirectUri(): string {
 /**
  * Start Spotify PKCE login.
  *
- * In Tauri: opens the system browser for login. Spotify redirects back to
- * http://editor.openknot.ai/?code=..., which the dev server serves. That browser
- * tab exchanges the code (same localStorage), and we detect the token via
- * a storage event listener. The Tauri webview stays on the editor.
- *
- * In browser: navigates the current window to Spotify. On return,
- * handleSpotifyCallback() picks up the code.
+ * Navigates the current window to Spotify's auth page. When Spotify
+ * redirects back, handleSpotifyCallback() picks up the code, exchanges
+ * it for tokens, and cleans up the URL — all within the same webview.
  */
 export async function startSpotifyLogin(): Promise<void> {
   if (!SPOTIFY_CLIENT_ID) throw new Error('Spotify Client ID not configured')
@@ -103,16 +99,7 @@ export async function startSpotifyLogin(): Promise<void> {
 
   const authUrl = `https://accounts.spotify.com/authorize?${params}`
 
-  if (isTauri()) {
-    try {
-      const { open } = await import('@tauri-apps/plugin-shell')
-      await open(authUrl)
-    } catch {
-      window.open(authUrl, '_blank', 'noopener,noreferrer')
-    }
-  } else {
-    window.location.href = authUrl
-  }
+  window.location.href = authUrl
 }
 
 /**

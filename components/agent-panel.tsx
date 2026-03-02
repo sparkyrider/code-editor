@@ -77,10 +77,10 @@ function AgentConnectPrompt() {
       <div className="w-full max-w-[300px] space-y-2.5">
         <input
           type="text"
-          value={url}
+          value={url || 'ws://openclaw.local:18789'}
           onChange={e => setUrl(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') handleConnect() }}
-          placeholder="ws://localhost:4444"
+          placeholder="ws://openclaw.local:18789"
           className="w-full px-3 py-2.5 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-[13px] font-mono text-[var(--text-primary)] placeholder:text-[var(--text-disabled)] outline-none focus:border-[var(--brand)] transition-colors"
           disabled={isConnecting}
         />

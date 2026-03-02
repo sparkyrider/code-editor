@@ -235,7 +235,6 @@ export function SpotifyPlayer() {
     setError(null)
     try {
       await startSpotifyLogin()
-      // Page will redirect — loggingIn state won't matter after navigation
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed')
       setLoggingIn(false)

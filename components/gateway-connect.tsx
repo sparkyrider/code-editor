@@ -88,10 +88,10 @@ export function GatewayConnectBanner() {
                 <input
                   ref={inputRef}
                   type="text"
-                  value={url}
+                  value={url || 'ws://openclaw.local:18789'}
                   onChange={e => setUrl(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') handleConnect() }}
-                  placeholder="ws://localhost:4444 or https://…"
+                  placeholder="ws://openclaw.local:18789"
                   className="w-full px-2.5 py-1.5 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-[11px] font-mono text-[var(--text-primary)] placeholder:text-[var(--text-disabled)] outline-none focus:border-[var(--brand)] transition-colors"
                   disabled={isConnecting}
                 />
@@ -266,10 +266,10 @@ export function GatewayConnectPopover({
             <div className="space-y-2">
               <input
                 type="text"
-                value={url}
+                value={url || 'ws://openclaw.local:18789'}
                 onChange={e => setUrl(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') handleConnect() }}
-                placeholder="ws://localhost:4444"
+                placeholder="ws://openclaw.local:18789"
                 className="w-full px-2.5 py-1.5 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-[11px] font-mono text-[var(--text-primary)] placeholder:text-[var(--text-disabled)] outline-none focus:border-[var(--brand)] transition-colors"
                 disabled={isConnecting}
               />

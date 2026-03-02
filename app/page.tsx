@@ -18,7 +18,6 @@ import { BranchPicker } from '@/components/branch-picker'
 import { FolderIndicator } from '@/components/source-switcher'
 
 // View components — lazy loaded
-const ChatView = dynamic(() => import('@/components/views/chat-view').then(m => ({ default: m.ChatView })), { ssr: false })
 const EditorView = dynamic(() => import('@/components/views/editor-view').then(m => ({ default: m.EditorView })), { ssr: false })
 const GitView = dynamic(() => import('@/components/views/git-view').then(m => ({ default: m.GitView })), { ssr: false })
 const PrView = dynamic(() => import('@/components/views/pr-view').then(m => ({ default: m.PrView })), { ssr: false })
@@ -37,8 +36,7 @@ const WorkflowView = dynamic(() => import('@/components/workflows/workflow-view'
 const GridView = dynamic(() => import('@/components/views/grid-view').then(m => ({ default: m.GridView })), { ssr: false })
 const PipWindow = dynamic(() => import('@/components/preview/pip-window').then(m => ({ default: m.PipWindow })), { ssr: false })
 
-const VIEW_ICONS: Record<ViewId, { icon: string; label: string }> = {
-  chat: { icon: 'lucide:message-square', label: 'Chat' },
+const VIEW_ICONS: Record<string, { icon: string; label: string }> = {
   editor: { icon: 'lucide:code-2', label: 'Editor' },
   preview: { icon: 'lucide:eye', label: 'Preview' },
   workflows: { icon: 'lucide:workflow', label: 'Workflows' },
@@ -49,7 +47,7 @@ const VIEW_ICONS: Record<ViewId, { icon: string; label: string }> = {
   settings: { icon: 'lucide:settings', label: 'Settings' },
 }
 
-const VISIBLE_VIEWS: ViewId[] = ['chat', 'editor', 'preview', 'workflows', 'grid', 'git', 'prs']
+const VISIBLE_VIEWS: ViewId[] = ['editor', 'preview', 'workflows', 'grid', 'git', 'prs']
 
 export default function EditorLayout() {
   const { status } = useGateway()
@@ -74,9 +72,13 @@ export default function EditorLayout() {
   const tabContainerRef = useRef<HTMLDivElement>(null)
   const [indicatorStyle, setIndicatorStyle] = useState<{ left: number; width: number }>({ left: 0, width: 0 })
 
-  // Terminal
-  const [terminalVisible, setTerminalVisible] = useState(false)
-  const [terminalHeight, setTerminalHeight] = useState(240)
+  // Terminal — persisted so tabs survive across page reloads and view switches
+  const [terminalVisible, setTerminalVisible] = useState(() => {
+    try { return localStorage.getItem('code-editor:terminal-visible') === 'true' } catch { return false }
+  })
+  const [terminalHeight, setTerminalHeight] = useState(() => {
+    try { const h = localStorage.getItem('code-editor:terminal-height'); return h ? Math.max(120, Math.min(600, parseInt(h, 10))) : 240 } catch { return 240 }
+  })
 
   // Overlay modals
   const [quickOpenVisible, setQuickOpenVisible] = useState(false)
@@ -108,10 +110,13 @@ export default function EditorLayout() {
     try { localStorage.setItem('code-editor:sidebar-collapsed', String(sidebarCollapsed)) } catch {}
   }, [sidebarCollapsed])
 
-  // ─── Close terminal when switching view tabs ──────────
+  // Persist terminal state
   useEffect(() => {
-    setTerminalVisible(false)
-  }, [activeView])
+    try { localStorage.setItem('code-editor:terminal-visible', String(terminalVisible)) } catch {}
+  }, [terminalVisible])
+  useEffect(() => {
+    try { localStorage.setItem('code-editor:terminal-height', String(terminalHeight)) } catch {}
+  }, [terminalHeight])
 
   // ─── Sliding tab indicator measurement ─────────────────
   useLayoutEffect(() => {
@@ -136,6 +141,9 @@ export default function EditorLayout() {
     }
   }, [status])
 
+  const activeViewRef = useRef(activeView)
+  activeViewRef.current = activeView
+
   // ─── Keyboard shortcuts ────────────────────────────────
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -151,6 +159,8 @@ export default function EditorLayout() {
       if (meta && e.key === '\\') { e.preventDefault(); setSidebarCollapsed(v => !v) }
       // ⌘J / ⌘` — Toggle terminal
       if (meta && (e.key === 'j' || e.key === '`') && !e.shiftKey) { e.preventDefault(); setTerminalVisible(v => !v) }
+      // ⌘L — Open side chat panel and focus input
+      if (meta && e.key === 'l' && !e.shiftKey) { e.preventDefault(); if (activeViewRef.current !== 'editor') setView('editor'); window.dispatchEvent(new CustomEvent('open-side-chat')); requestAnimationFrame(() => window.dispatchEvent(new CustomEvent('focus-agent-input'))) }
       // Esc — Close overlays
       if (e.key === 'Escape') {
         setQuickOpenVisible(false); setGlobalSearchVisible(false)
@@ -159,7 +169,7 @@ export default function EditorLayout() {
       // ⌘1-6 — View switching
       if (meta && e.key >= '1' && e.key <= '6') {
         e.preventDefault()
-        const views: ViewId[] = ['chat', 'editor', 'grid', 'git', 'prs', 'settings']
+        const views: ViewId[] = ['editor', 'preview', 'grid', 'git', 'prs', 'settings']
         const target = views[parseInt(e.key) - 1]
         setView(target)
         setFlashedTab(target)
@@ -383,8 +393,8 @@ export default function EditorLayout() {
       {/* Workspace Sidebar */}
       <WorkspaceSidebar
         activeId={activeChatId ?? ''}
-        onSelect={(id) => { setActiveChatId(id); window.dispatchEvent(new CustomEvent('switch-chat', { detail: { id } })); setView('chat') }}
-        onNew={() => { const newId = crypto.randomUUID(); setActiveChatId(newId); window.dispatchEvent(new CustomEvent('switch-chat', { detail: { id: newId } })); setView('chat') }}
+        onSelect={(id) => { setActiveChatId(id); window.dispatchEvent(new CustomEvent('switch-chat', { detail: { id } })); setView('editor'); window.dispatchEvent(new CustomEvent('open-side-chat')) }}
+        onNew={() => { const newId = crypto.randomUUID(); setActiveChatId(newId); window.dispatchEvent(new CustomEvent('switch-chat', { detail: { id: newId } })); setView('editor'); window.dispatchEvent(new CustomEvent('open-side-chat')) }}
         onDelete={(id) => { if (id === activeChatId) { setActiveChatId(null) } }}
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(v => !v)}
@@ -438,7 +448,6 @@ export default function EditorLayout() {
         {/* Active view with crossfade transition */}
         <div className="flex-1 flex min-h-0 min-w-0 overflow-hidden">
           <div key={activeView} className="flex-1 flex min-h-0 min-w-0 w-full overflow-hidden view-enter">
-            {activeView === 'chat' && <ChatView />}
             {activeView === 'editor' && <EditorView />}
             {activeView === 'preview' && <PreviewPanel />}
             {activeView === 'workflows' && <WorkflowView />}
@@ -447,7 +456,7 @@ export default function EditorLayout() {
             {activeView === 'prs' && <PrView />}
             {activeView === 'settings' && (
               <div className="flex-1 flex items-center justify-center">
-                <SettingsPanel open={true} onClose={() => setView('chat')} />
+                <SettingsPanel open={true} onClose={() => setView('editor')} />
               </div>
             )}
           </div>

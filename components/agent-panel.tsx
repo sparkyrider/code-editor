@@ -6,7 +6,7 @@ import { ModeSelector } from '@/components/mode-selector'
 import { ChatHome } from '@/components/chat-home'
 import { ChatHeader } from '@/components/chat-header'
 import type { AgentMode } from '@/components/mode-selector'
-import { PermissionsToggle, usePermissions } from '@/components/permissions-toggle'
+import { usePermissions } from '@/components/permissions-toggle'
 import { useGateway } from '@/context/gateway-context'
 import { useEditor } from '@/context/editor-context'
 import { useRepo } from '@/context/repo-context'
@@ -168,7 +168,7 @@ export function AgentPanel() {
   const [modelMenuOpen, setModelMenuOpen] = useState(false)
   const [modelMenuPos, setModelMenuPos] = useState<{ left: number; bottom: number } | null>(null)
   const modelBtnRef = useRef<HTMLButtonElement>(null)
-  const [agentMode, setAgentMode] = useState<AgentMode>('agent')
+  const [agentMode, setAgentMode] = useState<AgentMode>('code')
   const [planSteps, setPlanSteps] = useState<PlanStep[]>([])
   const [contextTokens, setContextTokens] = useState(0)
   const inlineDiffRef = useRef<InlineDiffResult | null>(null)
@@ -587,6 +587,13 @@ export function AgentPanel() {
     return () => window.removeEventListener('set-agent-input', handler)
   }, [])
 
+  // ─── Listen for focus-agent-input (⌘L from anywhere) ──────
+  useEffect(() => {
+    const handler = () => inputRef.current?.focus()
+    window.addEventListener('focus-agent-input', handler)
+    return () => window.removeEventListener('focus-agent-input', handler)
+  }, [])
+
   // ─── Build per-message context ────────────────────────────────
   const buildContext = useCallback(() => {
     const file = activeFile ? getFile(activeFile) : undefined
@@ -845,7 +852,7 @@ export function AgentPanel() {
       for (const img of imageAttachments) {
         attachCtx += `\n\n[Attached screenshot: ${img.name}]`
       }
-      const modePrefix = agentMode === 'plan' ? '[Mode: Plan — discuss and plan, do not write code yet]\n' : agentMode === 'code' ? '[Mode: Code — make direct changes]\n' : ''
+      const modePrefix = agentMode === 'chat' ? '[Mode: Chat — discuss, plan, and answer questions. Do not make code changes unless explicitly asked.]\n' : '[Mode: Code — make direct code changes and edits]\n'
       const fullMessage = modePrefix + (context || '') + attachCtx + '\n\n' + text
       setContextAttachments([])
       setImageAttachments([])
@@ -1382,7 +1389,7 @@ export function AgentPanel() {
                     {isAssistant && parsePlanSteps(msg.content).length >= 3 && (
                       <PlanView
                         steps={parsePlanSteps(msg.content)}
-                        interactive={agentMode === 'plan'}
+                        interactive={agentMode === 'chat'}
                         onApprove={() => {
                           setInput('Continue with the plan')
                           sendMessage()
@@ -1689,16 +1696,10 @@ export function AgentPanel() {
             </div>
           </div>
         </div>
-        {/* Bottom bar — mode selector + permissions + model */}
-        <div className="flex flex-col gap-1 mt-1.5">
-          <div className="flex items-center justify-center">
-            <ModeSelector mode={agentMode} onChange={setAgentMode} />
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <PermissionsToggle />
-            </div>
-            <div className="flex items-center gap-2">
+        {/* Bottom bar — mode + model in one row */}
+        <div className="flex items-center justify-between mt-1.5">
+          <ModeSelector mode={agentMode} onChange={setAgentMode} />
+          <div className="flex items-center gap-2">
               {modelInfo.current && (
                 <div className="relative">
                   <button
@@ -1745,7 +1746,6 @@ export function AgentPanel() {
                 </div>
               )}
             </div>
-          </div>
         </div>
       </div>
       </>}

@@ -42,47 +42,40 @@ export function ComponentIsolator() {
 
   if (!isolatedComponent) return null
 
+  const hasProps = Object.keys(isolatedComponent.props).length > 0
+
   return (
     <div className="w-full h-full flex flex-col">
-      {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--border)] bg-[var(--bg-elevated)] shrink-0">
-        <Icon icon="lucide:component" width={13} height={13} className="text-[var(--brand)]" />
-        <span className="text-[11px] font-semibold text-[var(--text-primary)]">{isolatedComponent.name}</span>
-        <span className="text-[10px] font-mono text-[var(--text-disabled)] truncate">{isolatedComponent.filePath}</span>
-        <div className="flex-1" />
-        <button
-          onClick={exitIsolation}
-          className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer"
-        >
-          <Icon icon="lucide:minimize-2" width={11} height={11} />
-          Exit
-        </button>
-      </div>
-
       {/* Isolated render area */}
-      <div className="flex-1 min-h-0 flex items-center justify-center p-6 overflow-auto bg-white dark:bg-[#1a1a1a]">
+      <div className="flex-1 min-h-0 flex items-center justify-center p-6 overflow-auto bg-[repeating-conic-gradient(var(--bg-subtle)_0%_25%,transparent_0%_50%)] bg-[length:16px_16px]">
         {isolatedComponent.code ? (
-          <div className="w-full max-w-2xl">
-            <pre className="text-[11px] font-mono text-[var(--text-secondary)] whitespace-pre-wrap bg-[var(--bg)] rounded-lg p-4 border border-[var(--border)] overflow-auto max-h-full">
+          <div className="w-full max-w-2xl bg-[var(--bg)] rounded-xl border border-[var(--border)] shadow-lg overflow-hidden">
+            <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--border)] bg-[var(--bg-elevated)]">
+              <Icon icon="lucide:code" width={12} height={12} className="text-[var(--text-disabled)]" />
+              <span className="text-[10px] font-mono text-[var(--text-tertiary)]">{isolatedComponent.filePath}</span>
+            </div>
+            <pre className="text-[11px] font-mono text-[var(--text-secondary)] whitespace-pre-wrap p-4 overflow-auto max-h-full">
               {isolatedComponent.code}
             </pre>
           </div>
         ) : (
-          <div className="flex flex-col items-center gap-3 text-center">
-            <div className="w-12 h-12 rounded-xl bg-[color-mix(in_srgb,var(--brand)_10%,transparent)] flex items-center justify-center">
-              <Icon icon="lucide:component" width={24} height={24} className="text-[var(--brand)]" />
+          <div className="flex flex-col items-center gap-4 text-center bg-[var(--bg)] rounded-xl border border-[var(--border)] shadow-lg p-8 max-w-sm">
+            <div className="w-14 h-14 rounded-2xl bg-[color-mix(in_srgb,var(--brand)_10%,transparent)] flex items-center justify-center">
+              <Icon icon="lucide:component" width={28} height={28} className="text-[var(--brand)]" />
             </div>
-            <div>
-              <p className="text-[12px] font-medium text-[var(--text-primary)]">{isolatedComponent.name}</p>
-              <p className="text-[10px] text-[var(--text-tertiary)] mt-1">Component isolated from {isolatedComponent.filePath}</p>
+
+            <div className="space-y-1">
+              <p className="text-[14px] font-semibold text-[var(--text-primary)]">{isolatedComponent.name}</p>
+              <p className="text-[11px] font-mono text-[var(--text-disabled)]">{isolatedComponent.filePath}</p>
             </div>
-            {Object.keys(isolatedComponent.props).length > 0 && (
-              <div className="mt-2 text-left w-full max-w-sm">
-                <p className="text-[9px] uppercase tracking-wider font-medium text-[var(--text-disabled)] mb-1">Props</p>
-                <div className="rounded-lg border border-[var(--border)] bg-[var(--bg)] p-2 font-mono text-[10px] text-[var(--text-secondary)]">
+
+            {hasProps && (
+              <div className="w-full text-left">
+                <p className="text-[9px] uppercase tracking-wider font-semibold text-[var(--text-disabled)] mb-1.5">Props</p>
+                <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] p-2.5 font-mono text-[10px] space-y-0.5">
                   {Object.entries(isolatedComponent.props).map(([key, val]) => (
-                    <div key={key} className="flex gap-2">
-                      <span className="text-[var(--brand)]">{key}</span>
+                    <div key={key} className="flex gap-2 items-baseline">
+                      <span className="text-[var(--brand)] font-medium">{key}</span>
                       <span className="text-[var(--text-disabled)]">=</span>
                       <span className="text-[var(--text-tertiary)] truncate">{JSON.stringify(val)}</span>
                     </div>
@@ -90,6 +83,10 @@ export function ComponentIsolator() {
                 </div>
               </div>
             )}
+
+            <p className="text-[10px] text-[var(--text-disabled)] leading-relaxed max-w-[240px]">
+              This component is rendered in isolation. Use the toolbar above to exit back to the full preview.
+            </p>
           </div>
         )}
       </div>

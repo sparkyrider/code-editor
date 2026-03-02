@@ -38,7 +38,7 @@ export function EditorView() {
   useEffect(() => { try { localStorage.setItem('ce:chat-visible', String(chatVisible)) } catch {} }, [chatVisible])
   useEffect(() => { try { localStorage.setItem('ce:chat-w', String(chatWidth)) } catch {} }, [chatWidth])
 
-  // ⌘B toggle tree
+  // ⌘B toggle tree, ⌘I toggle chat
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'b') { e.preventDefault(); setTreeVisible(v => !v) }
@@ -46,6 +46,13 @@ export function EditorView() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
+  }, [])
+
+  // Listen for open-side-chat (⌘L from anywhere)
+  useEffect(() => {
+    const handler = () => setChatVisible(true)
+    window.addEventListener('open-side-chat', handler)
+    return () => window.removeEventListener('open-side-chat', handler)
   }, [])
 
   const hasFiles = files.length > 0 || activeFile

@@ -245,7 +245,7 @@ export function WorkspaceSidebar({ activeId, onSelect, onNew, onDelete, collapse
 
         {/* New Chat + Search row */}
         <div className="flex items-center gap-2 px-3 pt-1.5 pb-2.5">
-          <div className="relative flex-1 shine-on-load rounded-md">
+          <div className="relative flex-1 rounded-md">
             <Icon icon="lucide:search" width={13} height={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-disabled)] z-[3]" />
             <input
               type="text"

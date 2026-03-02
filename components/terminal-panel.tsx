@@ -7,6 +7,8 @@ import { useTheme } from '@/context/theme-context'
 import { useLocal } from '@/context/local-context'
 import '@xterm/xterm/css/xterm.css'
 
+const MAX_TERMINALS = 3
+
 interface TerminalTab {
   id: number
   label: string
@@ -126,6 +128,7 @@ function TerminalPane({
   const [tabs, setTabs] = useState<TerminalTab[]>([])
   const [activeTab, setActiveTab] = useState<number | null>(null)
   const [terminalError, setTerminalError] = useState<string | null>(null)
+  const manualCloseAll = useRef(false)
   const termRef = useRef<HTMLDivElement>(null)
   const xtermRef = useRef<any>(null)
   const fitRef = useRef<any>(null)
@@ -152,6 +155,12 @@ function TerminalPane({
 
   const createTerminal = useCallback(async (label?: string, initialCommand?: string) => {
     if (!isDesktop) return
+    // Enforce max terminal limit
+    if (tabsRef.current.length >= MAX_TERMINALS) {
+      setTerminalError(`Maximum of ${MAX_TERMINALS} terminals allowed. Close one first.`)
+      return
+    }
+    manualCloseAll.current = false
     try {
       setTerminalError(null)
       const id = await tauriInvoke<number>('create_terminal', { cols: 80, rows: 24, cwd: cwd ?? undefined })
@@ -189,6 +198,12 @@ function TerminalPane({
         scrollback: 10000,
         allowProposedApi: true,
         theme: buildXtermTheme(),
+      })
+      term.attachCustomKeyEventHandler((e: KeyboardEvent) => {
+        const meta = e.metaKey || e.ctrlKey
+        if (meta && ['l','p','j','\\','`','1','2','3','4','5','6'].includes(e.key)) return false
+        if (meta && e.shiftKey && ['p','f'].includes(e.key)) return false
+        return true
       })
       const fit = new FitAddon()
       term.loadAddon(fit)
@@ -232,11 +247,23 @@ function TerminalPane({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible])
 
-  // Auto-create first terminal when pane becomes ready
+  // Auto-create first terminal when pane becomes ready (skip if user closed all)
   useEffect(() => {
-    if (!visible || !isDesktop || tabs.length > 0) return
+    if (!visible || !isDesktop || tabs.length > 0 || manualCloseAll.current) return
     void createTerminal()
   }, [visible, isDesktop, tabs.length, createTerminal])
+
+  // Listen for script run requests from the preview panel
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { name, cwd: scriptCwd } = (e as CustomEvent).detail ?? {}
+      if (!name || !isDesktop) return
+      const cmd = `pnpm run ${name}`
+      void createTerminal(name, cmd)
+    }
+    window.addEventListener('run-script-in-terminal', handler)
+    return () => window.removeEventListener('run-script-in-terminal', handler)
+  }, [isDesktop, createTerminal])
 
   // Subscribe to PTY output for the active tab
   useEffect(() => {
@@ -290,6 +317,15 @@ function TerminalPane({
     })
   }, [activeTab])
 
+  const closeAllTabs = useCallback(async () => {
+    manualCloseAll.current = true
+    const current = tabsRef.current
+    await Promise.all(current.map(t => tauriInvoke('kill_terminal', { id: t.id }).catch(() => {})))
+    setTabs([])
+    setActiveTab(null)
+    xtermRef.current?.clear()
+  }, [])
+
   return (
     <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
       {/* Tab bar */}
@@ -331,8 +367,9 @@ function TerminalPane({
           <>
             <button
               onClick={() => createTerminal()}
-              className="ml-1 p-1 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors shrink-0"
-              title="New Terminal"
+              disabled={tabs.length >= MAX_TERMINALS}
+              className="ml-1 p-1 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
+              title={tabs.length >= MAX_TERMINALS ? `Max ${MAX_TERMINALS} terminals` : "New Terminal"}
             >
               <Icon icon="lucide:plus" width={14} height={14} />
             </button>
@@ -344,6 +381,16 @@ function TerminalPane({
               <Icon icon="lucide:cpu" width={13} height={13} />
             </button>
           </>
+        )}
+
+        {tabs.length > 0 && (
+          <button
+            onClick={closeAllTabs}
+            className="ml-1 p-1 rounded hover:bg-[color-mix(in_srgb,var(--color-deletions)_15%,transparent)] text-[var(--text-secondary)] hover:text-[var(--color-deletions)] transition-colors shrink-0"
+            title="Close all terminals"
+          >
+            <Icon icon="lucide:trash-2" width={13} height={13} />
+          </button>
         )}
 
         <div className="flex-1" />
@@ -405,13 +452,18 @@ function TerminalPane({
 export function TerminalPanel({ visible, height, onHeightChange }: TerminalPanelProps) {
   const { version: themeVersion } = useTheme()
   const local = useLocal()
-  const [splitEnabled, setSplitEnabled] = useState(false)
+  const [splitEnabled, setSplitEnabled] = useState(() => {
+    try { return localStorage.getItem('code-editor:terminal-split') === 'true' } catch { return false }
+  })
   const [isDesktop, setIsDesktop] = useState(false)
   const resizing = useRef(false)
   const startY = useRef(0)
   const startH = useRef(0)
 
   useEffect(() => { setIsDesktop(isTauri()) }, [])
+  useEffect(() => {
+    try { localStorage.setItem('code-editor:terminal-split', String(splitEnabled)) } catch {}
+  }, [splitEnabled])
 
   const handleFileOpen = useCallback((path: string, line?: number) => {
     window.dispatchEvent(new CustomEvent('file-select', { detail: { path } }))

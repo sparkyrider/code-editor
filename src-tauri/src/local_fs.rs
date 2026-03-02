@@ -218,6 +218,25 @@ pub fn local_git_unstage(root: String, paths: Vec<String>) -> Result<String, Str
 }
 
 #[tauri::command]
+pub fn local_git_discard(root: String, paths: Vec<String>) -> Result<String, String> {
+    // Discard unstaged changes: git checkout -- <paths>
+    for p in &paths {
+        run_git(&root, &["checkout", "--", p])?;
+    }
+    Ok("Discarded".to_string())
+}
+
+#[tauri::command]
+pub fn local_git_discard_staged(root: String, paths: Vec<String>) -> Result<String, String> {
+    // Unstage + discard: git reset HEAD -- <paths> then git checkout -- <paths>
+    for p in &paths {
+        run_git(&root, &["reset", "HEAD", "--", p])?;
+        run_git(&root, &["checkout", "--", p])?;
+    }
+    Ok("Discarded staged".to_string())
+}
+
+#[tauri::command]
 pub fn local_git_undo_commit(root: String) -> Result<String, String> {
     run_git(&root, &["reset", "--soft", "HEAD~1"])
 }

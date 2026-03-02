@@ -307,6 +307,8 @@ export function GitView() {
   }, [branchName, isLocalMode, local])
 
   const [unstageError, setUnstageError] = useState<string | null>(null)
+  const [discarding, setDiscarding] = useState(false)
+  const [discardConfirm, setDiscardConfirm] = useState<'changes' | 'staged' | null>(null)
 
   const handleUnstage = useCallback(async () => {
     if (!isLocalMode) return
@@ -326,6 +328,44 @@ export function GitView() {
     }
     setUnstaging(false)
   }, [isLocalMode, selectedFiles, changeEntries, local])
+
+  const handleDiscardChanges = useCallback(async () => {
+    if (!local.discardChanges) return
+    const paths = changeEntries
+      .filter(e => (e.source === 'editor' || e.index_status === ' ' || e.index_status === '?') && selectedFiles.has(e.path))
+      .map(e => e.path)
+    if (paths.length === 0) return
+    setDiscarding(true)
+    try {
+      await local.discardChanges(paths)
+      setDiscardConfirm(null)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      setUnstageError(`Discard failed: ${msg}`)
+      setTimeout(() => setUnstageError(null), 5000)
+    } finally {
+      setDiscarding(false)
+    }
+  }, [local, changeEntries, selectedFiles])
+
+  const handleDiscardStaged = useCallback(async () => {
+    if (!local.discardStagedChanges) return
+    const paths = changeEntries
+      .filter(e => e.source === 'git' && e.index_status !== ' ' && e.index_status !== '?' && selectedFiles.has(e.path))
+      .map(e => e.path)
+    if (paths.length === 0) return
+    setDiscarding(true)
+    try {
+      await local.discardStagedChanges(paths)
+      setDiscardConfirm(null)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      setUnstageError(`Discard staged failed: ${msg}`)
+      setTimeout(() => setUnstageError(null), 5000)
+    } finally {
+      setDiscarding(false)
+    }
+  }, [local, changeEntries, selectedFiles])
 
   const handleUndoCommit = useCallback(async () => {
     if (!isLocalMode) return
@@ -733,6 +773,19 @@ export function GitView() {
                         <div className="flex items-center h-[24px] px-3 bg-[var(--bg-subtle)] border-b border-[var(--border)]">
                           <span className="text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Staged Changes</span>
                           <span className="ml-1.5 px-1 min-w-[14px] text-center rounded-full bg-[var(--color-additions)] text-white text-[8px] font-bold leading-[14px]">{stagedEntries.length}</span>
+                          <div className="ml-auto flex items-center gap-0.5">
+                            {discardConfirm === 'staged' ? (
+                              <>
+                                <span className="text-[9px] text-[var(--color-deletions)] mr-1">Discard all staged?</span>
+                                <button onClick={handleDiscardStaged} disabled={discarding} className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-[var(--color-deletions)] text-white hover:opacity-90 cursor-pointer disabled:opacity-40">{discarding ? '...' : 'Yes'}</button>
+                                <button onClick={() => setDiscardConfirm(null)} className="px-1.5 py-0.5 rounded text-[9px] text-[var(--text-tertiary)] hover:bg-[var(--bg-elevated)] cursor-pointer">No</button>
+                              </>
+                            ) : (
+                              <button onClick={() => setDiscardConfirm('staged')} className="p-0.5 rounded hover:bg-[var(--bg-elevated)] text-[var(--text-disabled)] hover:text-[var(--color-deletions)] cursor-pointer" title="Discard staged changes">
+                                <Icon icon="lucide:undo-2" width={11} height={11} />
+                              </button>
+                            )}
+                          </div>
                         </div>
                         {stagedEntries.map(renderEntry)}
                       </>
@@ -743,6 +796,19 @@ export function GitView() {
                           <div className="flex items-center h-[24px] px-3 bg-[var(--bg-subtle)] border-b border-[var(--border)]">
                             <span className="text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Changes</span>
                             <span className="ml-1.5 px-1 min-w-[14px] text-center rounded-full bg-[var(--warning,#eab308)] text-white text-[8px] font-bold leading-[14px]">{unstagedEntries.length}</span>
+                            <div className="ml-auto flex items-center gap-0.5">
+                              {discardConfirm === 'changes' ? (
+                                <>
+                                  <span className="text-[9px] text-[var(--color-deletions)] mr-1">Discard all changes?</span>
+                                  <button onClick={handleDiscardChanges} disabled={discarding} className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-[var(--color-deletions)] text-white hover:opacity-90 cursor-pointer disabled:opacity-40">{discarding ? '...' : 'Yes'}</button>
+                                  <button onClick={() => setDiscardConfirm(null)} className="px-1.5 py-0.5 rounded text-[9px] text-[var(--text-tertiary)] hover:bg-[var(--bg-elevated)] cursor-pointer">No</button>
+                                </>
+                              ) : (
+                                <button onClick={() => setDiscardConfirm('changes')} className="p-0.5 rounded hover:bg-[var(--bg-elevated)] text-[var(--text-disabled)] hover:text-[var(--color-deletions)] cursor-pointer" title="Discard changes">
+                                  <Icon icon="lucide:undo-2" width={11} height={11} />
+                                </button>
+                              )}
+                            </div>
                           </div>
                         )}
                         {unstagedEntries.map(renderEntry)}

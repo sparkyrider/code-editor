@@ -4,10 +4,79 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { Icon } from '@iconify/react'
 import { usePreview, DEVICES, type DeviceSpec } from '@/context/preview-context'
 import { useEditor } from '@/context/editor-context'
+import { useView } from '@/context/view-context'
+import { useLocal } from '@/context/local-context'
+import { isTauri, tauriInvoke } from '@/lib/tauri'
 import { DeviceCarousel } from './device-carousel'
 import { PipWindow } from './pip-window'
 import { AgentAnnotationOverlay } from './agent-annotations'
 import { ComponentIsolator } from './component-isolator'
+
+/* ── Script metadata ─────────────────────────────────────────── */
+
+interface ScriptEntry {
+  name: string
+  command: string
+  category: 'dev' | 'build' | 'test' | 'lint' | 'other'
+  icon: string
+}
+
+const SCRIPT_CATEGORIES: Record<string, { category: ScriptEntry['category']; icon: string }> = {
+  dev:        { category: 'dev',   icon: 'lucide:play' },
+  start:      { category: 'dev',   icon: 'lucide:play' },
+  serve:      { category: 'dev',   icon: 'lucide:play' },
+  build:      { category: 'build', icon: 'lucide:hammer' },
+  test:       { category: 'test',  icon: 'lucide:flask-conical' },
+  lint:       { category: 'lint',  icon: 'lucide:scan-search' },
+  format:     { category: 'lint',  icon: 'lucide:align-left' },
+  typecheck:  { category: 'lint',  icon: 'lucide:check-circle' },
+  preview:    { category: 'dev',   icon: 'lucide:eye' },
+}
+
+function categoriseScript(name: string): { category: ScriptEntry['category']; icon: string } {
+  const lower = name.toLowerCase()
+  for (const [key, meta] of Object.entries(SCRIPT_CATEGORIES)) {
+    if (lower === key || lower.startsWith(`${key}:`) || lower.startsWith(`${key}-`)) return meta
+  }
+  if (lower.includes('dev') || lower.includes('watch')) return { category: 'dev', icon: 'lucide:play' }
+  if (lower.includes('build') || lower.includes('compile')) return { category: 'build', icon: 'lucide:hammer' }
+  if (lower.includes('test') || lower.includes('spec')) return { category: 'test', icon: 'lucide:flask-conical' }
+  if (lower.includes('lint') || lower.includes('check')) return { category: 'lint', icon: 'lucide:scan-search' }
+  return { category: 'other', icon: 'lucide:terminal' }
+}
+
+function usePackageScripts(): ScriptEntry[] {
+  const { localMode, readFile } = useLocal()
+  const [scripts, setScripts] = useState<ScriptEntry[]>([])
+
+  useEffect(() => {
+    if (!localMode) { setScripts([]); return }
+    let cancelled = false
+    ;(async () => {
+      try {
+        const raw = await readFile('package.json')
+        const pkg = JSON.parse(raw)
+        if (cancelled || !pkg.scripts) return
+        const entries: ScriptEntry[] = Object.entries(pkg.scripts as Record<string, string>).map(([name, command]) => {
+          const { category, icon } = categoriseScript(name)
+          return { name, command, category, icon }
+        })
+        setScripts(entries)
+      } catch {
+        if (!cancelled) setScripts([])
+      }
+    })()
+    return () => { cancelled = true }
+  }, [localMode, readFile])
+
+  return scripts
+}
+
+function runScriptInTerminal(name: string, cwd?: string | null) {
+  window.dispatchEvent(new CustomEvent('run-script-in-terminal', { detail: { name, cwd } }))
+}
+
+/* ── Preview Panel ───────────────────────────────────────────── */
 
 export function PreviewPanel() {
   const {
@@ -20,14 +89,16 @@ export function PreviewPanel() {
   } = usePreview()
 
   const { activeFile, files } = useEditor()
+  const { setView } = useView()
+  const local = useLocal()
+  const scripts = usePackageScripts()
   const [urlInput, setUrlInput] = useState(previewUrl)
   const [urlEditing, setUrlEditing] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [showSettings, setShowSettings] = useState(false)
+  const [showScripts, setShowScripts] = useState(false)
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const device = DEVICES.find(d => d.id === activeDevice) ?? DEVICES[0]
 
-  // Sync URL input with context
   useEffect(() => { setUrlInput(previewUrl) }, [previewUrl])
 
   const handleUrlSubmit = () => {
@@ -37,17 +108,26 @@ export function PreviewPanel() {
     setUrlEditing(false)
   }
 
+  const handleRunScript = useCallback((name: string) => {
+    runScriptInTerminal(name, local.rootPath)
+    setShowScripts(false)
+  }, [local.rootPath])
+
   const handleIframeLoad = useCallback(() => setLoading(false), [])
 
-  // If in PiP mode, render the floating window instead
-  if (pip) {
-    return <PipWindow />
-  }
+  useEffect(() => { if (previewUrl) setLoading(true) }, [refreshKey, previewUrl])
 
-  if (!visible) return null
+  if (pip) return <PipWindow />
+
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  useEffect(() => { if (!visible) setVisible(true) }, [visible, setVisible])
+
+  const devScripts = scripts.filter(s => s.category === 'dev')
+  const buildScripts = scripts.filter(s => s.category === 'build')
+  const otherScripts = scripts.filter(s => s.category !== 'dev' && s.category !== 'build')
 
   return (
-    <div className="flex flex-col h-full bg-[var(--bg)] overflow-hidden">
+    <div className="flex flex-col w-full h-full bg-[var(--bg)] overflow-hidden">
       {/* ── Toolbar ──────────────────────────────────────────── */}
       <div className="flex items-center gap-1 h-9 px-2 border-b border-[var(--border)] bg-[var(--bg-elevated)] shrink-0">
         {/* Navigation */}
@@ -83,6 +163,49 @@ export function PreviewPanel() {
           )}
         </div>
 
+        {/* Scripts dropdown toggle */}
+        {scripts.length > 0 && (
+          <div className="relative">
+            <button
+              onClick={() => setShowScripts(!showScripts)}
+              className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors cursor-pointer ${
+                showScripts
+                  ? 'bg-[color-mix(in_srgb,var(--brand)_15%,transparent)] text-[var(--brand)]'
+                  : 'text-[var(--text-disabled)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]'
+              }`}
+              title="Run scripts"
+            >
+              <Icon icon="lucide:terminal" width={12} height={12} />
+              <Icon icon="lucide:chevron-down" width={10} height={10} />
+            </button>
+
+            {showScripts && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowScripts(false)} />
+                <div className="absolute right-0 top-full mt-1 z-50 w-64 max-h-72 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] shadow-xl">
+                  <div className="px-3 py-2 border-b border-[var(--border)]">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-disabled)]">Scripts</span>
+                  </div>
+                  {scripts.map(s => (
+                    <button
+                      key={s.name}
+                      onClick={() => handleRunScript(s.name)}
+                      className="w-full flex items-center gap-2 px-3 py-1.5 text-left hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer group"
+                    >
+                      <Icon icon={s.icon} width={12} height={12} className="text-[var(--text-disabled)] group-hover:text-[var(--brand)] shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[11px] font-medium text-[var(--text-primary)] truncate">{s.name}</div>
+                        <div className="text-[9px] font-mono text-[var(--text-disabled)] truncate">{s.command}</div>
+                      </div>
+                      <Icon icon="lucide:play" width={10} height={10} className="text-[var(--text-disabled)] opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         {/* Device selector */}
         <div className="flex items-center gap-0.5 px-1 border-l border-[var(--border)] ml-1">
           {DEVICES.slice(0, 4).map(d => (
@@ -116,8 +239,9 @@ export function PreviewPanel() {
         <div className="flex items-center gap-0.5 border-l border-[var(--border)] pl-1 ml-1">
           {/* Component Isolation */}
           {isolatedComponent ? (
-            <button onClick={exitIsolation} className="p-1 rounded bg-[color-mix(in_srgb,var(--brand)_15%,transparent)] text-[var(--brand)] cursor-pointer" title="Exit component isolation">
-              <Icon icon="lucide:minimize-2" width={13} height={13} />
+            <button onClick={exitIsolation} className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-[color-mix(in_srgb,var(--brand)_15%,transparent)] text-[var(--brand)] cursor-pointer" title="Exit component isolation">
+              <Icon icon="lucide:minimize-2" width={12} height={12} />
+              <span className="text-[10px] font-medium">Exit</span>
             </button>
           ) : (
             <button
@@ -150,14 +274,31 @@ export function PreviewPanel() {
           </a>
 
           {/* Close */}
-          <button onClick={() => setVisible(false)} className="p-1 rounded text-[var(--text-disabled)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] cursor-pointer" title="Close preview">
+          <button onClick={() => { setVisible(false); setView('editor') }} className="p-1 rounded text-[var(--text-disabled)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] cursor-pointer" title="Close preview">
             <Icon icon="lucide:x" width={13} height={13} />
           </button>
         </div>
       </div>
 
+      {/* ── Isolation banner ─────────────────────────────────── */}
+      {isolatedComponent && (
+        <div className="flex items-center gap-2 px-3 py-1.5 border-b border-[color-mix(in_srgb,var(--brand)_25%,transparent)] bg-[color-mix(in_srgb,var(--brand)_6%,transparent)] shrink-0">
+          <Icon icon="lucide:component" width={13} height={13} className="text-[var(--brand)] shrink-0" />
+          <span className="text-[11px] font-semibold text-[var(--brand)]">{isolatedComponent.name}</span>
+          <span className="text-[10px] font-mono text-[var(--text-disabled)] truncate">{isolatedComponent.filePath}</span>
+          <div className="flex-1" />
+          <button
+            onClick={exitIsolation}
+            className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-[color-mix(in_srgb,var(--brand)_12%,transparent)] text-[var(--brand)] hover:bg-[color-mix(in_srgb,var(--brand)_20%,transparent)] transition-colors cursor-pointer"
+          >
+            <Icon icon="lucide:arrow-left" width={10} height={10} />
+            Back to preview
+          </button>
+        </div>
+      )}
+
       {/* ── Preview Area ─────────────────────────────────────── */}
-      <div className="flex-1 min-h-0 relative overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-full min-h-0 relative overflow-hidden">
         {/* Loading shimmer */}
         {loading && (
           <div className="absolute inset-0 z-10 bg-[var(--bg)] flex items-center justify-center">
@@ -175,18 +316,29 @@ export function PreviewPanel() {
           <DeviceCarousel />
         ) : (
           /* Single device preview */
-          <div className="w-full h-full flex items-center justify-center p-4 overflow-auto">
-            <DeviceWrapper device={device}>
-              <iframe
-                ref={iframeRef}
-                key={refreshKey}
-                src={previewUrl}
-                onLoad={handleIframeLoad}
-                className="w-full h-full border-0 bg-white"
-                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
-                title="Preview"
+          <div className={`w-full h-full overflow-auto ${device.id === 'responsive' ? 'flex items-center justify-center' : 'flex items-center justify-center p-4'}`}>
+            {previewUrl ? (
+              <DeviceWrapper device={device}>
+                <iframe
+                  ref={iframeRef}
+                  key={refreshKey}
+                  src={previewUrl}
+                  onLoad={handleIframeLoad}
+                  onError={() => setLoading(false)}
+                  className="w-full h-full border-0 bg-white"
+                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+                  title="Preview"
+                />
+              </DeviceWrapper>
+            ) : (
+              <EmptyPreviewState
+                onSetUrl={() => setUrlEditing(true)}
+                scripts={scripts}
+                devScripts={devScripts}
+                buildScripts={buildScripts}
+                onRunScript={handleRunScript}
               />
-            </DeviceWrapper>
+            )}
           </div>
         )}
 
@@ -220,7 +372,7 @@ export function DeviceWrapper({ device, children, className = '' }: { device: De
 
       {/* Device frame */}
       <div
-        className={`relative bg-[var(--bg-tertiary)] overflow-hidden shadow-2xl ${
+        className={`relative bg-[var(--bg-tertiary,var(--bg-subtle))] overflow-hidden shadow-2xl ${
           isPhone ? 'rounded-[28px] p-2' :
           isTablet ? 'rounded-[18px] p-2.5' :
           isLaptop ? 'rounded-t-[10px] p-1.5 pb-0' :
@@ -230,12 +382,12 @@ export function DeviceWrapper({ device, children, className = '' }: { device: De
       >
         {/* Notch (iPhone) */}
         {device.id === 'iphone-15' && (
-          <div className="absolute top-1.5 left-1/2 -translate-x-1/2 w-[80px] h-[20px] bg-[var(--bg-tertiary)] rounded-b-2xl z-10" />
+          <div className="absolute top-1.5 left-1/2 -translate-x-1/2 w-[80px] h-[20px] bg-[var(--bg-tertiary,var(--bg-subtle))] rounded-b-2xl z-10" />
         )}
 
         {/* Camera (Pixel) */}
         {device.id === 'pixel-8' && (
-          <div className="absolute top-2 left-1/2 -translate-x-1/2 w-3 h-3 bg-[var(--bg-secondary)] rounded-full z-10" />
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 w-3 h-3 bg-[var(--bg-secondary,var(--bg-elevated))] rounded-full z-10" />
         )}
 
         <div className="w-full h-full rounded-[inherit] overflow-hidden">
@@ -248,10 +400,109 @@ export function DeviceWrapper({ device, children, className = '' }: { device: De
       {/* Laptop base */}
       {isLaptop && (
         <div
-          className="bg-[var(--bg-tertiary)] rounded-b-lg shadow-2xl"
+          className="bg-[var(--bg-tertiary,var(--bg-subtle))] rounded-b-lg shadow-2xl"
           style={{ width: w + 40, height: 10 }}
         >
-          <div className="mx-auto mt-0.5 w-12 h-1 bg-[var(--bg-secondary)] rounded-full" />
+          <div className="mx-auto mt-0.5 w-12 h-1 bg-[var(--bg-secondary,var(--bg-elevated))] rounded-full" />
+        </div>
+      )}
+    </div>
+  )
+}
+
+
+interface EmptyPreviewStateProps {
+  onSetUrl: () => void
+  scripts: ScriptEntry[]
+  devScripts: ScriptEntry[]
+  buildScripts: ScriptEntry[]
+  onRunScript: (name: string) => void
+}
+
+function EmptyPreviewState({ onSetUrl, scripts, devScripts, buildScripts, onRunScript }: EmptyPreviewStateProps) {
+  const hasScripts = scripts.length > 0
+
+  return (
+    <div className="flex flex-col items-center justify-center gap-5 text-center p-8 max-w-md mx-auto">
+      {/* Hero */}
+      <div className="w-14 h-14 rounded-2xl bg-[var(--bg-subtle)] flex items-center justify-center">
+        <Icon icon="lucide:monitor-play" width={24} height={24} className="text-[var(--text-disabled)]" />
+      </div>
+      <div>
+        <h3 className="text-[13px] font-semibold text-[var(--text-primary)] mb-1">Live Preview</h3>
+        <p className="text-[11px] text-[var(--text-tertiary)] max-w-[280px]">
+          {hasScripts
+            ? 'Start a dev server from your project scripts, or enter a URL manually.'
+            : 'Enter a URL in the address bar to preview your app, or start a local dev server.'}
+        </p>
+      </div>
+
+      {/* Dev scripts — prominent buttons */}
+      {devScripts.length > 0 && (
+        <div className="w-full max-w-xs space-y-1.5">
+          <span className="text-[9px] font-semibold uppercase tracking-wider text-[var(--text-disabled)]">Dev Servers</span>
+          <div className="flex flex-col gap-1">
+            {devScripts.map(s => (
+              <button
+                key={s.name}
+                onClick={() => onRunScript(s.name)}
+                className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border border-[var(--border)] hover:border-[var(--brand)] bg-[var(--bg-elevated)] hover:bg-[color-mix(in_srgb,var(--brand)_5%,transparent)] transition-all cursor-pointer group"
+              >
+                <div className="w-7 h-7 rounded-md bg-[color-mix(in_srgb,var(--brand)_10%,transparent)] flex items-center justify-center shrink-0 group-hover:bg-[color-mix(in_srgb,var(--brand)_18%,transparent)] transition-colors">
+                  <Icon icon="lucide:play" width={13} height={13} className="text-[var(--brand)]" />
+                </div>
+                <div className="flex-1 text-left min-w-0">
+                  <div className="text-[11px] font-semibold text-[var(--text-primary)]">{s.name}</div>
+                  <div className="text-[9px] font-mono text-[var(--text-disabled)] truncate">{s.command}</div>
+                </div>
+                <Icon icon="lucide:terminal" width={11} height={11} className="text-[var(--text-disabled)] opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Build & other scripts — compact grid */}
+      {(buildScripts.length > 0 || (hasScripts && devScripts.length === 0)) && (
+        <div className="w-full max-w-xs space-y-1.5">
+          <span className="text-[9px] font-semibold uppercase tracking-wider text-[var(--text-disabled)]">
+            {devScripts.length > 0 ? 'Build & Other' : 'Scripts'}
+          </span>
+          <div className="grid grid-cols-2 gap-1">
+            {(devScripts.length > 0 ? [...buildScripts, ...scripts.filter(s => s.category !== 'dev' && s.category !== 'build')] : scripts).map(s => (
+              <button
+                key={s.name}
+                onClick={() => onRunScript(s.name)}
+                className="flex items-center gap-1.5 px-2 py-1.5 rounded-md border border-[var(--border)] hover:border-[var(--border-hover)] bg-[var(--bg-elevated)] hover:bg-[var(--bg-subtle)] transition-all cursor-pointer group text-left"
+              >
+                <Icon icon={s.icon} width={11} height={11} className="text-[var(--text-disabled)] group-hover:text-[var(--text-secondary)] shrink-0" />
+                <span className="text-[10px] font-medium text-[var(--text-secondary)] truncate">{s.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Manual URL fallback */}
+      <div className="flex items-center gap-2 w-full max-w-xs">
+        <div className="flex-1 h-px bg-[var(--border)]" />
+        <span className="text-[9px] text-[var(--text-disabled)] uppercase tracking-wider">or</span>
+        <div className="flex-1 h-px bg-[var(--border)]" />
+      </div>
+
+      <button
+        onClick={onSetUrl}
+        className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-[11px] font-medium border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-subtle)] cursor-pointer transition-colors"
+      >
+        <Icon icon="lucide:link" width={12} height={12} />
+        Enter URL manually
+      </button>
+
+      {!hasScripts && (
+        <div className="flex flex-col gap-1 text-[10px] text-[var(--text-disabled)]">
+          <span className="font-mono">localhost:3000</span>
+          <span className="font-mono">localhost:5173</span>
+          <span className="font-mono">localhost:8080</span>
         </div>
       )}
     </div>

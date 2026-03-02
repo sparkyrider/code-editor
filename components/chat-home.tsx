@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { Icon } from '@iconify/react'
 import { KnotLogo } from '@/components/knot-logo'
 import { ModeSelector } from '@/components/mode-selector'
 import type { AgentMode } from '@/components/mode-selector'
-import { PermissionsToggle } from '@/components/permissions-toggle'
+// permissions now controlled via mode toggle (chat vs code)
 import { useRepo } from '@/context/repo-context'
 import { useLocal } from '@/context/local-context'
 import { useGateway } from '@/context/gateway-context'
@@ -28,7 +28,7 @@ interface Props {
 
 export function ChatHome({ onSend, onSelectFolder, onCloneRepo }: Props) {
   const [input, setInput] = useState('')
-  const [agentMode, setAgentMode] = useState<AgentMode>('agent')
+  const [agentMode, setAgentMode] = useState<AgentMode>('code')
   const [isFocused, setIsFocused] = useState(false)
   const [showTokenInput, setShowTokenInput] = useState(false)
   const [tokenDraft, setTokenDraft] = useState('')
@@ -36,7 +36,6 @@ export function ChatHome({ onSend, onSelectFolder, onCloneRepo }: Props) {
   const [ghSectionOpen, setGhSectionOpen] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const cardRef = useRef<HTMLDivElement>(null)
-  const rafRef = useRef<number>(0)
   const { repo } = useRepo()
   const local = useLocal()
   const { status } = useGateway()
@@ -47,50 +46,9 @@ export function ChatHome({ onSend, onSelectFolder, onCloneRepo }: Props) {
   const hasWorkspace = !!repoShort
   const recentFolders = useMemo(() => getRecentFolders(), [])
 
-  const isTyping = isFocused && !!input.trim()
-
-  const [shineActive, setShineActive] = useState(true)
-  useEffect(() => {
-    const delay = 3000 + Math.random() * 2000
-    const t = setTimeout(() => setShineActive(false), delay)
-    return () => clearTimeout(t)
-  }, [])
-
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!cardRef.current || !isFocused || isTyping || !shineActive) return
-    cancelAnimationFrame(rafRef.current)
-    rafRef.current = requestAnimationFrame(() => {
-      const card = cardRef.current
-      if (!card) return
-      const rect = card.getBoundingClientRect()
-      const x = (e.clientX - rect.left) / rect.width
-      const y = (e.clientY - rect.top) / rect.height
-      const rotateX = (0.5 - y) * 6
-      const rotateY = (x - 0.5) * 6
-      card.style.setProperty('--rx', `${rotateX}deg`)
-      card.style.setProperty('--ry', `${rotateY}deg`)
-    })
-  }, [isFocused, isTyping, shineActive])
-
-  const handleMouseLeave = useCallback(() => {
-    if (!cardRef.current) return
-    cardRef.current.style.setProperty('--rx', '0deg')
-    cardRef.current.style.setProperty('--ry', '0deg')
-  }, [])
-
-  useEffect(() => {
-    if ((isTyping || !shineActive) && cardRef.current) {
-      cardRef.current.style.setProperty('--rx', '0deg')
-      cardRef.current.style.setProperty('--ry', '0deg')
-    }
-  }, [isTyping, shineActive])
-
   useEffect(() => {
     const t = setTimeout(() => inputRef.current?.focus(), 100)
-    return () => {
-      clearTimeout(t)
-      cancelAnimationFrame(rafRef.current)
-    }
+    return () => clearTimeout(t)
   }, [])
 
   const handleSubmit = () => {
@@ -135,18 +93,13 @@ export function ChatHome({ onSend, onSelectFolder, onCloneRepo }: Props) {
         {/* Composer card */}
         <div
           ref={cardRef}
-          onMouseMove={handleMouseMove}
-          onMouseLeave={handleMouseLeave}
-          className={`chat-input-3d rounded-2xl border bg-[var(--bg-elevated)] overflow-hidden ${
+          className={`chat-input-card rounded-2xl border bg-[var(--bg-elevated)] overflow-hidden ${
             isFocused
               ? input.trim()
-                ? 'chat-input-3d-typing border-[color-mix(in_srgb,var(--brand)_40%,var(--border))]'
-                : shineActive
-                  ? 'chat-input-3d-active border-[color-mix(in_srgb,var(--brand)_40%,var(--border))]'
-                  : 'border-[color-mix(in_srgb,var(--brand)_20%,var(--border))]'
+                ? 'chat-input-card-typing border-[color-mix(in_srgb,var(--brand)_30%,var(--border))]'
+                : 'chat-input-card-focused border-[color-mix(in_srgb,var(--brand)_20%,var(--border))]'
               : 'border-[var(--border)]'
           }`}
-          style={{ '--rx': '0deg', '--ry': '0deg' } as React.CSSProperties}
         >
           <textarea
             ref={inputRef}
@@ -176,9 +129,7 @@ export function ChatHome({ onSend, onSelectFolder, onCloneRepo }: Props) {
                 </button>
               </div>
 
-              <div className="flex items-center gap-1.5">
-                <PermissionsToggle size="sm" />
-                <button
+              <button
                   onClick={handleSubmit}
                   disabled={!input.trim()}
                   className={`p-1.5 rounded-lg transition-all cursor-pointer ${
@@ -189,10 +140,9 @@ export function ChatHome({ onSend, onSelectFolder, onCloneRepo }: Props) {
                 >
                   <Icon icon="lucide:arrow-up" width={14} height={14} />
                 </button>
-              </div>
             </div>
 
-            {/* Row 2: Mode selector — always fully visible */}
+            {/* Bottom: mode toggle */}
             <div className="flex items-center justify-center">
               <ModeSelector mode={agentMode} onChange={setAgentMode} size="sm" />
             </div>

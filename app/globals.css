@@ -1231,140 +1231,25 @@ p { line-height: 1.6; }
 }
 
 /* ──────────────────────────────────────────────────────────────────
-   Chat Input — 3D Hover Transition
+   Chat Input — Subtle Focus Transition
    ────────────────────────────────────────────────────────────────── */
-.chat-input-3d {
-  --rx: 0deg;
-  --ry: 0deg;
+.chat-input-card {
   position: relative;
-  perspective: 800px;
-  transform-style: preserve-3d;
-  transform:
-    perspective(800px)
-    rotateX(var(--rx))
-    rotateY(var(--ry))
-    translateY(0px)
-    scale(1);
   transition:
-    transform 0.6s cubic-bezier(0.23, 1, 0.32, 1),
-    box-shadow 0.6s cubic-bezier(0.23, 1, 0.32, 1),
-    border-color 0.4s ease;
-  will-change: transform, box-shadow;
-  box-shadow: 0 0 0 0 transparent;
+    box-shadow 0.3s ease,
+    border-color 0.3s ease;
 }
 
-.chat-input-3d::before {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  padding: 1px;
-  background: conic-gradient(
-    from 180deg at 50% 50%,
-    transparent 0deg,
-    color-mix(in srgb, var(--brand) 30%, transparent) 45deg,
-    color-mix(in srgb, var(--brand) 60%, transparent) 90deg,
-    var(--brand) 135deg,
-    color-mix(in srgb, var(--brand) 60%, transparent) 180deg,
-    color-mix(in srgb, var(--brand) 30%, transparent) 225deg,
-    transparent 270deg,
-    color-mix(in srgb, var(--brand) 20%, transparent) 315deg,
-    transparent 360deg
-  );
-  mask: linear-gradient(#000, #000) content-box, linear-gradient(#000, #000);
-  mask-composite: exclude;
-  -webkit-mask: linear-gradient(#000, #000) content-box, linear-gradient(#000, #000);
-  -webkit-mask-composite: xor;
-  opacity: 0;
-  transition: opacity 0.6s cubic-bezier(0.23, 1, 0.32, 1);
-  pointer-events: none;
-  z-index: 1;
-}
-
-.chat-input-3d::after {
-  content: '';
-  position: absolute;
-  bottom: -12px;
-  left: 10%;
-  right: 10%;
-  height: 24px;
-  border-radius: 50%;
-  background: radial-gradient(
-    ellipse at center,
-    color-mix(in srgb, var(--brand) 12%, transparent) 0%,
-    transparent 70%
-  );
-  filter: blur(8px);
-  opacity: 0;
-  transform: scaleY(0.6);
-  transition:
-    opacity 0.6s cubic-bezier(0.23, 1, 0.32, 1),
-    transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
-  pointer-events: none;
-}
-
-.chat-input-3d-active {
-  transform:
-    perspective(800px)
-    rotateX(var(--rx))
-    rotateY(var(--ry))
-    translateY(-8px)
-    scale(1.015);
+.chat-input-card-focused {
   box-shadow:
-    0 20px 40px -12px color-mix(in srgb, var(--brand) 14%, rgba(0, 0, 0, 0.4)),
-    0 8px 20px -8px rgba(0, 0, 0, 0.3),
-    0 0 0 1px color-mix(in srgb, var(--brand) 8%, transparent),
-    0 0 24px -4px color-mix(in srgb, var(--brand) 10%, transparent);
+    0 0 0 1px color-mix(in srgb, var(--brand) 18%, transparent),
+    0 2px 8px -2px color-mix(in srgb, var(--brand) 6%, rgba(0, 0, 0, 0.1));
 }
 
-.chat-input-3d-active::before {
-  opacity: 1;
-  animation: chat-input-border-spin 4s linear infinite;
-}
-
-.chat-input-3d-active::after {
-  opacity: 1;
-  transform: scaleY(1);
-}
-
-.chat-input-3d-typing {
-  transform:
-    perspective(800px)
-    rotateX(0deg)
-    rotateY(0deg)
-    translateY(-2px)
-    scale(1.005);
+.chat-input-card-typing {
   box-shadow:
-    0 4px 12px -4px color-mix(in srgb, var(--brand) 8%, rgba(0, 0, 0, 0.2)),
-    0 0 0 1px color-mix(in srgb, var(--brand) 10%, transparent);
-}
-
-.chat-input-3d-typing::before {
-  opacity: 0.5;
-  animation: chat-input-border-spin 8s linear infinite;
-}
-
-.chat-input-3d-typing::after {
-  opacity: 0.3;
-  transform: scaleY(0.7);
-}
-
-@keyframes chat-input-border-spin {
-  from { filter: hue-rotate(0deg); }
-  to { filter: hue-rotate(360deg); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .chat-input-3d,
-  .chat-input-3d-active,
-  .chat-input-3d-typing {
-    transform: none !important;
-    transition: box-shadow 0.3s ease, border-color 0.3s ease !important;
-  }
-  .chat-input-3d::before,
-  .chat-input-3d::after {
-    display: none;
-  }
+    0 0 0 1px color-mix(in srgb, var(--brand) 12%, transparent),
+    0 1px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 /* ──────────────────────────────────────────────────────────────────

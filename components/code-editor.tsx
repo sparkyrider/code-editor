@@ -473,7 +473,7 @@ export function CodeEditor() {
         onMount={handleMount}
         options={{
           fontSize: 13,
-          fontFamily: "'SF Mono', 'Fira Code', 'JetBrains Mono', Menlo, monospace",
+          fontFamily: (typeof window !== 'undefined' ? getComputedStyle(document.documentElement).getPropertyValue('--font-mono').trim() : '') || "'JetBrains Mono', monospace",
           fontLigatures: true,
           minimap: { enabled: false },
           scrollBeyondLastLine: false,

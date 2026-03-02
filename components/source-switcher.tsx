@@ -11,6 +11,7 @@ function BranchDropdown({ current, branches, onSwitch }: {
 }) {
   const [open, setOpen] = useState(false)
   const [switching, setSwitching] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -20,6 +21,10 @@ function BranchDropdown({ current, branches, onSwitch }: {
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  useEffect(() => {
+    if (open) setError(null)
   }, [open])
 
   return (
@@ -35,10 +40,18 @@ function BranchDropdown({ current, branches, onSwitch }: {
       </button>
 
       {open && (
-        <div className="absolute left-0 top-[calc(100%+4px)] z-[92] w-[220px] max-h-[300px] overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] shadow-2xl">
+        <div className="absolute left-0 top-[calc(100%+4px)] z-[92] w-[260px] max-h-[340px] overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] shadow-2xl">
           <div className="px-3 py-1.5 text-[10px] text-[var(--text-disabled)] uppercase tracking-wider border-b border-[var(--border)]">
             Branches
           </div>
+          {error && (
+            <div className="px-3 py-2 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--color-deletions)_8%,transparent)]">
+              <div className="flex items-start gap-1.5">
+                <Icon icon="lucide:alert-triangle" width={11} height={11} className="text-[var(--color-deletions)] shrink-0 mt-0.5" />
+                <span className="text-[10px] text-[var(--color-deletions)] leading-snug">{error}</span>
+              </div>
+            </div>
+          )}
           {branches.map(branch => {
             const isActive = branch === current
             return (
@@ -48,9 +61,17 @@ function BranchDropdown({ current, branches, onSwitch }: {
                 onClick={async () => {
                   if (isActive) { setOpen(false); return }
                   setSwitching(true)
-                  await onSwitch(branch)
+                  setError(null)
+                  try {
+                    await onSwitch(branch)
+                    setOpen(false)
+                  } catch (err) {
+                    const msg = err instanceof Error ? err.message : String(err)
+                    setError(msg.includes('overwritten by checkout')
+                      ? 'Commit or stash your changes before switching branches.'
+                      : `Switch failed: ${msg}`)
+                  }
                   setSwitching(false)
-                  setOpen(false)
                 }}
                 className={`flex items-center gap-2 w-full px-3 py-1.5 text-[11px] font-mono transition-colors cursor-pointer disabled:opacity-50 ${
                   isActive

@@ -2,9 +2,12 @@
  * Chat session management — persistence, switching, history.
  */
 
+export type ChatMessageType = 'text' | 'edit' | 'error' | 'tool' | 'status' | 'cancelled'
+
 export interface ChatMessage {
   id: string
   role: 'user' | 'assistant' | 'system'
+  type?: ChatMessageType
   content: string
   timestamp: number
   editProposals?: Array<{ filePath: string; content: string }>

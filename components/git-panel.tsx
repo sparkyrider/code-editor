@@ -70,22 +70,45 @@ export function GitPanel({ open, onClose }: Props) {
   const [creatingBranch, setCreatingBranch] = useState(false)
   const [branchFilter, setBranchFilter] = useState('')
 
+  const isLocalMode = local.localMode && local.rootPath && local.gitInfo?.is_repo
+
   const branchName = repo?.branch ?? local.gitInfo?.branch ?? 'main'
   const dirtyFiles = useMemo(() => files.filter(f => f.dirty && f.kind === 'text'), [files])
   const filteredFiles = useMemo(() =>
     filterText ? dirtyFiles.filter(f => f.path.toLowerCase().includes(filterText.toLowerCase())) : dirtyFiles
   , [dirtyFiles, filterText])
 
-  // Auto-select all dirty files
-  useEffect(() => {
-    setSelectedFiles(new Set(dirtyFiles.map(f => f.path)))
-  }, [dirtyFiles])
+  const localChanges = useMemo(() => local.gitInfo?.status ?? [], [local.gitInfo?.status])
 
-  // Load branches
+  const changeEntries = useMemo<Array<{ path: string; status: string; source: 'git' | 'editor' }>>(() => {
+    if (isLocalMode) {
+      const entries: Array<{ path: string; status: string; source: 'git' | 'editor' }> = localChanges.map(s => ({
+        path: s.path,
+        status: s.status,
+        source: 'git' as const,
+      }))
+      for (const f of dirtyFiles) {
+        if (!localChanges.some(s => s.path === f.path)) {
+          entries.push({ path: f.path, status: 'editor', source: 'editor' })
+        }
+      }
+      return entries
+    }
+    return dirtyFiles.map(f => ({ path: f.path, status: 'M', source: 'editor' as const }))
+  }, [isLocalMode, localChanges, dirtyFiles])
+
   useEffect(() => {
-    if (!repo || !open) return
-    fetchBranchesByName(repo.fullName).then(bs => setBranches(bs.map(b => b.name))).catch(() => {})
-  }, [repo, open])
+    setSelectedFiles(new Set(changeEntries.map(f => f.path)))
+  }, [changeEntries])
+
+  useEffect(() => {
+    if (!open) return
+    if (isLocalMode) {
+      setBranches(local.branches)
+    } else if (repo) {
+      fetchBranchesByName(repo.fullName).then(bs => setBranches(bs.map(b => b.name))).catch(() => {})
+    }
+  }, [repo, open, isLocalMode, local.branches])
 
   // Active file diff
   const activeDiff = useMemo(() => {
@@ -115,18 +138,27 @@ export function GitPanel({ open, onClose }: Props) {
   }
 
   const handleCommit = async () => {
-    if (!repo || !commitMsg.trim() || selectedFiles.size === 0) return
+    if (!commitMsg.trim() || selectedFiles.size === 0) return
     setCommitting(true)
     try {
-      const toCommit = dirtyFiles.filter(f => selectedFiles.has(f.path))
-      const fullMsg = commitDesc ? `${commitMsg}\n\n${commitDesc}` : commitMsg
-      await commitFiles(
-        repo.fullName,
-        toCommit.map(f => ({ path: f.path, content: f.content, sha: f.sha })),
-        fullMsg,
-        branchName,
-      )
-      toCommit.forEach(f => markClean(f.path))
+      if (isLocalMode) {
+        const paths = Array.from(selectedFiles)
+        const fullMsg = commitDesc ? `${commitMsg}\n\n${commitDesc}` : commitMsg
+        await local.commitFiles(fullMsg, paths)
+        paths.forEach(p => {
+          if (files.find(f => f.path === p && f.dirty)) markClean(p)
+        })
+      } else if (repo) {
+        const toCommit = dirtyFiles.filter(f => selectedFiles.has(f.path))
+        const fullMsg = commitDesc ? `${commitMsg}\n\n${commitDesc}` : commitMsg
+        await commitFiles(
+          repo.fullName,
+          toCommit.map(f => ({ path: f.path, content: f.content, sha: f.sha })),
+          fullMsg,
+          branchName,
+        )
+        toCommit.forEach(f => markClean(f.path))
+      }
       setCommitMsg('')
       setCommitDesc('')
     } catch (err) {
@@ -253,7 +285,17 @@ export function GitPanel({ open, onClose }: Props) {
                       {filteredBranches.map(b => (
                         <button
                           key={b}
-                          onClick={() => { setShowBranchMenu(false); /* TODO: switch branch via context */ }}
+                          onClick={async () => {
+                            if (isLocalMode && b !== branchName) {
+                              try {
+                                await local.switchBranch(b)
+                              } catch (err) {
+                                const msg = err instanceof Error ? err.message : String(err)
+                                console.error('Branch switch failed:', msg)
+                              }
+                            }
+                            setShowBranchMenu(false)
+                          }}
                           className={`w-full text-left px-3 py-1.5 text-[10px] font-mono hover:bg-[var(--bg-subtle)] cursor-pointer flex items-center gap-2 ${
                             b === branchName ? 'text-[var(--brand)] font-semibold' : 'text-[var(--text-secondary)]'
                           }`}

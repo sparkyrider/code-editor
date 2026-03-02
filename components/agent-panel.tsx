@@ -27,9 +27,12 @@ import {
   buildEditorContext,
 } from '@/lib/agent-session'
 
+type ChatMessageType = 'text' | 'edit' | 'error' | 'tool' | 'status' | 'cancelled'
+
 interface ChatMessage {
   id: string
   role: 'user' | 'assistant' | 'system'
+  type?: ChatMessageType
   content: string
   timestamp: number
   editProposals?: EditProposal[]
@@ -385,6 +388,7 @@ export function AgentPanel() {
             setMessages(msgs => [...msgs, {
               id: crypto.randomUUID(),
               role: 'assistant' as const,
+              type: editProposals.length > 0 ? 'edit' as const : 'text' as const,
               content: text,
               timestamp: Date.now(),
               editProposals: editProposals.length > 0 ? editProposals : undefined,
@@ -402,6 +406,7 @@ export function AgentPanel() {
         setMessages(msgs => [...msgs, {
           id: crypto.randomUUID(),
           role: 'system' as const,
+          type: 'error' as const,
           content: 'Error: ' + errorMsg,
           timestamp: Date.now(),
         }])
@@ -415,6 +420,7 @@ export function AgentPanel() {
             setMessages(msgs => [...msgs, {
               id: crypto.randomUUID(),
               role: 'assistant' as const,
+              type: 'cancelled' as const,
               content: prev + ' [cancelled]',
               timestamp: Date.now(),
             }])
@@ -492,16 +498,28 @@ export function AgentPanel() {
     return () => window.removeEventListener('add-to-chat', handler)
   }, [])
 
-  // ─── Image handling (drag & drop, paste, file picker) ────
-  const handleImageDrop = useCallback((e: React.DragEvent) => {
+  // ─── File handling (drag & drop, paste, file picker) ─────
+  const handleFileDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
-    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'))
-    for (const file of files.slice(0, 3)) {
-      const reader = new FileReader()
-      reader.onload = () => {
-        setImageAttachments(prev => [...prev, { name: file.name, dataUrl: reader.result as string }])
+    const dropped = Array.from(e.dataTransfer.files).slice(0, 5)
+    for (const file of dropped) {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader()
+        reader.onload = () => {
+          setImageAttachments(prev => [...prev, { name: file.name, dataUrl: reader.result as string }])
+        }
+        reader.readAsDataURL(file)
+      } else {
+        const reader = new FileReader()
+        reader.onload = () => {
+          setContextAttachments(prev => [...prev, {
+            type: 'file' as const,
+            path: file.name,
+            content: (reader.result as string).slice(0, 12000),
+          }])
+        }
+        reader.readAsText(file)
       }
-      reader.readAsDataURL(file)
     }
   }, [])
 
@@ -520,22 +538,33 @@ export function AgentPanel() {
     }
   }, [])
 
-  const handleImageSelect = useCallback(() => {
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = 'image/*'
-    input.multiple = true
-    input.onchange = () => {
-      const files = Array.from(input.files || []).slice(0, 3)
-      for (const file of files) {
-        const reader = new FileReader()
-        reader.onload = () => {
-          setImageAttachments(prev => [...prev, { name: file.name, dataUrl: reader.result as string }])
+  const handleFileAttach = useCallback(() => {
+    const picker = document.createElement('input')
+    picker.type = 'file'
+    picker.multiple = true
+    picker.onchange = () => {
+      const selected = Array.from(picker.files || []).slice(0, 5)
+      for (const file of selected) {
+        if (file.type.startsWith('image/')) {
+          const reader = new FileReader()
+          reader.onload = () => {
+            setImageAttachments(prev => [...prev, { name: file.name, dataUrl: reader.result as string }])
+          }
+          reader.readAsDataURL(file)
+        } else {
+          const reader = new FileReader()
+          reader.onload = () => {
+            setContextAttachments(prev => [...prev, {
+              type: 'file' as const,
+              path: file.name,
+              content: (reader.result as string).slice(0, 12000),
+            }])
+          }
+          reader.readAsText(file)
         }
-        reader.readAsDataURL(file)
       }
     }
-    input.click()
+    picker.click()
   }, [])
 
   // ─── Estimate context token usage ──────────────────────────
@@ -642,6 +671,10 @@ export function AgentPanel() {
 
   const appendMessage = useCallback((msg: ChatMessage) => {
     setMessages(prev => {
+      const last = prev[prev.length - 1]
+      if (last && last.role === msg.role && last.content === msg.content && Math.abs(last.timestamp - msg.timestamp) < 2000) {
+        return prev
+      }
       const next = [...prev, msg]
       if (msg.role === 'user' && next.filter(m => m.role === 'user').length === 1) {
         queueMicrotask(() => {
@@ -659,9 +692,9 @@ export function AgentPanel() {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail as { success: boolean; fileCount?: number; error?: string }
       if (detail.success) {
-        appendMessage({ id: crypto.randomUUID(), role: 'system', content: `Committed ${detail.fileCount} file(s) successfully.`, timestamp: Date.now() })
+        appendMessage({ id: crypto.randomUUID(), role: 'system', type: 'status', content: `Committed ${detail.fileCount} file(s) successfully.`, timestamp: Date.now() })
       } else {
-        appendMessage({ id: crypto.randomUUID(), role: 'system', content: `Commit failed: ${detail.error}`, timestamp: Date.now() })
+        appendMessage({ id: crypto.randomUUID(), role: 'system', type: 'error', content: `Commit failed: ${detail.error}`, timestamp: Date.now() })
       }
     }
     window.addEventListener('agent-commit-result', handler)
@@ -679,33 +712,32 @@ export function AgentPanel() {
     if (text.startsWith('/commit')) {
       const commitMsg = text.replace(/^\/commit\s*/, '').trim()
       if (!commitMsg) {
-        appendMessage({ id: crypto.randomUUID(), role: 'system', content: 'Usage: /commit <message>', timestamp: Date.now() })
+        appendMessage({ id: crypto.randomUUID(), role: 'system', type: 'status', content: 'Usage: /commit <message>', timestamp: Date.now() })
         return
       }
-      appendMessage({ id: crypto.randomUUID(), role: 'user', content: text, timestamp: Date.now() })
-      // Dispatch commit event — page.tsx handles the actual commit
+      appendMessage({ id: crypto.randomUUID(), role: 'user', type: 'text', content: text, timestamp: Date.now() })
       window.dispatchEvent(new CustomEvent('agent-commit', { detail: { message: commitMsg } }))
-      appendMessage({ id: crypto.randomUUID(), role: 'system', content: 'Committing...', timestamp: Date.now() })
+      appendMessage({ id: crypto.randomUUID(), role: 'system', type: 'status', content: 'Committing...', timestamp: Date.now() })
       return
     }
     if (text === '/changes') {
-      appendMessage({ id: crypto.randomUUID(), role: 'user', content: text, timestamp: Date.now() })
+      appendMessage({ id: crypto.randomUUID(), role: 'user', type: 'text', content: text, timestamp: Date.now() })
       window.dispatchEvent(new CustomEvent('open-changes-panel'))
-      appendMessage({ id: crypto.randomUUID(), role: 'system', content: 'Opening pre-commit review...', timestamp: Date.now() })
+      appendMessage({ id: crypto.randomUUID(), role: 'system', type: 'status', content: 'Opening pre-commit review...', timestamp: Date.now() })
       return
     }
     if (text === '/diff') {
-      appendMessage({ id: crypto.randomUUID(), role: 'user', content: text, timestamp: Date.now() })
+      appendMessage({ id: crypto.randomUUID(), role: 'user', type: 'text', content: text, timestamp: Date.now() })
       const changes = diffEngine.getChanges()
       if (changes.length > 0) {
         const summary = diffEngine.getSummary()
-        appendMessage({ id: crypto.randomUUID(), role: 'system', content: `${summary.fileCount} file(s) changed: +${summary.additions} -${summary.deletions}\nFiles: ${changes.map(c => c.path).join(', ')}`, timestamp: Date.now() })
+        appendMessage({ id: crypto.randomUUID(), role: 'system', type: 'status', content: `${summary.fileCount} file(s) changed: +${summary.additions} -${summary.deletions}\nFiles: ${changes.map(c => c.path).join(', ')}`, timestamp: Date.now() })
       } else {
         const dirtyFiles = files.filter(f => f.dirty)
         if (dirtyFiles.length > 0) {
-          appendMessage({ id: crypto.randomUUID(), role: 'system', content: `${dirtyFiles.length} unsaved file(s): ${dirtyFiles.map(f => f.path).join(', ')}`, timestamp: Date.now() })
+          appendMessage({ id: crypto.randomUUID(), role: 'system', type: 'status', content: `${dirtyFiles.length} unsaved file(s): ${dirtyFiles.map(f => f.path).join(', ')}`, timestamp: Date.now() })
         } else {
-          appendMessage({ id: crypto.randomUUID(), role: 'system', content: 'No changes detected.', timestamp: Date.now() })
+          appendMessage({ id: crypto.randomUUID(), role: 'system', type: 'status', content: 'No changes detected.', timestamp: Date.now() })
         }
       }
       return
@@ -725,11 +757,11 @@ export function AgentPanel() {
       attachLabels.push(`🖼 ${img.name}`)
     }
     const displayText = attachLabels.length > 0 ? `[${attachLabels.join(' · ')}]\n${text}` : text
-    appendMessage({ id: crypto.randomUUID(), role: 'user', content: displayText, timestamp: Date.now() })
+    appendMessage({ id: crypto.randomUUID(), role: 'user', type: 'text', content: displayText, timestamp: Date.now() })
 
     if (!isConnected) {
       appendMessage({
-        id: crypto.randomUUID(), role: 'system',
+        id: crypto.randomUUID(), role: 'system', type: 'error',
         content: 'Gateway disconnected — cannot reach agent.',
         timestamp: Date.now(),
       })
@@ -790,6 +822,7 @@ export function AgentPanel() {
         appendMessage({
           id: crypto.randomUUID(),
           role: 'assistant',
+          type: editProposals.length > 0 ? 'edit' : 'text',
           content: reply,
           timestamp: Date.now(),
           editProposals: editProposals.length > 0 ? editProposals : undefined,
@@ -799,7 +832,7 @@ export function AgentPanel() {
       setSending(false)
     } catch (err) {
       appendMessage({
-        id: crypto.randomUUID(), role: 'system',
+        id: crypto.randomUUID(), role: 'system', type: 'error',
         content: `Error: ${err instanceof Error ? err.message : 'Unknown error'}`,
         timestamp: Date.now(),
       })
@@ -830,7 +863,7 @@ export function AgentPanel() {
       // Inject as user message and send
       setInput('')
       setSending(true)
-      appendMessage({ id: crypto.randomUUID(), role: 'user', content: `⌘K: ${instruction}`, timestamp: Date.now() })
+      appendMessage({ id: crypto.randomUUID(), role: 'user', type: 'text', content: `⌘K: ${instruction}`, timestamp: Date.now() })
 
       const context = buildContext()
       const fullMessage = context ? `${context}\n\n${prompt}` : prompt
@@ -846,13 +879,16 @@ export function AgentPanel() {
         const r = resp as Record<string, unknown> | undefined
         const status = r?.status as string | undefined
         if (status === 'started' || status === 'in_flight') return
-        if (!sentKeysRef.current.has(idemKey)) return
+        if (!sentKeysRef.current.has(idemKey) || handledKeysRef.current.has(idemKey)) return
         sentKeysRef.current.delete(idemKey)
+        handledKeysRef.current.add(idemKey)
+        setTimeout(() => handledKeysRef.current.delete(idemKey), 10000)
         const reply = String(r?.reply ?? r?.text ?? '')
         if (reply && !/^NO_REPLY$/i.test(reply.trim())) {
           const editProposals = parseEditProposals(reply)
           appendMessage({
             id: crypto.randomUUID(), role: 'assistant', content: reply, timestamp: Date.now(),
+            type: editProposals.length > 0 ? 'edit' : 'text',
             editProposals: editProposals.length > 0 ? editProposals : undefined,
           })
         }
@@ -860,7 +896,7 @@ export function AgentPanel() {
         setSending(false)
       }).catch((err: unknown) => {
         appendMessage({
-          id: crypto.randomUUID(), role: 'system',
+          id: crypto.randomUUID(), role: 'system', type: 'error',
           content: `Error: ${err instanceof Error ? err.message : 'Unknown error'}`,
           timestamp: Date.now(),
         })
@@ -888,7 +924,7 @@ export function AgentPanel() {
       openFile(proposal.filePath, proposal.content, undefined)
     }
     appendMessage({
-      id: crypto.randomUUID(), role: 'system',
+      id: crypto.randomUUID(), role: 'system', type: 'tool',
       content: `Applied edit to \`${proposal.filePath}\`. File is modified — use /commit to save.`,
       timestamp: Date.now(),
     })
@@ -904,7 +940,7 @@ export function AgentPanel() {
       openFile(proposal.filePath, proposal.content, undefined)
     }
     appendMessage({
-      id: crypto.randomUUID(), role: 'system',
+      id: crypto.randomUUID(), role: 'system', type: 'tool',
       content: `Applied edit to \`${proposal.filePath}\`. File is modified — use /commit to save.`,
       timestamp: Date.now(),
     })
@@ -914,7 +950,7 @@ export function AgentPanel() {
   const handleRejectEdit = useCallback(() => {
     if (!activeDiff) return
     appendMessage({
-      id: crypto.randomUUID(), role: 'system',
+      id: crypto.randomUUID(), role: 'system', type: 'status',
       content: `Rejected edit to \`${activeDiff.proposal.filePath}\`.`,
       timestamp: Date.now(),
     })
@@ -939,7 +975,7 @@ export function AgentPanel() {
     }
     const fileNames = last.editProposals.map(p => `\`${p.filePath}\``).join(', ')
     appendMessage({
-      id: crypto.randomUUID(), role: 'system',
+      id: crypto.randomUUID(), role: 'system', type: 'tool',
       content: `Auto-applied edits to ${fileNames} (full access mode).`,
       timestamp: Date.now(),
     })
@@ -996,6 +1032,74 @@ export function AgentPanel() {
   }, [suggestions, activeSuggestionIdx, sendMessage])
 
   // ─── Clear chat ───────────────────────────────────────────────
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!menuOpenId) return
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpenId(null)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [menuOpenId])
+
+  const handleCopyMessage = useCallback((content: string) => {
+    navigator.clipboard.writeText(content).catch(() => {})
+    setMenuOpenId(null)
+  }, [])
+
+  const handleDeleteMessage = useCallback((id: string) => {
+    setMessages(prev => prev.filter(m => m.id !== id))
+    setMenuOpenId(null)
+  }, [])
+
+  const handleRegenerate = useCallback((msgId: string) => {
+    setMenuOpenId(null)
+    setMessages(prev => {
+      const idx = prev.findIndex(m => m.id === msgId)
+      if (idx < 0) return prev
+      let userIdx = idx - 1
+      while (userIdx >= 0 && prev[userIdx].role !== 'user') userIdx--
+      if (userIdx < 0) return prev
+      const userMsg = prev[userIdx]
+      queueMicrotask(() => {
+        setInput(userMsg.content)
+        setTimeout(() => sendMessage(), 50)
+      })
+      return prev.slice(0, idx)
+    })
+  }, [sendMessage])
+
+  const handleForkConversation = useCallback((msgId: string) => {
+    setMenuOpenId(null)
+    const idx = messages.findIndex(m => m.id === msgId)
+    if (idx < 0) return
+    const forkedMessages = messages.slice(0, idx + 1)
+    const newId = crypto.randomUUID()
+    try {
+      localStorage.setItem('code-editor:chat:' + chatId, JSON.stringify(messages.slice(-50)))
+      localStorage.setItem('code-editor:chat:' + newId, JSON.stringify(forkedMessages))
+    } catch {}
+    const title = forkedMessages.find(m => m.role === 'user')?.content.slice(0, 40) || 'Forked chat'
+    window.dispatchEvent(new CustomEvent('chat-session-update', {
+      detail: { id: newId, title: `Fork: ${title}`, preview: title, timestamp: Date.now() }
+    }))
+    window.dispatchEvent(new CustomEvent('switch-chat', { detail: { id: newId } }))
+  }, [messages, chatId])
+
+  const handleEditAndResend = useCallback((msgId: string) => {
+    setMenuOpenId(null)
+    const idx = messages.findIndex(m => m.id === msgId)
+    if (idx < 0) return
+    const userMsg = messages[idx]
+    setInput(userMsg.content)
+    setMessages(prev => prev.slice(0, idx))
+    inputRef.current?.focus()
+  }, [messages])
+
   const [confirmClear, setConfirmClear] = useState(false)
   const handleClear = useCallback(() => {
     if (!confirmClear) {
@@ -1082,55 +1186,151 @@ export function AgentPanel() {
           el.classList.toggle('has-scroll-bottom', el.scrollTop + el.clientHeight < el.scrollHeight - 8)
         }}
       >
-        {messages.map(msg => (
-          <div key={msg.id} className={`group/msg flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} animate-fade-in-up`} style={{ animationDuration: '0.2s' }}>
-            <div className={`max-w-[90%] min-w-0 rounded-xl px-3 py-2 text-[12px] leading-relaxed ${
-              msg.role === 'user'
-                ? 'bg-[color-mix(in_srgb,var(--brand)_15%,transparent)] text-[var(--text-primary)] rounded-br-sm'
-                : msg.role === 'system'
-                  ? 'px-2.5 py-1.5 text-[10px] border-l-2 border-[var(--brand)] bg-[color-mix(in_srgb,var(--brand)_6%,transparent)] text-[var(--text-secondary)]'
-                  : 'bg-[var(--bg-subtle)] border border-[var(--border)] text-[var(--text-primary)] rounded-bl-sm'
-            }`}>
-              {msg.role === 'user' ? (
-                <p className="whitespace-pre-wrap break-words">{msg.content}</p>
-              ) : (
+        {messages.map((msg) => {
+          const t = msg.type ?? 'text'
+          const isUser = msg.role === 'user'
+          const isSystem = msg.role === 'system'
+          const isAssistant = msg.role === 'assistant'
+
+          const bubbleClass =
+            isUser
+              ? 'bg-[color-mix(in_srgb,var(--brand)_15%,transparent)] text-[var(--text-primary)] rounded-br-sm'
+              : t === 'error'
+                ? 'px-2.5 py-1.5 text-[10px] border-l-2 border-[var(--color-deletions,#ef4444)] bg-[color-mix(in_srgb,var(--color-deletions,#ef4444)_8%,transparent)] text-[var(--text-secondary)]'
+                : t === 'tool'
+                  ? 'px-2.5 py-1 text-[10px] border-l-2 border-[var(--brand)] bg-[color-mix(in_srgb,var(--brand)_6%,transparent)] text-[var(--text-secondary)]'
+                  : t === 'status'
+                    ? 'px-2.5 py-1 text-[10px] bg-[color-mix(in_srgb,var(--text-disabled)_6%,transparent)] text-[var(--text-tertiary)]'
+                    : t === 'cancelled'
+                      ? 'bg-[var(--bg-subtle)] border border-[var(--border)] text-[var(--text-primary)] rounded-bl-sm opacity-60'
+                      : isSystem
+                        ? 'px-2.5 py-1.5 text-[10px] border-l-2 border-[var(--brand)] bg-[color-mix(in_srgb,var(--brand)_6%,transparent)] text-[var(--text-secondary)]'
+                        : t === 'edit'
+                          ? 'bg-[var(--bg-subtle)] border border-[color-mix(in_srgb,var(--color-additions,#22c55e)_25%,var(--border))] text-[var(--text-primary)] rounded-bl-sm'
+                          : 'bg-[var(--bg-subtle)] border border-[var(--border)] text-[var(--text-primary)] rounded-bl-sm'
+
+          const typeIcon =
+            t === 'error' ? 'lucide:alert-circle'
+            : t === 'tool' ? 'lucide:wrench'
+            : t === 'status' ? 'lucide:info'
+            : t === 'cancelled' ? 'lucide:circle-slash'
+            : t === 'edit' && isAssistant ? 'lucide:file-diff'
+            : null
+
+          return (
+          <div key={msg.id} className={`group/msg flex flex-col ${isUser ? 'items-end' : 'items-start'} animate-fade-in-up`} style={{ animationDuration: '0.2s' }}>
+            <div className="relative max-w-[90%] min-w-0">
+              {/* Ellipsis menu trigger */}
+              <button
+                onClick={() => setMenuOpenId(prev => prev === msg.id ? null : msg.id)}
+                className={`absolute ${isUser ? '-left-5' : '-right-5'} top-0.5 p-0.5 rounded text-[var(--text-disabled)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-all cursor-pointer ${menuOpenId === msg.id ? 'opacity-100' : 'opacity-0 group-hover/msg:opacity-100'}`}
+              >
+                <Icon icon="lucide:ellipsis" width={13} height={13} />
+              </button>
+
+              {/* Context menu dropdown */}
+              {menuOpenId === msg.id && (
                 <div
-                  className="prose-chat"
-                  onClick={(e) => {
-                    // Click-to-navigate: detect line references in clicked text
-                    const target = e.target as HTMLElement
-                    const text = target.textContent ?? ''
-                    // Match "line N", "lines N-M", "LN", path:N patterns
-                    const lineMatch = text.match(/(?:lines?\s+|L)(\d+)(?:\s*[-–]\s*L?(\d+))?/i)
-                      || text.match(/([\w./\-]+\.\w+)[:#]L?(\d+)/)
-                    if (lineMatch) {
-                      const start = parseInt(lineMatch[1] ?? '', 10)
-                      const end = lineMatch[2] ? parseInt(lineMatch[2], 10) : undefined
-                      if (!isNaN(start)) {
-                        e.preventDefault()
-                        navigateToLine(start, end)
-                      }
-                    }
-                  }}
+                  ref={menuRef}
+                  className={`absolute ${isUser ? 'right-0' : 'left-0'} top-6 z-50 w-44 bg-[var(--bg-elevated)] border border-[var(--border)] rounded-lg shadow-xl py-1 animate-fade-in`}
+                  style={{ animationDuration: '0.1s' }}
                 >
-                  <MarkdownPreview content={msg.content} />
-                  {/* Render plan view if message contains numbered steps */}
-                  {msg.role === 'assistant' && parsePlanSteps(msg.content).length >= 3 && (
-                    <PlanView
-                      steps={parsePlanSteps(msg.content)}
-                      interactive={agentMode === 'plan'}
-                      onApprove={() => {
-                        setInput('Continue with the plan')
-                        sendMessage()
-                      }}
-                      onSkip={() => {
-                        setInput('Skip to coding')
-                        sendMessage()
-                      }}
-                    />
+                  <button
+                    onClick={() => handleCopyMessage(msg.content)}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer"
+                  >
+                    <Icon icon="lucide:copy" width={12} height={12} /> Copy message
+                  </button>
+                  {isAssistant && (
+                    <button
+                      onClick={() => handleRegenerate(msg.id)}
+                      className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer"
+                    >
+                      <Icon icon="lucide:refresh-cw" width={12} height={12} /> Regenerate
+                    </button>
                   )}
+                  {isUser && (
+                    <button
+                      onClick={() => handleEditAndResend(msg.id)}
+                      className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer"
+                    >
+                      <Icon icon="lucide:pencil" width={12} height={12} /> Edit & resend
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleForkConversation(msg.id)}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer"
+                  >
+                    <Icon icon="lucide:git-fork" width={12} height={12} /> Fork from here
+                  </button>
+                  <div className="border-t border-[var(--border)] my-0.5" />
+                  <button
+                    onClick={() => handleDeleteMessage(msg.id)}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-[var(--color-deletions,#ef4444)] hover:bg-[color-mix(in_srgb,var(--color-deletions,#ef4444)_6%,transparent)] transition-colors cursor-pointer"
+                  >
+                    <Icon icon="lucide:trash-2" width={12} height={12} /> Delete
+                  </button>
                 </div>
               )}
+
+              {/* Message bubble */}
+              <div className={`rounded-xl px-3 py-2 text-[12px] leading-relaxed ${bubbleClass}`}>
+                {(t === 'tool' || t === 'status' || t === 'error') && typeIcon && (
+                  <span className="inline-flex items-center gap-1 mr-1 align-middle">
+                    <Icon icon={typeIcon} width={11} height={11} className={t === 'error' ? 'text-[var(--color-deletions,#ef4444)]' : 'text-[var(--text-disabled)]'} />
+                  </span>
+                )}
+                {t === 'cancelled' && (
+                  <span className="inline-flex items-center gap-1 mr-1 align-middle text-[var(--text-disabled)]">
+                    <Icon icon="lucide:circle-slash" width={11} height={11} />
+                  </span>
+                )}
+                {isUser ? (
+                  <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                ) : (isSystem && (t === 'tool' || t === 'status' || t === 'error')) ? (
+                  <span className="inline">{msg.content}</span>
+                ) : (
+                  <div
+                    className="prose-chat"
+                    onClick={(e) => {
+                      const target = e.target as HTMLElement
+                      const clickText = target.textContent ?? ''
+                      const lineMatch = clickText.match(/(?:lines?\s+|L)(\d+)(?:\s*[-–]\s*L?(\d+))?/i)
+                        || clickText.match(/([\w./\-]+\.\w+)[:#]L?(\d+)/)
+                      if (lineMatch) {
+                        const start = parseInt(lineMatch[1] ?? '', 10)
+                        const end = lineMatch[2] ? parseInt(lineMatch[2], 10) : undefined
+                        if (!isNaN(start)) {
+                          e.preventDefault()
+                          navigateToLine(start, end)
+                        }
+                      }
+                    }}
+                  >
+                    {t === 'edit' && isAssistant && (
+                      <div className="flex items-center gap-1.5 mb-1.5 text-[10px] text-[var(--color-additions,#22c55e)] font-medium">
+                        <Icon icon="lucide:file-diff" width={12} height={12} />
+                        File changes proposed
+                      </div>
+                    )}
+                    <MarkdownPreview content={msg.content} />
+                    {isAssistant && parsePlanSteps(msg.content).length >= 3 && (
+                      <PlanView
+                        steps={parsePlanSteps(msg.content)}
+                        interactive={agentMode === 'plan'}
+                        onApprove={() => {
+                          setInput('Continue with the plan')
+                          sendMessage()
+                        }}
+                        onSkip={() => {
+                          setInput('Skip to coding')
+                          sendMessage()
+                        }}
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Timestamp — shows on hover */}
@@ -1169,7 +1369,8 @@ export function AgentPanel() {
               </div>
             )}
           </div>
-        ))}
+          )
+        })}
 
         {isStreaming && (
           <div className="flex flex-col items-start animate-fade-in" style={{ animationDuration: '0.15s' }}>
@@ -1269,7 +1470,7 @@ export function AgentPanel() {
 
       {/* Input */}
       <div className="px-3 pb-3 pt-1 shrink-0">
-        <div className="relative group/input">
+        <div className="relative">
           {/* @ mention dropdown */}
           {atMenuOpen && atResults.length > 0 && (
             <div className="absolute bottom-full left-0 right-0 mb-1 max-h-[200px] overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] shadow-2xl z-50">
@@ -1295,136 +1496,139 @@ export function AgentPanel() {
             </div>
           )}
 
-          {/* Image + context attachment chips */}
-          {(contextAttachments.length > 0 || imageAttachments.length > 0) && (
-            <div className="flex flex-wrap gap-1 mb-1.5">
-              {imageAttachments.map((img, i) => (
-                <div
-                  key={`img-${i}`}
-                  className="relative group/chip rounded-lg border border-[var(--border)] bg-[var(--bg-subtle)] overflow-hidden"
-                  style={{ width: 72, height: 52 }}
-                >
-                  <img src={img.dataUrl} alt={img.name} className="w-full h-full object-cover" />
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-1 pb-0.5 pt-2">
-                    <span className="text-[7px] text-white/90 font-mono truncate block">{img.name.split('.')[0]}</span>
-                  </div>
-                  <button
-                    onClick={() => setImageAttachments(prev => prev.filter((_, j) => j !== i))}
-                    className="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-black/50 text-white/80 hover:bg-black/70 flex items-center justify-center opacity-0 group-hover/chip:opacity-100 transition-opacity cursor-pointer"
+          {/* Unified input container */}
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] focus-within:border-[color-mix(in_srgb,var(--brand)_50%,var(--border))] transition-colors overflow-hidden">
+            {/* Attachment chips inside container */}
+            {(contextAttachments.length > 0 || imageAttachments.length > 0) && (
+              <div className="flex flex-wrap gap-1 px-2.5 pt-2">
+                {imageAttachments.map((img, i) => (
+                  <div
+                    key={`img-${i}`}
+                    className="relative group/chip rounded-lg border border-[var(--border)] bg-[var(--bg-subtle)] overflow-hidden"
+                    style={{ width: 72, height: 52 }}
                   >
-                    <Icon icon="lucide:x" width={7} height={7} />
-                  </button>
-                </div>
-              ))}
-              {contextAttachments.map((att, i) => (
-                <div
-                  key={i}
-                  className="relative group/chip flex flex-col rounded-lg border border-[var(--border)] bg-[var(--bg-subtle)] overflow-hidden"
-                  style={{ width: att.type === 'selection' ? 180 : 140, maxHeight: 56 }}
-                >
-                  {/* File/selection header */}
-                  <div className="flex items-center gap-1 px-1.5 py-0.5 bg-[var(--bg-secondary)] border-b border-[var(--border)] shrink-0">
+                    <img src={img.dataUrl} alt={img.name} className="w-full h-full object-cover" />
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-1 pb-0.5 pt-2">
+                      <span className="text-[7px] text-white/90 font-mono truncate block">{img.name.split('.')[0]}</span>
+                    </div>
+                    <button
+                      onClick={() => setImageAttachments(prev => prev.filter((_, j) => j !== i))}
+                      className="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-black/50 text-white/80 hover:bg-black/70 flex items-center justify-center opacity-0 group-hover/chip:opacity-100 transition-opacity cursor-pointer"
+                    >
+                      <Icon icon="lucide:x" width={7} height={7} />
+                    </button>
+                  </div>
+                ))}
+                {contextAttachments.map((att, i) => (
+                  <div
+                    key={i}
+                    className="relative group/chip flex items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--bg-subtle)] px-2 py-1"
+                  >
                     <Icon
                       icon={att.type === 'selection' ? 'lucide:text-cursor-input' : 'lucide:file-text'}
-                      width={8} height={8} className="text-[var(--text-tertiary)] shrink-0"
+                      width={11} height={11} className="text-[var(--text-tertiary)] shrink-0"
                     />
-                    <span className="text-[8px] font-mono text-[var(--text-secondary)] truncate">
+                    <span className="text-[10px] font-mono text-[var(--text-secondary)] truncate max-w-[120px]">
                       {att.type === 'selection'
                         ? `${att.path.split('/').pop()}:${att.startLine}-${att.endLine}`
                         : att.path.split('/').pop()
                       }
                     </span>
+                    <button
+                      onClick={() => setContextAttachments(prev => prev.filter((_, j) => j !== i))}
+                      className="w-3.5 h-3.5 rounded-full text-[var(--text-disabled)] hover:text-[var(--text-primary)] flex items-center justify-center shrink-0 cursor-pointer"
+                    >
+                      <Icon icon="lucide:x" width={8} height={8} />
+                    </button>
                   </div>
-                  {/* Content preview */}
-                  <div className="px-1.5 py-0.5 overflow-hidden flex-1">
-                    <pre className="text-[7px] leading-[1.3] font-mono text-[var(--text-disabled)] whitespace-pre overflow-hidden" style={{ maxHeight: 28 }}>
-                      {att.content.slice(0, 120)}
-                    </pre>
-                  </div>
-                  <button
-                    onClick={() => setContextAttachments(prev => prev.filter((_, j) => j !== i))}
-                    className="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-[var(--bg-elevated)] border border-[var(--border)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] flex items-center justify-center opacity-0 group-hover/chip:opacity-100 transition-opacity cursor-pointer"
-                  >
-                    <Icon icon="lucide:x" width={7} height={7} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
 
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={e => {
-              const val = e.target.value
-              setInput(val)
-              setActiveSuggestionIdx(-1)
-              // Detect @ trigger
-              const cursor = e.target.selectionStart ?? val.length
-              const before = val.slice(0, cursor)
-              const atMatch = before.match(/@([\w./\-]*)$/)
-              if (atMatch) {
-                setAtMenuOpen(true)
-                setAtQuery(atMatch[1])
-                setAtMenuIdx(0)
-              } else {
-                setAtMenuOpen(false)
-                setAtQuery('')
-              }
-            }}
-            onKeyDown={(e) => {
-              // @ menu navigation
-              if (atMenuOpen) {
-                if (e.key === 'ArrowDown') { e.preventDefault(); setAtMenuIdx(i => Math.min(i + 1, atResults.length - 1)); return }
-                if (e.key === 'ArrowUp') { e.preventDefault(); setAtMenuIdx(i => Math.max(i - 1, 0)); return }
-                if (e.key === 'Tab' || e.key === 'Enter') {
-                  if (atResults.length > 0) {
-                    e.preventDefault()
-                    selectAtFile(atResults[atMenuIdx])
-                    return
-                  }
+            {/* Textarea — borderless, flush inside container */}
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={e => {
+                const val = e.target.value
+                setInput(val)
+                setActiveSuggestionIdx(-1)
+                const cursor = e.target.selectionStart ?? val.length
+                const before = val.slice(0, cursor)
+                const atMatch = before.match(/@([\w./\-]*)$/)
+                if (atMatch) {
+                  setAtMenuOpen(true)
+                  setAtQuery(atMatch[1])
+                  setAtMenuIdx(0)
+                } else {
+                  setAtMenuOpen(false)
+                  setAtQuery('')
                 }
-                if (e.key === 'Escape') { e.preventDefault(); setAtMenuOpen(false); return }
-              }
-              handleKeyDown(e)
-            }}
-            onDrop={handleImageDrop}
-            onDragOver={e => e.preventDefault()}
-            onPaste={handleImagePaste}
-            placeholder={activeFile ? `Ask about ${activeFile.split('/').pop()}...` : 'Ask or type /command...'}
-            rows={1}
-            className="w-full resize-none rounded-lg bg-[var(--bg)] border border-[var(--border)] pl-3 pr-20 py-2.5 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-disabled)] outline-none focus:border-[color-mix(in_srgb,var(--brand)_50%,var(--border))] transition-colors"
-          />
-          {/* Action buttons — inside input, right side */}
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
-            <button
-              onClick={handleImageSelect}
-              className="p-1.5 rounded-md text-[var(--text-disabled)] hover:text-[var(--text-tertiary)] transition-colors cursor-pointer"
-              title="Attach image"
-            >
-              <Icon icon="lucide:image-plus" width={14} height={14} />
-            </button>
-            <button
-              onClick={sendMessage}
-              disabled={!input.trim() || sending}
-              className={`p-1.5 rounded-md transition-all cursor-pointer ${
-                input.trim() && !sending
-                  ? 'bg-[var(--brand)] text-[var(--brand-contrast)] hover:opacity-90'
-                  : 'text-[var(--text-disabled)] cursor-not-allowed'
-              }`}
-              title="Send (Enter)"
-            >
-              <Icon icon={isStreaming ? 'lucide:square' : 'lucide:arrow-up'} width={14} height={14} />
-            </button>
+              }}
+              onKeyDown={(e) => {
+                if (atMenuOpen) {
+                  if (e.key === 'ArrowDown') { e.preventDefault(); setAtMenuIdx(i => Math.min(i + 1, atResults.length - 1)); return }
+                  if (e.key === 'ArrowUp') { e.preventDefault(); setAtMenuIdx(i => Math.max(i - 1, 0)); return }
+                  if (e.key === 'Tab' || e.key === 'Enter') {
+                    if (atResults.length > 0) {
+                      e.preventDefault()
+                      selectAtFile(atResults[atMenuIdx])
+                      return
+                    }
+                  }
+                  if (e.key === 'Escape') { e.preventDefault(); setAtMenuOpen(false); return }
+                }
+                handleKeyDown(e)
+              }}
+              onDrop={handleFileDrop}
+              onDragOver={e => e.preventDefault()}
+              onPaste={handleImagePaste}
+              placeholder={activeFile ? `Ask about ${activeFile.split('/').pop()}...` : 'Ask or type /command...'}
+              rows={1}
+              className="w-full resize-none bg-transparent px-3 py-2 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-disabled)] outline-none"
+            />
+
+            {/* Bottom toolbar row */}
+            <div className="flex items-center justify-between px-2 pb-1.5">
+              <div className="flex items-center gap-0.5">
+                <button
+                  onClick={handleFileAttach}
+                  className="p-1 rounded-md text-[var(--text-disabled)] hover:text-[var(--text-tertiary)] transition-colors cursor-pointer"
+                  title="Attach file"
+                >
+                  <Icon icon="lucide:paperclip" width={14} height={14} />
+                </button>
+                <span className="text-[10px] text-[var(--text-disabled)] ml-1">
+                  <kbd className="px-1 py-px rounded border border-[var(--border)] text-[9px] font-mono">@</kbd>
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                {contextTokens > 0 && (
+                  <span className="text-[10px] text-[var(--text-disabled)] tabular-nums mr-1">
+                    ~{(contextTokens / 1000).toFixed(1)}k
+                  </span>
+                )}
+                <button
+                  onClick={sendMessage}
+                  disabled={!input.trim() || sending}
+                  className={`p-1 rounded-md transition-all cursor-pointer ${
+                    input.trim() && !sending
+                      ? 'bg-[var(--brand)] text-[var(--brand-contrast)] hover:opacity-90'
+                      : 'text-[var(--text-disabled)] cursor-not-allowed'
+                  }`}
+                  title="Send (Enter)"
+                >
+                  <Icon icon={isStreaming ? 'lucide:square' : 'lucide:arrow-up'} width={14} height={14} />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-        {/* Bottom bar — runtime + permissions + mode selector + model + context tokens */}
+        {/* Bottom bar — mode selector + permissions + model */}
         <div className="flex flex-col gap-1 mt-1.5">
-          {/* Row 1: Mode selector centered */}
           <div className="flex items-center justify-center">
             <ModeSelector mode={agentMode} onChange={setAgentMode} />
           </div>
-          {/* Row 2: Runtime, permissions, model, context */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <PermissionsToggle />
@@ -1475,16 +1679,6 @@ export function AgentPanel() {
                   )}
                 </div>
               )}
-              {contextTokens > 0 && (
-                <span className="text-[10px] text-[var(--text-disabled)] tabular-nums">
-                  ~{(contextTokens / 1000).toFixed(1)}k ctx
-                </span>
-              )}
-              <span className="text-[10px] text-[var(--text-disabled)]">
-                <kbd className="px-1 py-px rounded border border-[var(--border)] text-[9px] font-mono">@</kbd>
-                <span className="mx-1">·</span>
-                <kbd className="px-1 py-px rounded border border-[var(--border)] text-[9px] font-mono">/</kbd>
-              </span>
             </div>
           </div>
         </div>

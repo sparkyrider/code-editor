@@ -78,11 +78,19 @@ function CommitMediaPreview({ filename, url }: { filename: string; url?: string 
   return null
 }
 
+interface ChangeEntry {
+  path: string
+  status: string // 'M', 'A', 'D', '??', 'R', 'editor'
+  source: 'git' | 'editor'
+}
+
 export function GitView() {
   const { repo } = useRepo()
   const local = useLocal()
   const { files, markClean } = useEditor()
   const { goBack } = useView()
+
+  const isLocalMode = local.localMode && local.rootPath && local.gitInfo?.is_repo
 
   const [tab, setTab] = useState<'changes' | 'history'>('changes')
   const [commitMsg, setCommitMsg] = useState('')
@@ -91,6 +99,8 @@ export function GitView() {
   const [committing, setCommitting] = useState(false)
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set())
   const [activeFilePath, setActiveFilePath] = useState<string | null>(null)
+  const [commitError, setCommitError] = useState<string | null>(null)
+  const [localDiffPatch, setLocalDiffPatch] = useState<string | null>(null)
 
   const [commits, setCommits] = useState<Array<{ sha: string; shortSha: string; message: string; author: string; date: string }>>([])
   const [loadingHistory, setLoadingHistory] = useState(false)
@@ -104,6 +114,7 @@ export function GitView() {
   const [creatingBranch, setCreatingBranch] = useState(false)
   const [branchFilter, setBranchFilter] = useState('')
   const [branchLimit, setBranchLimit] = useState(BRANCH_PAGE_SIZE)
+  const [branchSwitchError, setBranchSwitchError] = useState<string | null>(null)
 
   const commitInputRef = useRef<HTMLInputElement>(null)
   const branchMenuRef = useRef<HTMLDivElement>(null)
@@ -111,9 +122,28 @@ export function GitView() {
   const branchName = repo?.branch ?? local.gitInfo?.branch ?? 'main'
   const dirtyFiles = useMemo(() => files.filter(f => f.dirty && f.kind === 'text'), [files])
 
+  const changeEntries = useMemo<ChangeEntry[]>(() => {
+    if (isLocalMode) {
+      const gitStatus = local.gitInfo?.status ?? []
+      const editorDirtyPaths = new Set(dirtyFiles.map(f => f.path))
+      const entries: ChangeEntry[] = gitStatus.map(s => ({
+        path: s.path,
+        status: s.status,
+        source: 'git' as const,
+      }))
+      for (const f of dirtyFiles) {
+        if (!gitStatus.some(s => s.path === f.path)) {
+          entries.push({ path: f.path, status: 'editor', source: 'editor' })
+        }
+      }
+      return entries
+    }
+    return dirtyFiles.map(f => ({ path: f.path, status: 'M', source: 'editor' as const }))
+  }, [isLocalMode, local.gitInfo?.status, dirtyFiles])
+
   useEffect(() => {
-    setSelectedFiles(new Set(dirtyFiles.map(f => f.path)))
-  }, [dirtyFiles])
+    setSelectedFiles(new Set(changeEntries.map(f => f.path)))
+  }, [changeEntries])
 
   useEffect(() => {
     if (repo) fetchBranchesByName(repo.fullName).then(bs => setBranches(bs.map(b => b.name))).catch(() => {})
@@ -130,13 +160,27 @@ export function GitView() {
     return () => document.removeEventListener('mousedown', handler)
   }, [showBranchMenu])
 
-  // Reset branch limit and filter when menu opens/closes
   useEffect(() => {
     if (showBranchMenu) {
       setBranchLimit(BRANCH_PAGE_SIZE)
       setBranchFilter('')
+      setBranchSwitchError(null)
     }
   }, [showBranchMenu])
+
+  // Load local diff when selecting a git-status file
+  useEffect(() => {
+    if (!activeFilePath || !isLocalMode) {
+      setLocalDiffPatch(null)
+      return
+    }
+    const entry = changeEntries.find(e => e.path === activeFilePath)
+    if (entry?.source === 'git') {
+      local.getDiff(activeFilePath).then(d => setLocalDiffPatch(d || null)).catch(() => setLocalDiffPatch(null))
+    } else {
+      setLocalDiffPatch(null)
+    }
+  }, [activeFilePath, isLocalMode, changeEntries, local])
 
   const activeDiff = useMemo(() => {
     const file = files.find(f => f.path === activeFilePath)
@@ -145,23 +189,56 @@ export function GitView() {
   }, [files, activeFilePath])
 
   const handleCommit = async () => {
-    if (!repo || !commitMsg.trim() || selectedFiles.size === 0) return
+    if (!commitMsg.trim() || selectedFiles.size === 0) return
     setCommitting(true)
+    setCommitError(null)
     try {
-      const toCommit = dirtyFiles.filter(f => selectedFiles.has(f.path))
-      const msg = showDesc && commitDesc.trim() ? `${commitMsg}\n\n${commitDesc}` : commitMsg
-      await commitFiles(repo.fullName, toCommit.map(f => ({ path: f.path, content: f.content, sha: f.sha })), msg, branchName)
-      toCommit.forEach(f => markClean(f.path))
-      setCommitMsg('')
-      setCommitDesc('')
-      setShowDesc(false)
+      if (isLocalMode) {
+        const paths = Array.from(selectedFiles)
+        const msg = showDesc && commitDesc.trim() ? `${commitMsg}\n\n${commitDesc}` : commitMsg
+        await local.commitFiles(msg, paths)
+        paths.forEach(p => {
+          if (files.find(f => f.path === p && f.dirty)) markClean(p)
+        })
+        setCommitMsg('')
+        setCommitDesc('')
+        setShowDesc(false)
+      } else if (repo) {
+        const toCommit = dirtyFiles.filter(f => selectedFiles.has(f.path))
+        const msg = showDesc && commitDesc.trim() ? `${commitMsg}\n\n${commitDesc}` : commitMsg
+        await commitFiles(repo.fullName, toCommit.map(f => ({ path: f.path, content: f.content, sha: f.sha })), msg, branchName)
+        toCommit.forEach(f => markClean(f.path))
+        setCommitMsg('')
+        setCommitDesc('')
+        setShowDesc(false)
+      }
     } catch (err) {
-      console.error('Commit failed:', err)
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('Commit failed:', msg)
+      setCommitError(msg)
     }
     setCommitting(false)
   }
 
   const handleCreateBranch = async () => {
+    if (isLocalMode) {
+      if (!newBranchName.trim()) return
+      setCreatingBranch(true)
+      setBranchSwitchError(null)
+      try {
+        await local.switchBranch(newBranchName.trim())
+        setNewBranchName('')
+        setShowBranchMenu(false)
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        setBranchSwitchError(msg.includes('overwritten by checkout')
+          ? 'Commit or stash changes first.'
+          : msg)
+      }
+      setCreatingBranch(false)
+      return
+    }
+
     if (!repo || !newBranchName.trim()) return
     setCreatingBranch(true)
     try {
@@ -180,6 +257,24 @@ export function GitView() {
     } catch {}
     setCreatingBranch(false)
   }
+
+  const handleSwitchBranch = useCallback(async (branch: string) => {
+    if (branch === branchName) return
+    if (isLocalMode) {
+      setBranchSwitchError(null)
+      try {
+        await local.switchBranch(branch)
+        setShowBranchMenu(false)
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        setBranchSwitchError(msg.includes('overwritten by checkout')
+          ? 'Commit or stash your changes before switching branches.'
+          : `Switch failed: ${msg}`)
+      }
+    } else {
+      setShowBranchMenu(false)
+    }
+  }, [branchName, isLocalMode, local])
 
   const loadHistory = useCallback(async () => {
     if (!repo) return
@@ -225,13 +320,14 @@ export function GitView() {
     if (tab === 'history' && commits.length === 0) loadHistory()
   }, [tab, loadHistory, commits.length])
 
-  // Branch filtering + pagination
+  // Use local branches when in local mode
+  const effectiveBranches = isLocalMode ? local.branches : branches
+
   const filteredBranches = useMemo(() =>
-    branchFilter ? branches.filter(b => b.toLowerCase().includes(branchFilter.toLowerCase())) : branches,
-    [branches, branchFilter]
+    branchFilter ? effectiveBranches.filter(b => b.toLowerCase().includes(branchFilter.toLowerCase())) : effectiveBranches,
+    [effectiveBranches, branchFilter]
   )
 
-  // Sort: current branch first, then alphabetical
   const sortedBranches = useMemo(() => {
     const sorted = [...filteredBranches].sort((a, b) => {
       if (a === branchName) return -1
@@ -244,15 +340,15 @@ export function GitView() {
   const visibleBranches = useMemo(() => sortedBranches.slice(0, branchLimit), [sortedBranches, branchLimit])
   const hasMoreBranches = sortedBranches.length > branchLimit
 
-  const allSelected = dirtyFiles.length > 0 && dirtyFiles.every(f => selectedFiles.has(f.path))
-  const someSelected = dirtyFiles.some(f => selectedFiles.has(f.path)) && !allSelected
+  const allSelected = changeEntries.length > 0 && changeEntries.every(f => selectedFiles.has(f.path))
+  const someSelected = changeEntries.some(f => selectedFiles.has(f.path)) && !allSelected
   const commitReady = commitMsg.trim() && selectedFiles.size > 0 && !committing
 
   const toggleAll = () => {
     if (allSelected) {
       setSelectedFiles(new Set())
     } else {
-      setSelectedFiles(new Set(dirtyFiles.map(f => f.path)))
+      setSelectedFiles(new Set(changeEntries.map(f => f.path)))
     }
   }
 
@@ -264,12 +360,11 @@ export function GitView() {
     })
   }
 
-  // Auto-select first dirty file to show diff immediately
   useEffect(() => {
-    if (tab === 'changes' && dirtyFiles.length > 0 && !activeFilePath) {
-      setActiveFilePath(dirtyFiles[0].path)
+    if (tab === 'changes' && changeEntries.length > 0 && !activeFilePath) {
+      setActiveFilePath(changeEntries[0].path)
     }
-  }, [tab, dirtyFiles, activeFilePath])
+  }, [tab, changeEntries, activeFilePath])
 
   return (
     <div className="flex flex-1 min-h-0 overflow-hidden">
@@ -309,13 +404,21 @@ export function GitView() {
                     />
                   </div>
                 </div>
+                {branchSwitchError && (
+                  <div className="px-2.5 py-2 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--color-deletions)_8%,transparent)]">
+                    <div className="flex items-start gap-1.5">
+                      <Icon icon="lucide:alert-triangle" width={11} height={11} className="text-[var(--color-deletions)] shrink-0 mt-0.5" />
+                      <span className="text-[10px] text-[var(--color-deletions)] leading-snug">{branchSwitchError}</span>
+                    </div>
+                  </div>
+                )}
                 <div className="max-h-[220px] overflow-y-auto py-0.5">
                   {visibleBranches.length > 0 ? (
                     <>
                       {visibleBranches.map(b => (
                         <button
                           key={b}
-                          onClick={() => setShowBranchMenu(false)}
+                          onClick={() => handleSwitchBranch(b)}
                           className={`w-full text-left px-3 h-[28px] text-[11px] font-mono hover:bg-[var(--bg-tertiary)] cursor-pointer flex items-center gap-2 transition-colors ${
                             b === branchName ? 'text-[var(--brand)] font-semibold' : 'text-[var(--text-primary)]'
                           }`}
@@ -395,9 +498,9 @@ export function GitView() {
             >
               <Icon icon={t === 'changes' ? 'lucide:file-diff' : 'lucide:history'} width={12} height={12} />
               {t === 'changes' ? 'Changes' : 'History'}
-              {t === 'changes' && dirtyFiles.length > 0 && (
+              {t === 'changes' && changeEntries.length > 0 && (
                 <span className="ml-0.5 px-1 min-w-[16px] text-center rounded-full bg-[var(--brand)] text-[var(--brand-contrast)] text-[9px] font-bold leading-[16px]">
-                  {dirtyFiles.length}
+                  {changeEntries.length}
                 </span>
               )}
             </button>
@@ -407,7 +510,7 @@ export function GitView() {
         {tab === 'changes' ? (
           <>
             {/* Select all / actions bar */}
-            {dirtyFiles.length > 0 && (
+            {changeEntries.length > 0 && (
               <div className="flex items-center h-[28px] px-3 border-b border-[var(--border)] shrink-0">
                 <label className="flex items-center gap-2 cursor-pointer flex-1">
                   <input
@@ -418,29 +521,58 @@ export function GitView() {
                     className="accent-[var(--brand)] w-3 h-3"
                   />
                   <span className="text-[10px] text-[var(--text-tertiary)]">
-                    {selectedFiles.size} of {dirtyFiles.length} staged
+                    {selectedFiles.size} of {changeEntries.length} selected
                   </span>
                 </label>
+                {isLocalMode && (
+                  <button
+                    onClick={() => local.refresh()}
+                    className="p-1 rounded-[var(--radius-sm)] hover:bg-[var(--bg-subtle)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] cursor-pointer transition-colors"
+                    title="Refresh git status"
+                  >
+                    <Icon icon="lucide:refresh-cw" width={10} height={10} />
+                  </button>
+                )}
               </div>
             )}
 
             {/* Changed files list */}
             <div className="flex-1 overflow-y-auto">
-              {dirtyFiles.map(f => {
-                const fileName = f.path.split('/').pop() ?? f.path
-                const dirPath = f.path.split('/').slice(0, -1).join('/')
+              {changeEntries.map(entry => {
+                const fileName = entry.path.split('/').pop() ?? entry.path
+                const dirPath = entry.path.split('/').slice(0, -1).join('/')
+                const statusColor =
+                  entry.status === 'D' ? 'text-[var(--color-deletions)]' :
+                  entry.status === 'A' || entry.status === '??' ? 'text-[var(--color-additions)]' :
+                  'text-[var(--warning,#eab308)]'
+                const statusLabel =
+                  entry.status === 'M' ? 'M' :
+                  entry.status === 'A' ? 'A' :
+                  entry.status === 'D' ? 'D' :
+                  entry.status === '??' ? 'U' :
+                  entry.status === 'R' ? 'R' :
+                  entry.status === 'editor' ? 'E' :
+                  entry.status
+                const statusTitle =
+                  entry.status === 'M' ? 'Modified' :
+                  entry.status === 'A' ? 'Added' :
+                  entry.status === 'D' ? 'Deleted' :
+                  entry.status === '??' ? 'Untracked' :
+                  entry.status === 'R' ? 'Renamed' :
+                  entry.status === 'editor' ? 'Editor changes (unsaved)' :
+                  entry.status
                 return (
                   <div
-                    key={f.path}
-                    onClick={() => setActiveFilePath(f.path)}
+                    key={entry.path}
+                    onClick={() => setActiveFilePath(entry.path)}
                     className={`group flex items-center gap-2 h-[30px] px-3 hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer ${
-                      activeFilePath === f.path ? 'bg-[color-mix(in_srgb,var(--brand)_8%,transparent)]' : ''
+                      activeFilePath === entry.path ? 'bg-[color-mix(in_srgb,var(--brand)_8%,transparent)]' : ''
                     }`}
                   >
                     <input
                       type="checkbox"
-                      checked={selectedFiles.has(f.path)}
-                      onChange={e => { e.stopPropagation(); toggleFile(f.path) }}
+                      checked={selectedFiles.has(entry.path)}
+                      onChange={e => { e.stopPropagation(); toggleFile(entry.path) }}
                       className="accent-[var(--brand)] w-3 h-3 shrink-0"
                     />
                     <Icon icon="lucide:file-code-2" width={12} height={12} className="text-[var(--text-tertiary)] shrink-0" />
@@ -448,11 +580,13 @@ export function GitView() {
                     {dirPath && (
                       <span className="text-[10px] text-[var(--text-disabled)] truncate ml-auto shrink-0 font-mono">{dirPath}</span>
                     )}
-                    <span className="w-[6px] h-[6px] rounded-full bg-[var(--color-additions)] shrink-0 opacity-80" title="Modified" />
+                    <span className={`text-[9px] font-mono font-bold shrink-0 ${statusColor}`} title={statusTitle}>
+                      {statusLabel}
+                    </span>
                   </div>
                 )
               })}
-              {dirtyFiles.length === 0 && (
+              {changeEntries.length === 0 && (
                 <div className="py-12 text-center">
                   <Icon icon="lucide:check-circle" width={28} height={28} className="mx-auto mb-2 text-[var(--color-additions)] opacity-40" />
                   <p className="text-[11px] text-[var(--text-tertiary)]">Working tree clean</p>
@@ -463,6 +597,15 @@ export function GitView() {
 
             {/* Commit area */}
             <div className="border-t border-[var(--border)] p-2.5 space-y-1.5 shrink-0 bg-[var(--bg)]">
+              {commitError && (
+                <div className="flex items-start gap-1.5 px-2 py-1.5 rounded-[var(--radius-sm)] bg-[color-mix(in_srgb,var(--color-deletions)_8%,transparent)] border border-[color-mix(in_srgb,var(--color-deletions)_20%,transparent)]">
+                  <Icon icon="lucide:alert-circle" width={11} height={11} className="text-[var(--color-deletions)] shrink-0 mt-0.5" />
+                  <span className="text-[10px] text-[var(--color-deletions)] leading-snug">{commitError}</span>
+                  <button onClick={() => setCommitError(null)} className="ml-auto shrink-0 text-[var(--color-deletions)] hover:opacity-70 cursor-pointer">
+                    <Icon icon="lucide:x" width={10} height={10} />
+                  </button>
+                </div>
+              )}
               <div className="flex items-center gap-1">
                 <input
                   ref={commitInputRef}
@@ -557,6 +700,25 @@ export function GitView() {
             <DiffHeader path={activeDiff.path} lines={activeDiff.lines} />
             <DiffTable lines={activeDiff.lines} />
           </>
+        ) : tab === 'changes' && localDiffPatch ? (
+          <>
+            <div className="flex items-center justify-between h-[34px] px-4 border-b border-[var(--border)] bg-[var(--bg)] shrink-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <Icon icon="lucide:file-diff" width={12} height={12} className="text-[var(--text-tertiary)] shrink-0" />
+                <span className="text-[11px] font-mono font-medium text-[var(--text-primary)] truncate">{activeFilePath}</span>
+              </div>
+            </div>
+            <PatchViewer patch={localDiffPatch} />
+          </>
+        ) : tab === 'changes' && activeFilePath && changeEntries.find(e => e.path === activeFilePath)?.status === '??' ? (
+          <div className="flex-1 flex items-center justify-center text-[11px] text-[var(--text-disabled)]">
+            <div className="text-center">
+              <Icon icon="lucide:file-plus" width={32} height={32} className="mx-auto mb-3 text-[var(--color-additions)] opacity-30" />
+              <p className="text-[12px] text-[var(--text-tertiary)] font-medium">Untracked file</p>
+              <p className="text-[10px] text-[var(--text-disabled)] mt-1 font-mono">{activeFilePath}</p>
+              <p className="text-[10px] text-[var(--text-disabled)] mt-2">This file is new and not yet tracked by git</p>
+            </div>
+          </div>
         ) : tab === 'history' && selectedCommit ? (
           <>
             <div className="px-4 py-3 border-b border-[var(--border)] bg-[var(--bg)] shrink-0">

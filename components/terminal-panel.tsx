@@ -357,11 +357,9 @@ export function TerminalPanel({ visible, height, onHeightChange }: TerminalPanel
     document.body.style.userSelect = 'none'
   }, [height, onHeightChange])
 
-  if (!visible) return null
-
   return (
     <div
-      className="flex flex-col border-t border-[var(--border)]"
+      className={`flex flex-col border-t border-[var(--border)] ${visible ? '' : 'hidden'}`}
       style={{ height: `${height}px`, minHeight: 120 }}
     >
       {/* Resize handle */}

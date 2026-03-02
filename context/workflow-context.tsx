@@ -120,9 +120,6 @@ interface WorkflowContextValue {
   // Analytics
   analytics: AnalyticsSnapshot
 
-  // Execution
-  runWorkflow: (id: string) => void
-  stopWorkflow: (id: string) => void
 
   // Execution
   runWorkflow: (id: string) => void

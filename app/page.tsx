@@ -92,6 +92,11 @@ export default function EditorLayout() {
     try { localStorage.setItem('code-editor:sidebar-collapsed', String(sidebarCollapsed)) } catch {}
   }, [sidebarCollapsed])
 
+  // ─── Close terminal when switching view tabs ──────────
+  useEffect(() => {
+    setTerminalVisible(false)
+  }, [activeView])
+
   // ─── Sliding tab indicator measurement ─────────────────
   useLayoutEffect(() => {
     const idx = VISIBLE_VIEWS.indexOf(activeView)
@@ -371,26 +376,24 @@ export default function EditorLayout() {
           </div>
         </div>
 
-        {/* Terminal — global, works from any view */}
-        {terminalVisible && (
-          <>
-            <div
-              className="h-[3px] cursor-row-resize hover:bg-[var(--brand)] transition-colors opacity-0 hover:opacity-50 shrink-0"
-              onMouseDown={e => {
-                e.preventDefault()
-                const startY = e.clientY
-                const startH = terminalHeight
-                const onMove = (ev: MouseEvent) => setTerminalHeight(Math.max(100, Math.min(500, startH - (ev.clientY - startY))))
-                const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp) }
-                document.addEventListener('mousemove', onMove)
-                document.addEventListener('mouseup', onUp)
-              }}
-            />
-            <div className="shrink-0 border-t border-[var(--border)]" style={{ height: terminalHeight }}>
-              <TerminalPanel visible={terminalVisible} height={terminalHeight} onHeightChange={setTerminalHeight} />
-            </div>
-          </>
-        )}
+        {/* Terminal — persists across toggles so PTY sessions survive */}
+        <div className={terminalVisible ? '' : 'hidden'}>
+          <div
+            className="h-[3px] cursor-row-resize hover:bg-[var(--brand)] transition-colors opacity-0 hover:opacity-50 shrink-0"
+            onMouseDown={e => {
+              e.preventDefault()
+              const startY = e.clientY
+              const startH = terminalHeight
+              const onMove = (ev: MouseEvent) => setTerminalHeight(Math.max(100, Math.min(500, startH - (ev.clientY - startY))))
+              const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp) }
+              document.addEventListener('mousemove', onMove)
+              document.addEventListener('mouseup', onUp)
+            }}
+          />
+          <div className="shrink-0 border-t border-[var(--border)]" style={{ height: terminalHeight }}>
+            <TerminalPanel visible={terminalVisible} height={terminalHeight} onHeightChange={setTerminalHeight} />
+          </div>
+        </div>
 
         {/* Status bar */}
         <footer className="flex items-center justify-between px-3 h-[22px] border-t border-[var(--border)] bg-[var(--bg-elevated)] text-[10px] text-[var(--text-tertiary)] shrink-0">

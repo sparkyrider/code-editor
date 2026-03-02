@@ -1,11 +1,14 @@
 'use client'
 
+import React from 'react'
+
 import { useRef, useState, useCallback, useEffect } from 'react'
 import { Icon } from '@iconify/react'
 import { useWorkflow, type WorkflowNode, type WorkflowEdge } from '@/context/workflow-context'
 import { useGateway } from '@/context/gateway-context'
 import { nodeKindIcon } from './workflow-list'
 import { NodeInspector } from './node-inspector'
+import { NodePalette } from './node-palette'
 
 export function WorkflowCanvas() {
   const {
@@ -103,6 +106,7 @@ export function WorkflowCanvas() {
             </span>
           )}
 
+          <NodePalette />
           <span className="text-[10px] text-[var(--text-disabled)]">{nodes.length} nodes · {edges.length} edges</span>
           <div className="flex gap-1 ml-2">
             {status === 'running' ? (
@@ -139,7 +143,6 @@ export function WorkflowCanvas() {
               <marker id="arrowhead-active" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
                 <polygon points="0 0, 8 3, 0 6" fill="var(--brand)" opacity="0.8" />
               </marker>
-              {/* Glow filter */}
               <filter id="node-glow">
                 <feGaussianBlur stdDeviation="4" result="blur" />
                 <feMerge>
@@ -204,19 +207,16 @@ export function WorkflowCanvas() {
                   style={{ cursor: dragging?.nodeId === node.id ? 'grabbing' : 'grab' }}
                   onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
                 >
-                  {/* Selection ring */}
                   {isSelected && (
                     <rect x="-3" y="-3" width="146" height="56" rx="11" fill="none" stroke="var(--brand)" strokeWidth="2" strokeDasharray="4 2" opacity="0.6" />
                   )}
 
-                  {/* Running glow */}
                   {node.status === 'running' && (
                     <rect x="-4" y="-4" width="148" height="58" rx="12" fill="none" stroke={colors.bg} strokeWidth="2" opacity="0.3" filter="url(#node-glow)">
                       <animate attributeName="opacity" values="0.2;0.5;0.2" dur="1.5s" repeatCount="indefinite" />
                     </rect>
                   )}
 
-                  {/* Node body */}
                   <rect
                     width="140" height="50" rx="8"
                     fill="var(--bg-elevated)"
@@ -225,39 +225,33 @@ export function WorkflowCanvas() {
                     opacity={node.status === 'skipped' ? 0.35 : 1}
                   />
 
-                  {/* Kind icon */}
                   <foreignObject x="8" y="6" width="24" height="24">
                     <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: colors.bgMuted }}>
                       <Icon icon={nodeKindIcon(node.kind)} width={12} height={12} style={{ color: colors.text }} className={node.status === 'running' ? 'animate-spin' : ''} />
                     </div>
                   </foreignObject>
 
-                  {/* Label */}
                   <text x="38" y="18" className="text-[10px] font-medium" fill="var(--text-primary)" fontFamily="system-ui, sans-serif" style={{ pointerEvents: 'none' }}>
                     {node.label.length > 14 ? node.label.slice(0, 13) + '…' : node.label}
                   </text>
 
-                  {/* Duration + tokens */}
                   <text x="38" y="32" className="text-[8px]" fill="var(--text-disabled)" fontFamily="var(--font-mono, monospace)" style={{ pointerEvents: 'none' }}>
                     {node.duration ? `${(node.duration / 1000).toFixed(1)}s` : ''}
                     {node.tokens ? ` · ${((node.tokens.input + node.tokens.output) / 1000).toFixed(1)}k tok` : ''}
                   </text>
 
-                  {/* Config hint */}
-                  {node.config.model && (
+                  {typeof node.config.model === "string" && node.config.model && (
                     <text x="38" y="44" className="text-[7px]" fill="var(--text-disabled)" fontFamily="var(--font-mono, monospace)" style={{ pointerEvents: 'none' }}>
                       {String(node.config.model).split('/').pop()?.split('-').slice(-2).join('-')}
                     </text>
                   )}
 
-                  {/* Status dot */}
                   <circle cx="130" cy="10" r="4" fill={colors.bg} opacity={node.status === 'idle' ? 0.3 : 0.8}>
                     {node.status === 'running' && (
                       <animate attributeName="opacity" values="0.4;1;0.4" dur="1s" repeatCount="indefinite" />
                     )}
                   </circle>
 
-                  {/* Human approval buttons */}
                   {isWaiting && (
                     <foreignObject x="8" y="52" width="132" height="28">
                       <div className="flex gap-1">

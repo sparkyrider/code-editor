@@ -166,9 +166,10 @@ export function EditorView() {
               <motion.div
                 key="file-tree"
                 initial={{ width: 0, opacity: 0 }}
-                animate={{ width: treeWidth, opacity: 1 }}
+                animate={{ width: treeResize.resizing ? undefined : treeWidth, opacity: 1 }}
                 exit={{ width: 0, opacity: 0 }}
-                transition={PANEL_SPRING}
+                transition={treeResize.resizing ? { duration: 0 } : PANEL_SPRING}
+                style={treeResize.resizing ? { width: treeWidth } : undefined}
                 className="shrink-0 bg-[var(--sidebar-bg)] overflow-hidden border-r border-[var(--border)] flex flex-col"
               >
                 <div className="flex items-center justify-between h-9 px-3 border-b border-[var(--border)] shrink-0">
@@ -184,9 +185,13 @@ export function EditorView() {
 
           {/* Tree resize handle */}
           {treeVisible && (
-            <div className="resize-handle w-[3px] cursor-col-resize hover:bg-[var(--brand)] transition-all opacity-0 hover:opacity-50 shrink-0 z-10"
+            <div
+              className="resize-handle w-[5px] cursor-col-resize shrink-0 z-10 group/resize relative"
               onMouseDown={treeResize.onResizeStart}
-            />
+            >
+              <div className="absolute inset-y-0 -left-[3px] -right-[3px]" />
+              <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[2px] rounded-full bg-[var(--text-disabled)] opacity-0 group-hover/resize:opacity-30 group-hover/resize:bg-[var(--brand)] transition-all" />
+            </div>
           )}
 
           {/* Editor column */}
@@ -308,20 +313,25 @@ export function EditorView() {
 
       {/* Chat resize handle */}
       {chatVisible && !editorCollapsed && (
-        <div className="resize-handle w-[3px] cursor-col-resize hover:bg-[var(--brand)] transition-all opacity-0 hover:opacity-50 shrink-0 z-10"
+        <div
+          className="resize-handle w-[5px] cursor-col-resize shrink-0 z-10 group/resize relative"
           onMouseDown={chatResize.onResizeStart}
-        />
+        >
+          <div className="absolute inset-y-0 -left-[3px] -right-[3px]" />
+          <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[2px] rounded-full bg-[var(--text-disabled)] opacity-0 group-hover/resize:opacity-30 group-hover/resize:bg-[var(--brand)] transition-all" />
+        </div>
       )}
 
-      {/* Chat panel — animated open/close */}
+      {/* Chat panel — animated open/close, direct width during resize */}
       <AnimatePresence initial={false}>
         {chatVisible && (
           <motion.div
             key="chat-panel"
             initial={editorCollapsed ? { opacity: 0 } : { width: 0, opacity: 0 }}
-            animate={editorCollapsed ? { opacity: 1 } : { width: chatWidth, opacity: 1 }}
+            animate={editorCollapsed ? { opacity: 1 } : { width: chatResize.resizing ? undefined : chatWidth, opacity: 1 }}
             exit={editorCollapsed ? { opacity: 0 } : { width: 0, opacity: 0 }}
-            transition={PANEL_SPRING}
+            transition={chatResize.resizing ? { duration: 0 } : PANEL_SPRING}
+            style={chatResize.resizing && !editorCollapsed ? { width: chatWidth } : undefined}
             className={`shrink-0 flex flex-col bg-[var(--bg)] overflow-hidden ${editorCollapsed ? 'flex-1' : 'border-l border-[var(--border)]'}`}
           >
             <div className="flex items-center justify-between h-9 px-3 border-b border-[var(--border)] bg-[var(--bg-elevated)] shrink-0">

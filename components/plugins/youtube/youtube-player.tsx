@@ -59,6 +59,7 @@ function formatTime(seconds: number): string {
 
 export function YouTubePlayer() {
   const [apiReady, setApiReady] = useState(false)
+  const [apiError, setApiError] = useState(false)
   const [playerState, setPlayerState] = useState<YTPlayerState | null>(null)
   const [volume, setVolume] = useState(50)
   const [muted, setMuted] = useState(false)
@@ -68,89 +69,136 @@ export function YouTubePlayer() {
   const [showPlayer, setShowPlayer] = useState(false)
 
   const playerRef = useRef<YTPlayer | null>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
+  const embedRef = useRef<HTMLDivElement>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const volumeRef = useRef(50)
+  const mutedRef = useRef(false)
   const volumeBeforeMute = useRef(50)
   const inputRef = useRef<HTMLInputElement>(null)
+  const pendingVideoRef = useRef<{ id: string; title?: string; channel?: string } | null>(null)
+
+  volumeRef.current = volume
+  mutedRef.current = muted
 
   useEffect(() => {
+    if (window.YT?.Player) { setApiReady(true); return }
     if (document.querySelector(`script[src="${YOUTUBE_IFRAME_API}"]`)) {
-      if (window.YT?.Player) setApiReady(true)
-      return
+      const check = setInterval(() => {
+        if (window.YT?.Player) { setApiReady(true); clearInterval(check) }
+      }, 200)
+      setTimeout(() => { clearInterval(check); if (!window.YT?.Player) setApiError(true) }, 10_000)
+      return () => clearInterval(check)
     }
     window.onYouTubeIframeAPIReady = () => setApiReady(true)
     const script = document.createElement('script')
     script.src = YOUTUBE_IFRAME_API
     script.async = true
+    script.onerror = () => setApiError(true)
     document.body.appendChild(script)
   }, [])
 
   const destroyPlayer = useCallback(() => {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
-    if (playerRef.current) { playerRef.current.destroy(); playerRef.current = null }
+    if (playerRef.current) {
+      try { playerRef.current.destroy() } catch {}
+      playerRef.current = null
+    }
   }, [])
 
-  const playVideo = useCallback((videoId: string, title?: string, channel?: string) => {
-    if (!apiReady) return
+  const initPlayer = useCallback((videoId: string, title?: string, channel?: string) => {
+    if (!window.YT?.Player) return
 
     destroyPlayer()
-    setShowPlayer(true)
 
-    requestAnimationFrame(() => {
-      const el = document.getElementById('yt-player-embed')
-      if (!el) return
+    const el = embedRef.current
+    if (!el) return
 
-      const player = new window.YT.Player('yt-player-embed', {
-        height: '1',
-        width: '1',
-        videoId,
-        playerVars: {
-          autoplay: 1,
-          controls: 0,
-          modestbranding: 1,
-          rel: 0,
-          fs: 0,
-          playsinline: 1,
-        },
-        events: {
-          onReady: () => {
-            player.setVolume(volume)
-            if (muted) player.mute()
-            const data = player.getVideoData()
-            setPlayerState({
-              videoId,
-              title: data.title || title || 'Unknown',
-              channelTitle: data.author || channel || '',
-              thumbnail: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
-              isPlaying: true,
-              currentTime: 0,
-              duration: player.getDuration() || 0,
-            })
-            timerRef.current = setInterval(() => {
-              if (playerRef.current) {
+    // YT.Player replaces the target element, so create a fresh child div each time
+    el.innerHTML = ''
+    const target = document.createElement('div')
+    target.id = 'yt-player-target'
+    el.appendChild(target)
+
+    const player = new window.YT.Player('yt-player-target', {
+      height: '1',
+      width: '1',
+      videoId,
+      playerVars: {
+        autoplay: 1,
+        controls: 0,
+        modestbranding: 1,
+        rel: 0,
+        fs: 0,
+        playsinline: 1,
+        origin: window.location.origin,
+      },
+      events: {
+        onReady: () => {
+          player.setVolume(volumeRef.current)
+          if (mutedRef.current) player.mute()
+          const data = player.getVideoData()
+          setPlayerState({
+            videoId,
+            title: data.title || title || 'Unknown',
+            channelTitle: data.author || channel || '',
+            thumbnail: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
+            isPlaying: true,
+            currentTime: 0,
+            duration: player.getDuration() || 0,
+          })
+          timerRef.current = setInterval(() => {
+            if (playerRef.current) {
+              try {
                 const t = playerRef.current.getCurrentTime()
                 const d = playerRef.current.getDuration()
                 setCurrentTime(t)
                 setPlayerState(prev => prev ? { ...prev, currentTime: t, duration: d || prev.duration } : prev)
-              }
-            }, 500)
-            window.dispatchEvent(new CustomEvent('youtube-state-changed', { detail: { playing: true } }))
-          },
-          onStateChange: (event: { data: number }) => {
-            const playing = event.data === window.YT.PlayerState.PLAYING
-            const ended = event.data === window.YT.PlayerState.ENDED
-            setPlayerState(prev => prev ? { ...prev, isPlaying: playing } : prev)
-            window.dispatchEvent(new CustomEvent('youtube-state-changed', { detail: { playing } }))
-            if (ended) {
-              const random = DEMO_VIDEOS[Math.floor(Math.random() * DEMO_VIDEOS.length)]
-              playVideo(random.id, random.title, random.channel)
+              } catch {}
             }
-          },
+          }, 500)
+          window.dispatchEvent(new CustomEvent('youtube-state-changed', { detail: { playing: true } }))
         },
-      })
-      playerRef.current = player
+        onStateChange: (event: { data: number }) => {
+          const playing = event.data === window.YT.PlayerState.PLAYING
+          const ended = event.data === window.YT.PlayerState.ENDED
+          setPlayerState(prev => prev ? { ...prev, isPlaying: playing } : prev)
+          window.dispatchEvent(new CustomEvent('youtube-state-changed', { detail: { playing } }))
+          if (ended) {
+            const random = DEMO_VIDEOS[Math.floor(Math.random() * DEMO_VIDEOS.length)]
+            initPlayer(random.id, random.title, random.channel)
+          }
+        },
+        onError: () => {
+          setPlayerState(prev => prev ? { ...prev, isPlaying: false } : prev)
+        },
+      },
     })
-  }, [apiReady, volume, muted, destroyPlayer])
+    playerRef.current = player
+  }, [destroyPlayer])
+
+  const playVideo = useCallback((videoId: string, title?: string, channel?: string) => {
+    if (!apiReady) {
+      pendingVideoRef.current = { id: videoId, title, channel }
+      return
+    }
+
+    setShowPlayer(true)
+    // Wait for React to render the embed container before initializing
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        initPlayer(videoId, title, channel)
+      })
+    })
+  }, [apiReady, initPlayer])
+
+  // Play pending video once API becomes ready
+  useEffect(() => {
+    if (apiReady && pendingVideoRef.current) {
+      const { id, title, channel } = pendingVideoRef.current
+      pendingVideoRef.current = null
+      playVideo(id, title, channel)
+    }
+  }, [apiReady, playVideo])
 
   useEffect(() => {
     return () => destroyPlayer()
@@ -276,12 +324,12 @@ export function YouTubePlayer() {
         </div>
       )}
 
-      {/* Hidden iframe player */}
-      {showPlayer && (
-        <div className="w-0 h-0 overflow-hidden absolute" aria-hidden="true">
-          <div id="yt-player-embed" />
-        </div>
-      )}
+      {/* Hidden iframe player — always rendered so the ref is stable */}
+      <div
+        ref={embedRef}
+        className={showPlayer ? 'w-0 h-0 overflow-hidden absolute' : 'hidden'}
+        aria-hidden="true"
+      />
 
       {/* Now playing */}
       <div className="flex-1 flex flex-col">
@@ -372,23 +420,36 @@ export function YouTubePlayer() {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center gap-2 py-8 px-3">
-            <Icon icon="mdi:youtube" width={24} height={24} className="text-[var(--text-disabled)]" />
-            <p className="text-[10px] text-[var(--text-tertiary)] text-center">Play music while you code</p>
-            <button
-              onClick={() => {
-                const random = DEMO_VIDEOS[Math.floor(Math.random() * DEMO_VIDEOS.length)]
-                playVideo(random.id, random.title, random.channel)
-              }}
-              className="h-7 px-3 rounded-md text-[10px] font-medium bg-[#FF0000] text-white hover:bg-[#cc0000] cursor-pointer"
-            >
-              Play something
-            </button>
-            <button
-              onClick={() => { setShowSearch(true); setTimeout(() => inputRef.current?.focus(), 100) }}
-              className="h-6 px-2.5 rounded-md text-[9px] font-medium border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] cursor-pointer"
-            >
-              Browse library
-            </button>
+            <Icon icon="mdi:youtube" width={24} height={24} className={apiError ? 'text-[var(--color-deletions)]' : 'text-[var(--text-disabled)]'} />
+            <p className="text-[10px] text-[var(--text-tertiary)] text-center">
+              {apiError ? 'Could not load YouTube' : 'Play music while you code'}
+            </p>
+            {apiError ? (
+              <button
+                onClick={() => { setApiError(false); window.location.reload() }}
+                className="h-7 px-3 rounded-md text-[10px] font-medium border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] cursor-pointer"
+              >
+                Retry
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={() => {
+                    const random = DEMO_VIDEOS[Math.floor(Math.random() * DEMO_VIDEOS.length)]
+                    playVideo(random.id, random.title, random.channel)
+                  }}
+                  className="h-7 px-3 rounded-md text-[10px] font-medium bg-[#FF0000] text-white hover:bg-[#cc0000] cursor-pointer"
+                >
+                  Play something
+                </button>
+                <button
+                  onClick={() => { setShowSearch(true); setTimeout(() => inputRef.current?.focus(), 100) }}
+                  className="h-6 px-2.5 rounded-md text-[9px] font-medium border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] cursor-pointer"
+                >
+                  Browse library
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>

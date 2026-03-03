@@ -2767,8 +2767,8 @@ p { line-height: 1.6; }
 
 /* ─── Vercel ───────────────────────────────────────────────── */
 .dark[data-theme="vercel"] {
-  /* Ghost (OpenAI-inspired): #181818 base, #261B1C sidebar — very transparent */
-  --bg: rgba(24, 24, 24, 0.65);
+  /* Ghost (OpenAI-inspired): #181818 base, #261B1C sidebar — very transparent surfaces */
+  --bg: #181818;
   --bg-elevated: rgba(28, 28, 28, 0.60);
   --bg-subtle: rgba(34, 34, 34, 0.55);
   --bg-secondary: rgba(26, 26, 26, 0.60);

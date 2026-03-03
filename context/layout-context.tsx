@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useReducer, useCallback, useEffect, useMemo, useRef, type ReactNode, type Dispatch } from 'react'
+import { createContext, useContext, useReducer, useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type Dispatch } from 'react'
 
 // ─── Panel Definitions ──────────────────────────────────
 // Add a new panel here → it automatically gets toggle, resize, persistence, presets
@@ -370,15 +370,16 @@ export function useLayout() {
 export function usePanelResize(panel: PanelId) {
   const { resize, getSize, panelDef } = useLayout()
   const def = panelDef(panel)
+  const [resizing, setResizing] = useState(false)
 
   const onResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
     const startPos = def.axis === 'horizontal' ? e.clientX : e.clientY
     const startSize = getSize(panel)
+    setResizing(true)
 
     const onMove = (ev: MouseEvent) => {
       const currentPos = def.axis === 'horizontal' ? ev.clientX : ev.clientY
-      // For right-side panels (chat), invert the delta
       const invertDelta = panel === 'chat' || panel === 'terminal' || panel === 'plugins'
       const delta = invertDelta
         ? startPos - currentPos
@@ -386,6 +387,7 @@ export function usePanelResize(panel: PanelId) {
       resize(panel, startSize + delta)
     }
     const onUp = () => {
+      setResizing(false)
       document.removeEventListener('mousemove', onMove)
       document.removeEventListener('mouseup', onUp)
     }
@@ -393,5 +395,5 @@ export function usePanelResize(panel: PanelId) {
     document.addEventListener('mouseup', onUp)
   }, [panel, def.axis, getSize, resize])
 
-  return { onResizeStart }
+  return { onResizeStart, resizing }
 }

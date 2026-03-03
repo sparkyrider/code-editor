@@ -170,10 +170,10 @@ export function WorkspaceSidebar({ activeId, onSelect, onNew, onDelete, collapse
       initial={false}
       animate={{ width: collapsed ? 48 : sidebarWidth }}
       transition={SIDEBAR_SPRING}
-      className={`relative flex flex-col bg-[var(--sidebar-bg)] border border-[var(--border)] rounded-xl shrink-0 overflow-hidden ${
+      className={`relative flex flex-col shrink-0 overflow-hidden ${
         collapsed
           ? `items-center gap-3 ${isTauriDesktop ? 'pt-8' : 'pt-3'} pb-3`
-          : 'h-full'
+          : 'h-full bg-[var(--sidebar-bg)] border border-[var(--border)] rounded-xl'
       }`}
     >
       {collapsed ? (

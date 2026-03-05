@@ -28,7 +28,7 @@ import type { AppMode } from '@/lib/mode-registry'
 // View components — lazy loaded
 const EditorView = dynamic(() => import('@/components/views/editor-view').then(m => ({ default: m.EditorView })), { ssr: false })
 const GitView = dynamic(() => import('@/components/views/git-view').then(m => ({ default: m.GitView })), { ssr: false })
-const PrView = dynamic(() => import('@/components/views/pr-view').then(m => ({ default: m.PrView })), { ssr: false })
+
 const SettingsPanel = dynamic(() => import('@/components/settings-panel').then(m => ({ default: m.SettingsPanel })), { ssr: false })
 
 // Overlay modals — lazy loaded
@@ -49,7 +49,7 @@ const VIEW_ICONS: Record<string, { icon: string; label: string }> = {
   preview: { icon: 'lucide:eye', label: 'Preview' },
   diff: { icon: 'lucide:git-compare', label: 'Diff' },
   git: { icon: 'lucide:git-branch', label: 'Git' },
-  prs: { icon: 'lucide:git-pull-request', label: 'PRs' },
+
   settings: { icon: 'lucide:settings', label: 'Settings' },
 }
 
@@ -588,23 +588,14 @@ export default function EditorLayout() {
     return () => window.removeEventListener('agent-commit', handler)
   }, [repo, files, markClean, localMode, localRootPath, gitInfo, localCommitFiles])
 
-  // ─── Git panel / changes panel / PR panel navigation ───
+  // ─── Git panel navigation ───
   useEffect(() => {
     const openGit = () => setView('git')
-    const openPrs = () => setView('prs')
-    const openPrCreate = () => {
-      setView('prs')
-      setTimeout(() => window.dispatchEvent(new CustomEvent('pr-open-create')), 100)
-    }
     window.addEventListener('open-git-panel', openGit)
     window.addEventListener('open-changes-panel', openGit)
-    window.addEventListener('open-prs-panel', openPrs)
-    window.addEventListener('open-pr-create', openPrCreate)
     return () => {
       window.removeEventListener('open-git-panel', openGit)
       window.removeEventListener('open-changes-panel', openGit)
-      window.removeEventListener('open-prs-panel', openPrs)
-      window.removeEventListener('open-pr-create', openPrCreate)
     }
   }, [setView])
 
@@ -840,7 +831,7 @@ export default function EditorLayout() {
                 {activeView === 'preview' && <PreviewPanel />}
 
                 {activeView === 'git' && <GitView />}
-                {activeView === 'prs' && <PrView />}
+
                 {activeView === 'settings' && (
                   <div className="flex-1 flex items-center justify-center">
                     <SettingsPanel open={true} onClose={() => setView('editor')} />
@@ -1037,7 +1028,7 @@ export default function EditorLayout() {
             case 'view-preview': setView('preview'); break
 
             case 'view-git': setView('git'); break
-            case 'view-prs': setView('prs'); break
+
             case 'view-settings': setView('settings'); break
             // File operations
             case 'find-files': setQuickOpenVisible(true); break
@@ -1048,7 +1039,7 @@ export default function EditorLayout() {
             case 'git-pull': setView('git'); break
             case 'git-stash': setView('git'); break
             // PR operations
-            case 'pr-create': window.dispatchEvent(new CustomEvent('open-pr-create')); break
+
             // Preview operations
             case 'preview-refresh': window.dispatchEvent(new CustomEvent('preview-refresh')); break
             // Onboarding

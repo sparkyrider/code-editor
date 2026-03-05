@@ -993,6 +993,28 @@ body {
   padding: 0;
 }
 
+/* Theme-tinted application background — subtle brand wash */
+.dark { --theme-bg-intensity: 6%; }
+:root:not(.dark) { --theme-bg-intensity: 4%; }
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background: radial-gradient(
+    ellipse 80% 60% at 50% 0%,
+    color-mix(in srgb, var(--brand) var(--theme-bg-intensity), transparent),
+    transparent 70%
+  );
+  transition: background 0.5s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before { transition: none; }
+}
+
 /* Next.js wraps children in a div inside body — it needs full height too */
 body > div {
   height: 100%;

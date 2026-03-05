@@ -43,6 +43,8 @@ interface ThemeContextValue {
   setMode: (mode: ThemeMode) => void
   borderRadius: number
   setBorderRadius: (r: number) => void
+  bgTint: number
+  setBgTint: (t: number) => void
   version: number
   bumpVersion: () => void
 }
@@ -52,6 +54,7 @@ const ThemeContext = createContext<ThemeContextValue | null>(null)
 const STORAGE_THEME = 'code-editor:theme'
 const STORAGE_MODE = 'code-editor:mode'
 const STORAGE_RADIUS = 'code-editor:border-radius'
+const STORAGE_BG_TINT = 'code-editor:bg-tint'
 
 function getSystemPreference(): ResolvedMode {
   if (typeof window === 'undefined') return 'dark'
@@ -84,6 +87,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [mode, setModeState] = useState<ThemeMode>('dark')
   const [resolvedMode, setResolvedMode] = useState<ResolvedMode>('dark')
   const [borderRadius, setBorderRadiusState] = useState(8)
+  const [bgTint, setBgTintState] = useState(6)
   const [version, setVersion] = useState(0)
 
   const bumpVersion = useCallback(() => setVersion(v => v + 1), [])
@@ -97,9 +101,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       const md = savedMode || 'dark'
       const rm = resolveMode(md)
       const rad = savedRadius !== null ? Number(savedRadius) : 8
+      const savedTint = localStorage.getItem(STORAGE_BG_TINT)
+      const tint = savedTint !== null ? Number(savedTint) : 6
       setThemeIdState(tid)
       setModeState(md)
       setResolvedMode(rm)
+      setBgTintState(tint)
+      document.documentElement.style.setProperty('--theme-bg-intensity', `${tint}%`)
       setBorderRadiusState(rad)
       applyToDOM(tid, rm)
       applyRadiusToDOM(rad)
@@ -142,9 +150,16 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setVersion(v => v + 1)
   }, [])
 
+  const setBgTint = useCallback((t: number) => {
+    const clamped = Math.min(Math.max(t, 0), 20)
+    setBgTintState(clamped)
+    try { localStorage.setItem(STORAGE_BG_TINT, String(clamped)) } catch {}
+    document.documentElement.style.setProperty('--theme-bg-intensity', `${clamped}%`)
+  }, [])
+
   const value = useMemo<ThemeContextValue>(() => ({
-    themeId, mode, resolvedMode, setThemeId, setMode, borderRadius, setBorderRadius, version, bumpVersion,
-  }), [themeId, mode, resolvedMode, setThemeId, setMode, borderRadius, setBorderRadius, version, bumpVersion])
+    themeId, mode, resolvedMode, setThemeId, setMode, borderRadius, setBorderRadius, bgTint, setBgTint, version, bumpVersion,
+  }), [themeId, mode, resolvedMode, setThemeId, setMode, borderRadius, setBorderRadius, bgTint, setBgTint, version, bumpVersion])
 
   return (
     <ThemeContext.Provider value={value}>

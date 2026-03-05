@@ -14,7 +14,7 @@ interface Props {
 type SettingsTab = 'general' | 'editor' | 'agent' | 'keybindings' | 'plugins'
 
 export function SettingsPanel({ open, onClose }: Props) {
-  const { themeId, setThemeId, mode, setMode, borderRadius, setBorderRadius } = useTheme()
+  const { themeId, setThemeId, mode, setMode, borderRadius, setBorderRadius, bgTint, setBgTint } = useTheme()
   const { slots } = usePlugins()
   const { token: ghToken, source: ghSource, authenticated: ghAuthenticated, setManualToken: setGhToken, clearToken: clearGhToken, oauthAvailable, oauthStep, startOAuth, cancelOAuth, loading: ghLoading } = useGitHubAuth()
   const [ghTokenDraft, setGhTokenDraft] = useState('')
@@ -182,6 +182,27 @@ export function SettingsPanel({ open, onClose }: Props) {
                       </button>
                     ))}
                   </div>
+                </div>
+              </Section>
+
+              {/* Background Tint */}
+              <Section title="Background Tint">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="range"
+                      min={0}
+                      max={20}
+                      step={1}
+                      value={bgTint}
+                      onChange={e => setBgTint(Number(e.target.value))}
+                      className="flex-1 h-1 appearance-none rounded-full bg-[var(--bg-tertiary)] accent-[var(--brand)] cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[var(--brand)] [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:cursor-pointer"
+                    />
+                    <span className="text-[10px] font-mono text-[var(--text-tertiary)] w-8 text-right tabular-nums">{bgTint}%</span>
+                  </div>
+                  <p className="text-[9px] text-[var(--text-disabled)]">
+                    Tints the background with your theme&apos;s accent color. 0% = off.
+                  </p>
                 </div>
               </Section>
 

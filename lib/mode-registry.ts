@@ -25,7 +25,7 @@ export const MODE_REGISTRY: Record<AppMode, ModeSpec> = {
     id: 'classic',
     label: 'Classic',
     description: 'Traditional editor — no chat, files open',
-    visibleViews: ['editor', 'preview', 'git', 'prs'],
+    visibleViews: ['editor', 'preview', 'git'],
     defaultView: 'editor',
     autoExpandEditor: true,
     accent: '#a78bfa',

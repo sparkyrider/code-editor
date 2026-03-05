@@ -29,7 +29,7 @@ type CommandId =
   | 'view-preview'
 
   | 'view-git'
-  | 'view-prs'
+
   | 'view-settings'
   | 'open-onboarding'
   // Git operations
@@ -38,7 +38,7 @@ type CommandId =
   | 'git-pull'
   | 'git-stash'
   // PR operations
-  | 'pr-create'
+
   // Preview operations
   | 'preview-refresh'
 
@@ -85,7 +85,7 @@ const COMMANDS: CommandItem[] = [
   { id: 'view-preview', label: 'Go to Preview', hint: 'Switch to the preview view', keywords: ['preview', 'browser', 'live'], icon: 'lucide:eye', group: 'navigate' },
 
   { id: 'view-git', label: 'Go to Source Control', hint: 'Switch to the git view', keywords: ['git', 'source', 'control', 'diff'], icon: 'lucide:git-branch', group: 'navigate' },
-  { id: 'view-prs', label: 'Go to Pull Requests', hint: 'Switch to the PR view', keywords: ['pr', 'pull', 'request', 'review'], icon: 'lucide:git-pull-request', group: 'navigate' },
+
   { id: 'view-settings', label: 'Go to Settings', hint: 'Open settings panel', keywords: ['settings', 'preferences', 'config'], icon: 'lucide:settings', group: 'navigate' },
   { id: 'open-onboarding', label: 'Onboarding: Show tour', hint: 'Reopen the first-run tour', keywords: ['onboarding', 'tour', 'help', 'shortcuts'], icon: 'lucide:sparkles', group: 'navigate' },
 
@@ -96,7 +96,7 @@ const COMMANDS: CommandItem[] = [
   { id: 'git-stash', label: 'Git: Stash changes', hint: 'Stash uncommitted changes', keywords: ['git', 'stash', 'save', 'temp'], icon: 'lucide:archive', group: 'git' },
 
   // PR operations
-  { id: 'pr-create', label: 'Create Pull Request', hint: 'Open the PR creation form', keywords: ['pr', 'pull', 'request', 'create', 'new'], icon: 'lucide:git-pull-request-create-arrow', group: 'pr' },
+
 
   // Preview operations
   { id: 'preview-refresh', label: 'Preview: Refresh', hint: 'Reload the preview panel', keywords: ['preview', 'refresh', 'reload', 'browser'], icon: 'lucide:refresh-cw', group: 'preview' },
@@ -121,7 +121,7 @@ const GROUP_LABELS: Record<string, string> = {
 const VIEW_CONTEXT_COMMANDS: Partial<Record<ViewId, CommandId[]>> = {
   editor: ['save-file', 'find-files', 'format-document', 'find-in-file', 'toggle-files', 'toggle-chat', 'toggle-terminal'],
   git: ['git-commit', 'git-push', 'git-pull', 'git-stash', 'toggle-terminal'],
-  prs: ['pr-create', 'view-git', 'view-editor'],
+
   preview: ['preview-refresh', 'view-editor'],
 
 }

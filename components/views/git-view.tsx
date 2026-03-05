@@ -1146,8 +1146,7 @@ export function GitView() {
 
                   <button
                     onClick={() => {
-                      setView('prs')
-                      setTimeout(() => window.dispatchEvent(new CustomEvent('pr-open-create')), 100)
+                      // TODO: re-enable when PR view is introduced
                     }}
                     className="w-full flex items-center justify-center gap-1.5 h-[28px] rounded-[var(--radius-sm)] text-[10px] font-medium text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] cursor-pointer transition-colors border border-transparent hover:border-[var(--border)]"
                   >

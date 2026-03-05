@@ -1,3 +1,5 @@
+import { emit } from '@/lib/events'
+
 /**
  * Parse line references from agent messages and dispatch navigation events.
  *
@@ -53,7 +55,5 @@ export function parseLineReferences(text: string): LineReference[] {
  * Navigate Monaco editor to a specific line (and optionally highlight a range).
  */
 export function navigateToLine(startLine: number, endLine?: number) {
-  window.dispatchEvent(new CustomEvent('editor-navigate', {
-    detail: { startLine, endLine },
-  }))
+  emit('editor-navigate', { startLine })
 }

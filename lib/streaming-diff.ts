@@ -1,3 +1,5 @@
+import { emit as emitEvent } from '@/lib/events'
+
 /**
  * Streaming diff engine — tracks file changes in real-time as the agent
  * streams edit proposals. Emits events for live UI updates.
@@ -31,18 +33,26 @@ export class StreamingDiffEngine {
     const newLines = proposed.split('\n')
 
     // Count additions/deletions
-    let additions = 0, deletions = 0
+    let additions = 0,
+      deletions = 0
     const changedLines: number[] = []
     const maxLen = Math.max(oldLines.length, newLines.length)
     for (let i = 0; i < maxLen; i++) {
-      if (i >= oldLines.length) { additions++; changedLines.push(i) }
-      else if (i >= newLines.length) { deletions++ }
-      else if (oldLines[i] !== newLines[i]) { additions++; deletions++; changedLines.push(i) }
+      if (i >= oldLines.length) {
+        additions++
+        changedLines.push(i)
+      } else if (i >= newLines.length) {
+        deletions++
+      } else if (oldLines[i] !== newLines[i]) {
+        additions++
+        deletions++
+        changedLines.push(i)
+      }
     }
 
     const existing = this.changes.get(path)
     const prevChangedSet = new Set(existing?.newlyChangedLines ?? [])
-    const newlyChanged = changedLines.filter(l => !prevChangedSet.has(l))
+    const newlyChanged = changedLines.filter((l) => !prevChangedSet.has(l))
 
     this.changes.set(path, {
       path,
@@ -114,9 +124,9 @@ export class StreamingDiffEngine {
       fileCount: changes.length,
       additions: changes.reduce((s, c) => s + c.additions, 0),
       deletions: changes.reduce((s, c) => s + c.deletions, 0),
-      streaming: changes.filter(c => c.status === 'streaming').length,
-      pending: changes.filter(c => c.status === 'pending').length,
-      accepted: changes.filter(c => c.status === 'accepted').length,
+      streaming: changes.filter((c) => c.status === 'streaming').length,
+      pending: changes.filter((c) => c.status === 'pending').length,
+      accepted: changes.filter((c) => c.status === 'accepted').length,
     }
   }
 
@@ -138,12 +148,8 @@ export class StreamingDiffEngine {
   private emit() {
     const changes = this.getChanges()
     const summary = this.getSummary()
-    window.dispatchEvent(new CustomEvent('diff-review-update', {
-      detail: { changes, summary }
-    }))
-    window.dispatchEvent(new CustomEvent('change-summary-update', {
-      detail: summary
-    }))
+    emitEvent('diff-review-update', { changes, summary } as Record<string, unknown>)
+    emitEvent('change-summary-update', summary as Record<string, unknown>)
   }
 }
 

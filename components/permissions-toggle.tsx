@@ -2,12 +2,23 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Icon } from '@iconify/react'
+import { emit } from '@/lib/events'
 
 export type PermissionLevel = 'default' | 'full'
 
 const LEVELS: Array<{ id: PermissionLevel; label: string; icon: string; desc: string }> = [
-  { id: 'default', label: 'Default permissions', icon: 'lucide:shield', desc: 'Agent proposes edits for review before applying' },
-  { id: 'full', label: 'Full access', icon: 'lucide:shield-off', desc: 'Agent auto-applies edits and runs commands without confirmation' },
+  {
+    id: 'default',
+    label: 'Default permissions',
+    icon: 'lucide:shield',
+    desc: 'Agent proposes edits for review before applying',
+  },
+  {
+    id: 'full',
+    label: 'Full access',
+    icon: 'lucide:shield-off',
+    desc: 'Agent auto-applies edits and runs commands without confirmation',
+  },
 ]
 
 const STORAGE_KEY = 'code-editor:agent-permissions'
@@ -32,8 +43,10 @@ export function PermissionsToggle({ size = 'sm' }: Props) {
   const buttonRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
-    try { localStorage.setItem(STORAGE_KEY, level) } catch {}
-    window.dispatchEvent(new CustomEvent('permissions-change', { detail: { permissions: level } }))
+    try {
+      localStorage.setItem(STORAGE_KEY, level)
+    } catch {}
+    emit('permissions-change', { permissions: level })
   }, [level])
 
   useEffect(() => {
@@ -48,7 +61,7 @@ export function PermissionsToggle({ size = 'sm' }: Props) {
   }, [open])
 
   const toggle = useCallback(() => {
-    setOpen(v => {
+    setOpen((v) => {
       if (!v && buttonRef.current) {
         const rect = buttonRef.current.getBoundingClientRect()
         setMenuPos({ left: rect.left, bottom: window.innerHeight - rect.top + 4 })
@@ -57,7 +70,7 @@ export function PermissionsToggle({ size = 'sm' }: Props) {
     })
   }, [])
 
-  const current = LEVELS.find(l => l.id === level) ?? LEVELS[0]
+  const current = LEVELS.find((l) => l.id === level) ?? LEVELS[0]
   const isMd = size === 'md'
 
   return (
@@ -69,14 +82,17 @@ export function PermissionsToggle({ size = 'sm' }: Props) {
           level === 'full'
             ? 'text-[var(--warning,#eab308)] bg-[color-mix(in_srgb,var(--warning,#eab308)_8%,transparent)] hover:bg-[color-mix(in_srgb,var(--warning,#eab308)_12%,transparent)]'
             : 'text-[var(--text-secondary)] bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)] hover:bg-[color-mix(in_srgb,var(--text-primary)_7%,transparent)]'
-        } ${
-          isMd ? 'gap-1.5 px-3 py-1.5 text-[13px]' : 'gap-1 px-2 py-1 text-[11px]'
-        }`}
+        } ${isMd ? 'gap-1.5 px-3 py-1.5 text-[13px]' : 'gap-1 px-2 py-1 text-[11px]'}`}
         title={current.desc}
       >
         <Icon icon={current.icon} width={isMd ? 14 : 12} height={isMd ? 14 : 12} />
-        {isMd ? current.label : (level === 'full' ? 'Full' : 'Default')}
-        <Icon icon="lucide:chevron-down" width={isMd ? 10 : 8} height={isMd ? 10 : 8} className="opacity-50" />
+        {isMd ? current.label : level === 'full' ? 'Full' : 'Default'}
+        <Icon
+          icon="lucide:chevron-down"
+          width={isMd ? 10 : 8}
+          height={isMd ? 10 : 8}
+          className="opacity-50"
+        />
       </button>
 
       {open && menuPos && (
@@ -86,10 +102,13 @@ export function PermissionsToggle({ size = 'sm' }: Props) {
             className="fixed z-[9991] w-56 bg-[var(--bg-elevated)] border border-[var(--border)] rounded-xl shadow-xl py-1"
             style={{ left: menuPos.left, bottom: menuPos.bottom }}
           >
-            {LEVELS.map(l => (
+            {LEVELS.map((l) => (
               <button
                 key={l.id}
-                onClick={() => { setLevel(l.id); setOpen(false) }}
+                onClick={() => {
+                  setLevel(l.id)
+                  setOpen(false)
+                }}
                 className={`w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors cursor-pointer ${
                   l.id === level
                     ? l.id === 'full'
@@ -101,9 +120,13 @@ export function PermissionsToggle({ size = 'sm' }: Props) {
                 <Icon icon={l.icon} width={14} height={14} className="shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="text-[12px] font-medium">{l.label}</div>
-                  <div className="text-[10px] text-[var(--text-disabled)] leading-tight">{l.desc}</div>
+                  <div className="text-[10px] text-[var(--text-disabled)] leading-tight">
+                    {l.desc}
+                  </div>
                 </div>
-                {l.id === level && <Icon icon="lucide:check" width={12} height={12} className="shrink-0" />}
+                {l.id === level && (
+                  <Icon icon="lucide:check" width={12} height={12} className="shrink-0" />
+                )}
               </button>
             ))}
           </div>

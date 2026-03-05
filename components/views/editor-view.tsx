@@ -12,17 +12,32 @@ import { useLayout, usePanelResize } from '@/context/layout-context'
 import { EditorTabs } from '@/components/editor-tabs'
 import { FloatingPanel } from '@/components/floating-panel'
 import { isTauri } from '@/lib/tauri'
+import { emit } from '@/lib/events'
 
-const FileExplorer = dynamic(() => import('@/components/file-explorer').then(m => ({ default: m.FileExplorer })), { ssr: false })
-const CodeEditor = dynamic(() => import('@/components/code-editor').then(m => ({ default: m.CodeEditor })), { ssr: false })
-const AgentPanel = dynamic(() => import('@/components/agent-panel').then(m => ({ default: m.AgentPanel })), { ssr: false })
+const FileExplorer = dynamic(
+  () => import('@/components/file-explorer').then((m) => ({ default: m.FileExplorer })),
+  { ssr: false },
+)
+const CodeEditor = dynamic(
+  () => import('@/components/code-editor').then((m) => ({ default: m.CodeEditor })),
+  { ssr: false },
+)
+const AgentPanel = dynamic(
+  () => import('@/components/agent-panel').then((m) => ({ default: m.AgentPanel })),
+  { ssr: false },
+)
 
 const PANEL_SPRING = { type: 'spring' as const, stiffness: 500, damping: 35 }
 
 const QUICK_ACTIONS = [
   { icon: 'lucide:file-search', label: 'Open File', shortcut: '\u2318P', event: 'quick-open' },
   { icon: 'lucide:folder', label: 'Browse', shortcut: '\u2318B', event: 'toggle-tree' },
-  { icon: 'lucide:message-square', label: 'New Chat', shortcut: '\u2318L', event: 'open-side-chat' },
+  {
+    icon: 'lucide:message-square',
+    label: 'New Chat',
+    shortcut: '\u2318L',
+    event: 'open-side-chat',
+  },
   { icon: 'lucide:terminal', label: 'Terminal', shortcut: '\u2318J', event: 'toggle-terminal' },
 ]
 
@@ -35,7 +50,9 @@ export function EditorView() {
   const isMobile = layout.isAtMost('lte768')
   const isNarrow = layout.isAtMost('lte992')
   const [isDesktop, setIsDesktop] = useState(false)
-  useEffect(() => { setIsDesktop(isTauri()) }, [])
+  useEffect(() => {
+    setIsDesktop(isTauri())
+  }, [])
 
   // Derived from layout context
   const treeVisible = layout.isVisible('tree')
@@ -53,7 +70,8 @@ export function EditorView() {
   const { setEditorCollapsed } = layout
   const prevFileCount = useRef(files.length)
   useEffect(() => {
-    const fileOpened = files.length > prevFileCount.current || (activeFile && prevFileCount.current === 0)
+    const fileOpened =
+      files.length > prevFileCount.current || (activeFile && prevFileCount.current === 0)
     prevFileCount.current = files.length
     if (fileOpened && editorCollapsed) {
       setEditorCollapsed(false)
@@ -66,9 +84,18 @@ export function EditorView() {
   editorCollapsedRef.current = editorCollapsed
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'b') { e.preventDefault(); toggle('tree') }
-      if ((e.metaKey || e.ctrlKey) && e.key === 'i' && !e.shiftKey) { e.preventDefault(); toggle('chat') }
-      if ((e.metaKey || e.ctrlKey) && e.key === 'e' && !e.shiftKey) { e.preventDefault(); setEditorCollapsed(!editorCollapsedRef.current) }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'b') {
+        e.preventDefault()
+        toggle('tree')
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'i' && !e.shiftKey) {
+        e.preventDefault()
+        toggle('chat')
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'e' && !e.shiftKey) {
+        e.preventDefault()
+        setEditorCollapsed(!editorCollapsedRef.current)
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
@@ -80,7 +107,9 @@ export function EditorView() {
   const [agentUnread, setAgentUnread] = useState(false)
 
   useEffect(() => {
-    const onAgent = () => { if (!chatVisible) setAgentUnread(true) }
+    const onAgent = () => {
+      if (!chatVisible) setAgentUnread(true)
+    }
     window.addEventListener('agent-reply', onAgent)
     return () => {
       window.removeEventListener('agent-reply', onAgent)
@@ -88,29 +117,34 @@ export function EditorView() {
   }, [chatVisible])
 
   // Clear unread when chat opens
-  useEffect(() => { if (chatVisible) setAgentUnread(false) }, [chatVisible])
+  useEffect(() => {
+    if (chatVisible) setAgentUnread(false)
+  }, [chatVisible])
 
   const hasFiles = files.length > 0 || activeFile
   const branchName = repo?.branch ?? local.gitInfo?.branch ?? null
 
   const { show, hide } = layout
-  const handleQuickAction = useCallback((event: string) => {
-    switch (event) {
-      case 'quick-open':
-        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'p', metaKey: true }))
-        break
-      case 'toggle-tree':
-        show('tree')
-        break
-      case 'open-side-chat':
-        show('chat')
-        requestAnimationFrame(() => window.dispatchEvent(new CustomEvent('focus-agent-input')))
-        break
-      case 'toggle-terminal':
-        toggle('terminal')
-        break
-    }
-  }, [show, toggle])
+  const handleQuickAction = useCallback(
+    (event: string) => {
+      switch (event) {
+        case 'quick-open':
+          window.dispatchEvent(new KeyboardEvent('keydown', { key: 'p', metaKey: true }))
+          break
+        case 'toggle-tree':
+          show('tree')
+          break
+        case 'open-side-chat':
+          show('chat')
+          requestAnimationFrame(() => emit('focus-agent-input'))
+          break
+        case 'toggle-terminal':
+          toggle('terminal')
+          break
+      }
+    },
+    [show, toggle],
+  )
 
   return (
     <div className="flex flex-1 min-h-0 min-w-0 overflow-hidden relative">
@@ -125,7 +159,10 @@ export function EditorView() {
             <Icon icon="lucide:code-2" width={20} height={20} />
           </button>
           <button
-            onClick={() => { layout.setEditorCollapsed(false); layout.show('tree') }}
+            onClick={() => {
+              layout.setEditorCollapsed(false)
+              layout.show('tree')
+            }}
             className="mt-1.5 p-2.5 rounded-xl hover:bg-[var(--bg-subtle)] text-[var(--text-disabled)] hover:text-[var(--text-tertiary)] transition-colors cursor-pointer"
             title="Open explorer (⌘B)"
           >
@@ -133,7 +170,7 @@ export function EditorView() {
           </button>
           {isDesktop && (
             <button
-              onClick={() => window.dispatchEvent(new CustomEvent('toggle-terminal'))}
+              onClick={() => emit('toggle-terminal')}
               className="mt-1.5 p-2.5 rounded-xl hover:bg-[var(--bg-subtle)] text-[var(--text-disabled)] hover:text-[var(--text-tertiary)] transition-colors cursor-pointer"
               title="Terminal (⌘J)"
             >
@@ -157,12 +194,20 @@ export function EditorView() {
                   className="shrink-0 bg-[var(--sidebar-bg)] overflow-hidden border-r border-[var(--border)] flex flex-col"
                 >
                   <div className="flex items-center justify-between h-9 px-3 border-b border-[var(--border)] shrink-0">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-disabled)]">Explorer</span>
-                    <button onClick={() => layout.hide('tree')} className="p-1.5 rounded-lg hover:bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] text-[var(--text-disabled)] hover:text-[var(--text-tertiary)] cursor-pointer" title="Hide (⌘B)">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-disabled)]">
+                      Explorer
+                    </span>
+                    <button
+                      onClick={() => layout.hide('tree')}
+                      className="p-1.5 rounded-lg hover:bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] text-[var(--text-disabled)] hover:text-[var(--text-tertiary)] cursor-pointer"
+                      title="Hide (⌘B)"
+                    >
                       <Icon icon="lucide:panel-left-close" width={15} height={15} />
                     </button>
                   </div>
-                  <div className="flex-1 overflow-y-auto"><FileExplorer /></div>
+                  <div className="flex-1 overflow-y-auto">
+                    <FileExplorer />
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -183,8 +228,12 @@ export function EditorView() {
           <div className="flex-1 flex flex-col min-w-0 min-h-0">
             {/* Tree toggle when collapsed */}
             {!treeVisible && !isMobile && (
-              <button onClick={() => layout.show('tree')} className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-5 h-12 flex items-center justify-center bg-[var(--bg-elevated)] border border-l-0 border-[var(--border)] rounded-r-lg hover:bg-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] text-[var(--text-disabled)] hover:text-[var(--text-tertiary)] cursor-pointer" title="Show explorer (⌘B)">
-                  <Icon icon="lucide:chevron-right" width={14} height={14} />
+              <button
+                onClick={() => layout.show('tree')}
+                className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-5 h-12 flex items-center justify-center bg-[var(--bg-elevated)] border border-l-0 border-[var(--border)] rounded-r-lg hover:bg-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] text-[var(--text-disabled)] hover:text-[var(--text-tertiary)] cursor-pointer"
+                title="Show explorer (⌘B)"
+              >
+                <Icon icon="lucide:chevron-right" width={14} height={14} />
               </button>
             )}
             {!treeVisible && isMobile && (
@@ -206,8 +255,6 @@ export function EditorView() {
                 <div className="flex-1 min-h-0 flex flex-col">
                   <CodeEditor />
                 </div>
-
-
               </>
             ) : (
               /* Smart empty state */
@@ -215,24 +262,42 @@ export function EditorView() {
                 {/* Animated icon with subtle glow */}
                 <div className="relative flex items-center justify-center">
                   <div className="absolute w-24 h-24 rounded-full bg-[var(--brand)] opacity-[0.06] blur-xl animate-breathe" />
-                  <Icon icon="lucide:code-2" width={48} height={48} className="text-[var(--text-disabled)] opacity-40 animate-breathe" />
+                  <Icon
+                    icon="lucide:code-2"
+                    width={48}
+                    height={48}
+                    className="text-[var(--text-disabled)] opacity-40 animate-breathe"
+                  />
                 </div>
 
-                <p className="text-[15px] text-[var(--text-tertiary)] font-medium">Start building something</p>
+                <p className="text-[15px] text-[var(--text-tertiary)] font-medium">
+                  Start building something
+                </p>
 
                 {/* Quick action grid */}
                 <div className="grid grid-cols-2 gap-3 w-[380px]">
-                  {QUICK_ACTIONS.filter(a => a.event !== 'toggle-terminal' || isDesktop).map((item) => (
-                    <button
-                      key={item.label}
-                      onClick={() => handleQuickAction(item.event)}
-                      className="flex items-center gap-3.5 px-5 py-4 rounded-2xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-elevated)_60%,transparent)] hover:bg-[var(--bg-subtle)] hover:border-[var(--text-disabled)] transition-all duration-200 cursor-pointer group"
-                    >
-                      <Icon icon={item.icon} width={20} height={20} className="text-[var(--text-tertiary)] group-hover:text-[var(--text-secondary)] shrink-0" />
-                      <span className="flex-1 text-left text-[13px] text-[var(--text-secondary)] font-semibold">{item.label}</span>
-                      <kbd className="text-[10px] px-2 py-1 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border)] text-[var(--text-disabled)] shrink-0 font-mono">{item.shortcut}</kbd>
-                    </button>
-                  ))}
+                  {QUICK_ACTIONS.filter((a) => a.event !== 'toggle-terminal' || isDesktop).map(
+                    (item) => (
+                      <button
+                        key={item.label}
+                        onClick={() => handleQuickAction(item.event)}
+                        className="flex items-center gap-3.5 px-5 py-4 rounded-2xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-elevated)_60%,transparent)] hover:bg-[var(--bg-subtle)] hover:border-[var(--text-disabled)] transition-all duration-200 cursor-pointer group"
+                      >
+                        <Icon
+                          icon={item.icon}
+                          width={20}
+                          height={20}
+                          className="text-[var(--text-tertiary)] group-hover:text-[var(--text-secondary)] shrink-0"
+                        />
+                        <span className="flex-1 text-left text-[13px] text-[var(--text-secondary)] font-semibold">
+                          {item.label}
+                        </span>
+                        <kbd className="text-[10px] px-2 py-1 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border)] text-[var(--text-disabled)] shrink-0 font-mono">
+                          {item.shortcut}
+                        </kbd>
+                      </button>
+                    ),
+                  )}
                 </div>
               </div>
             )}
@@ -241,18 +306,27 @@ export function EditorView() {
             <div className="flex items-center h-10 px-3 border-t border-[var(--border)] bg-[var(--bg-elevated)] shrink-0 gap-2">
               {branchName && (
                 <span className="text-[12px] font-mono text-[var(--text-disabled)] flex items-center gap-1.5 ml-1">
-                  <Icon icon="lucide:git-branch" width={14} height={14} />{branchName}
+                  <Icon icon="lucide:git-branch" width={14} height={14} />
+                  {branchName}
                 </span>
               )}
 
               <div className="flex-1" />
 
-              <button onClick={() => layout.setEditorCollapsed(true)} className="h-7 px-3 rounded-lg text-[12px] font-medium flex items-center gap-1.5 hover:bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] cursor-pointer text-[var(--text-disabled)]" title="Collapse editor (⌘E)">
+              <button
+                onClick={() => layout.setEditorCollapsed(true)}
+                className="h-7 px-3 rounded-lg text-[12px] font-medium flex items-center gap-1.5 hover:bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] cursor-pointer text-[var(--text-disabled)]"
+                title="Collapse editor (⌘E)"
+              >
                 <Icon icon="lucide:minimize-2" width={14} height={14} />
                 <span>Collapse</span>
               </button>
 
-              <button onClick={() => layout.toggle('chat')} className={`relative h-7 px-3 rounded-lg text-[12px] font-medium flex items-center gap-1.5 cursor-pointer transition-colors ${chatVisible ? 'bg-[color-mix(in_srgb,var(--brand)_14%,transparent)] text-[var(--brand)]' : 'text-[var(--text-disabled)] hover:text-[var(--text-secondary)] hover:bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)]'}`} title="Chat (⌘I)">
+              <button
+                onClick={() => layout.toggle('chat')}
+                className={`relative h-7 px-3 rounded-lg text-[12px] font-medium flex items-center gap-1.5 cursor-pointer transition-colors ${chatVisible ? 'bg-[color-mix(in_srgb,var(--brand)_14%,transparent)] text-[var(--brand)]' : 'text-[var(--text-disabled)] hover:text-[var(--text-secondary)] hover:bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)]'}`}
+                title="Chat (⌘I)"
+              >
                 <Icon icon="lucide:message-square" width={14} height={14} />
                 {!isNarrow && <span>Agent</span>}
                 {agentUnread && (
@@ -281,29 +355,33 @@ export function EditorView() {
           <motion.div
             key="chat-panel"
             initial={editorCollapsed ? { opacity: 0 } : { width: 0, opacity: 0 }}
-            animate={editorCollapsed ? { opacity: 1 } : { width: chatResize.resizing ? undefined : chatWidth, opacity: 1 }}
+            animate={
+              editorCollapsed
+                ? { opacity: 1 }
+                : { width: chatResize.resizing ? undefined : chatWidth, opacity: 1 }
+            }
             exit={editorCollapsed ? { opacity: 0 } : { width: 0, opacity: 0 }}
             transition={chatResize.resizing ? { duration: 0 } : PANEL_SPRING}
             style={chatResize.resizing && !editorCollapsed ? { width: chatWidth } : undefined}
             className={`shrink-0 flex flex-col bg-[var(--bg)] overflow-hidden ${editorCollapsed ? 'flex-1' : 'border-l border-[var(--border)]'}`}
           >
-              <div className="flex items-center justify-between h-9 px-3 border-b border-[var(--border)] bg-[var(--bg-elevated)] shrink-0">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-disabled)] flex items-center gap-2">
-                  <Icon icon="lucide:bot" width={15} height={15} className="text-[var(--brand)]" />
-                  Agent
-                </span>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => layout.setFloating('chat', true)}
-                    className="p-1.5 rounded-lg hover:bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] text-[var(--text-disabled)] hover:text-[var(--text-tertiary)] cursor-pointer"
-                    title="Float panel"
-                  >
-                    <Icon icon="lucide:app-window" width={15} height={15} />
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (editorCollapsed) {
-                        layout.setEditorCollapsed(false)
+            <div className="flex items-center justify-between h-9 px-3 border-b border-[var(--border)] bg-[var(--bg-elevated)] shrink-0">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-disabled)] flex items-center gap-2">
+                <Icon icon="lucide:bot" width={15} height={15} className="text-[var(--brand)]" />
+                Agent
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => layout.setFloating('chat', true)}
+                  className="p-1.5 rounded-lg hover:bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] text-[var(--text-disabled)] hover:text-[var(--text-tertiary)] cursor-pointer"
+                  title="Float panel"
+                >
+                  <Icon icon="lucide:app-window" width={15} height={15} />
+                </button>
+                <button
+                  onClick={() => {
+                    if (editorCollapsed) {
+                      layout.setEditorCollapsed(false)
                     } else {
                       layout.setEditorCollapsed(true)
                     }
@@ -311,17 +389,25 @@ export function EditorView() {
                   className="p-1.5 rounded-lg hover:bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] text-[var(--text-disabled)] hover:text-[var(--text-tertiary)] cursor-pointer"
                   title={editorCollapsed ? 'Restore editor (⌘E)' : 'Expand chat (⌘E)'}
                 >
-                  <Icon icon={editorCollapsed ? 'lucide:minimize-2' : 'lucide:maximize-2'} width={15} height={15} />
+                  <Icon
+                    icon={editorCollapsed ? 'lucide:minimize-2' : 'lucide:maximize-2'}
+                    width={15}
+                    height={15}
+                  />
                 </button>
-                <button onClick={() => layout.hide('chat')} className="p-1.5 rounded-lg hover:bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] text-[var(--text-disabled)] hover:text-[var(--text-tertiary)] cursor-pointer" title="Hide (⌘I)">
+                <button
+                  onClick={() => layout.hide('chat')}
+                  className="p-1.5 rounded-lg hover:bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] text-[var(--text-disabled)] hover:text-[var(--text-tertiary)] cursor-pointer"
+                  title="Hide (⌘I)"
+                >
                   <Icon icon="lucide:panel-right-close" width={15} height={15} />
                 </button>
-                </div>
               </div>
-              <div className="flex-1 min-h-0 overflow-hidden">
-                <AgentPanel />
-              </div>
-            </motion.div>
+            </div>
+            <div className="flex-1 min-h-0 overflow-hidden">
+              <AgentPanel />
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
@@ -347,12 +433,20 @@ export function EditorView() {
               className="absolute inset-y-0 left-0 z-50 w-[min(92vw,360px)] bg-[var(--sidebar-bg)] border-r border-[var(--border)] flex flex-col"
             >
               <div className="flex items-center justify-between h-11 px-3 border-b border-[var(--border)] shrink-0 bg-[var(--bg-elevated)]">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-disabled)]">Explorer</span>
-                <button onClick={() => layout.hide('tree')} className="p-2 rounded-lg hover:bg-[var(--bg-subtle)] text-[var(--text-tertiary)] cursor-pointer" title="Close">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-disabled)]">
+                  Explorer
+                </span>
+                <button
+                  onClick={() => layout.hide('tree')}
+                  className="p-2 rounded-lg hover:bg-[var(--bg-subtle)] text-[var(--text-tertiary)] cursor-pointer"
+                  title="Close"
+                >
                   <Icon icon="lucide:x" width={14} height={14} />
                 </button>
               </div>
-              <div className="flex-1 overflow-y-auto"><FileExplorer /></div>
+              <div className="flex-1 overflow-y-auto">
+                <FileExplorer />
+              </div>
             </motion.div>
           </>
         )}
@@ -384,10 +478,18 @@ export function EditorView() {
                   Agent
                 </span>
                 <div className="flex items-center gap-1">
-                  <button onClick={() => layout.setFloating('chat', true)} className="p-2 rounded-lg hover:bg-[var(--bg-subtle)] text-[var(--text-tertiary)] cursor-pointer" title="Float panel">
+                  <button
+                    onClick={() => layout.setFloating('chat', true)}
+                    className="p-2 rounded-lg hover:bg-[var(--bg-subtle)] text-[var(--text-tertiary)] cursor-pointer"
+                    title="Float panel"
+                  >
                     <Icon icon="lucide:app-window" width={14} height={14} />
                   </button>
-                  <button onClick={() => layout.hide('chat')} className="p-2 rounded-lg hover:bg-[var(--bg-subtle)] text-[var(--text-tertiary)] cursor-pointer" title="Close">
+                  <button
+                    onClick={() => layout.hide('chat')}
+                    className="p-2 rounded-lg hover:bg-[var(--bg-subtle)] text-[var(--text-tertiary)] cursor-pointer"
+                    title="Close"
+                  >
                     <Icon icon="lucide:x" width={14} height={14} />
                   </button>
                 </div>
@@ -406,7 +508,10 @@ export function EditorView() {
           title="Agent"
           icon="lucide:bot"
           onDock={() => layout.setFloating('chat', false)}
-          onClose={() => { layout.setFloating('chat', false); layout.hide('chat') }}
+          onClose={() => {
+            layout.setFloating('chat', false)
+            layout.hide('chat')
+          }}
           minW={340}
           minH={320}
         >

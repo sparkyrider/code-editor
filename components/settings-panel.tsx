@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Icon } from '@iconify/react'
+import { emit } from '@/lib/events'
 import { useTheme, THEME_PRESETS, RADIUS_PRESETS } from '@/context/theme-context'
 import { usePlugins } from '@/context/plugin-context'
 import { useGitHubAuth } from '@/context/github-auth-context'
@@ -64,11 +65,7 @@ export function SettingsPanel({ open, onClose }: Props) {
         JSON.stringify({ fontSize, tabSize, wordWrap, minimap, autoSave }),
       )
       // Emit so editor can pick up changes
-      window.dispatchEvent(
-        new CustomEvent('editor-settings-changed', {
-          detail: { fontSize, tabSize, wordWrap, minimap },
-        }),
-      )
+      emit('editor-settings-changed', { fontSize, tabSize, wordWrap, minimap })
     } catch {}
   }, [fontSize, tabSize, wordWrap, minimap, autoSave])
 
@@ -299,7 +296,7 @@ export function SettingsPanel({ open, onClose }: Props) {
                     </div>
                   </div>
                   <button
-                    onClick={() => window.dispatchEvent(new CustomEvent('open-onboarding'))}
+                    onClick={() => emit('open-onboarding')}
                     className="px-3 py-1.5 rounded-lg text-[11px] font-medium cursor-pointer"
                     style={{
                       backgroundColor: 'var(--brand)',

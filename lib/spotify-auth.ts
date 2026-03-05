@@ -1,7 +1,9 @@
 import { isTauri } from '@/lib/tauri'
+import { emit } from '@/lib/events'
 
 const SPOTIFY_CLIENT_ID = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID ?? ''
-const SCOPES = 'streaming user-read-playback-state user-modify-playback-state user-read-currently-playing playlist-read-private playlist-read-collaborative user-library-read'
+const SCOPES =
+  'streaming user-read-playback-state user-modify-playback-state user-read-currently-playing playlist-read-private playlist-read-collaborative user-library-read'
 const TOKEN_KEY = 'knot:spotify-token'
 const REFRESH_KEY = 'knot:spotify-refresh'
 const EXPIRY_KEY = 'knot:spotify-expiry'
@@ -18,11 +20,17 @@ export function getSpotifyToken(): string | null {
     if (!token) return null
     if (expiry && Date.now() > Number(expiry) - 60_000) return null
     return token
-  } catch { return null }
+  } catch {
+    return null
+  }
 }
 
 export function getSpotifyRefreshToken(): string | null {
-  try { return localStorage.getItem(REFRESH_KEY) } catch { return null }
+  try {
+    return localStorage.getItem(REFRESH_KEY)
+  } catch {
+    return null
+  }
 }
 
 export function isSpotifyAuthenticated(): boolean {
@@ -34,7 +42,7 @@ function saveTokens(access: string, refresh: string | null, expiresIn: number) {
     localStorage.setItem(TOKEN_KEY, access)
     if (refresh) localStorage.setItem(REFRESH_KEY, refresh)
     localStorage.setItem(EXPIRY_KEY, String(Date.now() + expiresIn * 1000))
-    window.dispatchEvent(new CustomEvent('spotify-auth-changed'))
+    emit('spotify-auth-changed')
   } catch {}
 }
 
@@ -44,14 +52,17 @@ export function clearSpotifyAuth() {
     localStorage.removeItem(REFRESH_KEY)
     localStorage.removeItem(EXPIRY_KEY)
     localStorage.removeItem(VERIFIER_KEY)
-    window.dispatchEvent(new CustomEvent('spotify-auth-changed'))
+    emit('spotify-auth-changed')
   } catch {}
 }
 
 function generateCodeVerifier(): string {
   const array = new Uint8Array(64)
   crypto.getRandomValues(array)
-  return Array.from(array, b => 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'[b % 62]).join('')
+  return Array.from(
+    array,
+    (b) => 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'[b % 62],
+  ).join('')
 }
 
 async function generateCodeChallenge(verifier: string): Promise<string> {
@@ -142,7 +153,11 @@ function cleanUrl() {
   url.searchParams.delete('code')
   url.searchParams.delete('state')
   url.searchParams.delete('error')
-  window.history.replaceState({}, '', url.pathname + (url.searchParams.toString() ? `?${url.searchParams}` : ''))
+  window.history.replaceState(
+    {},
+    '',
+    url.pathname + (url.searchParams.toString() ? `?${url.searchParams}` : ''),
+  )
 }
 
 async function exchangeCode(code: string, verifier: string): Promise<string> {

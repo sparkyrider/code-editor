@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { Icon } from '@iconify/react'
 import { useLayout, usePanelResize } from '@/context/layout-context'
 import { isTauri } from '@/lib/tauri'
+import { emit } from '@/lib/events'
 
 const SIDEBAR_SPRING = { type: 'spring' as const, stiffness: 500, damping: 35 }
 
@@ -21,7 +22,9 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
   const [isTauriDesktop, setIsTauriDesktop] = useState(false)
   const sidebarRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => { setIsTauriDesktop(isTauri()) }, [])
+  useEffect(() => {
+    setIsTauriDesktop(isTauri())
+  }, [])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -48,13 +51,17 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
     >
       {collapsed ? (
         <>
-          <button onClick={onToggle} className="p-2.5 rounded-xl hover:bg-[var(--bg-subtle)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer" title="Expand sidebar (⌘\\)">
+          <button
+            onClick={onToggle}
+            className="p-2.5 rounded-xl hover:bg-[var(--bg-subtle)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
+            title="Expand sidebar (⌘\\)"
+          >
             <Icon icon="lucide:panel-left" width={20} height={20} />
           </button>
 
           {/* Collapsed quick actions */}
           <button
-            onClick={() => window.dispatchEvent(new CustomEvent('open-folder'))}
+            onClick={() => emit('open-folder')}
             className="p-2.5 rounded-xl hover:bg-[var(--bg-subtle)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
             title="Open Folder"
           >
@@ -62,7 +69,7 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
           </button>
 
           <button
-            onClick={() => window.dispatchEvent(new CustomEvent('open-git-panel'))}
+            onClick={() => emit('open-git-panel')}
             className="p-2.5 rounded-xl hover:bg-[var(--bg-subtle)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
             title="Source Control"
           >
@@ -72,14 +79,25 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
       ) : (
         <>
           {/* Header */}
-          <div className={`flex items-center justify-between px-4 h-14 shrink-0 ${isTauriDesktop ? 'pt-5' : ''}`}>
+          <div
+            className={`flex items-center justify-between px-4 h-14 shrink-0 ${isTauriDesktop ? 'pt-5' : ''}`}
+          >
             <div className="flex items-center gap-2.5 min-w-0">
-              <Icon icon="lucide:code-2" width={18} height={18} className="text-[var(--brand)] shrink-0" />
+              <Icon
+                icon="lucide:code-2"
+                width={18}
+                height={18}
+                className="text-[var(--brand)] shrink-0"
+              />
               <span className="text-[14px] font-semibold text-[var(--text-primary)] truncate">
                 {repoName || 'Knot Code'}
               </span>
             </div>
-            <button onClick={onToggle} className="p-1.5 rounded-lg hover:bg-[var(--bg-subtle)] text-[var(--text-disabled)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer" title="Collapse sidebar (⌘\\)">
+            <button
+              onClick={onToggle}
+              className="p-1.5 rounded-lg hover:bg-[var(--bg-subtle)] text-[var(--text-disabled)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
+              title="Collapse sidebar (⌘\\)"
+            >
               <Icon icon="lucide:panel-left-close" width={16} height={16} />
             </button>
           </div>
@@ -87,17 +105,27 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
           {/* Quick actions */}
           <div className="px-3 space-y-0.5 mt-1">
             <button
-              onClick={() => window.dispatchEvent(new CustomEvent('open-folder'))}
+              onClick={() => emit('open-folder')}
               className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] text-[var(--text-secondary)] hover:bg-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
             >
-              <Icon icon="lucide:folder-open" width={16} height={16} className="text-[var(--text-tertiary)]" />
+              <Icon
+                icon="lucide:folder-open"
+                width={16}
+                height={16}
+                className="text-[var(--text-tertiary)]"
+              />
               Open Folder
             </button>
             <button
-              onClick={() => window.dispatchEvent(new CustomEvent('open-git-panel'))}
+              onClick={() => emit('open-git-panel')}
               className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] text-[var(--text-secondary)] hover:bg-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
             >
-              <Icon icon="lucide:git-branch" width={16} height={16} className="text-[var(--text-tertiary)]" />
+              <Icon
+                icon="lucide:git-branch"
+                width={16}
+                height={16}
+                className="text-[var(--text-tertiary)]"
+              />
               Source Control
             </button>
           </div>

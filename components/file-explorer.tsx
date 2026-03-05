@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { Icon } from '@iconify/react'
 import { useRepo, type TreeNode } from '@/context/repo-context'
+import { emit } from '@/lib/events'
 import { useEditor } from '@/context/editor-context'
 import { useLocal } from '@/context/local-context'
 
@@ -15,7 +16,11 @@ interface ContextMenuState {
   isDir: boolean
 }
 
-function FileContextMenu({ menu, onDelete, onClose }: {
+function FileContextMenu({
+  menu,
+  onDelete,
+  onClose,
+}: {
   menu: ContextMenuState
   onDelete: () => void
   onClose: () => void
@@ -26,10 +31,15 @@ function FileContextMenu({ menu, onDelete, onClose }: {
     const handler = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) onClose()
     }
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const esc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
     document.addEventListener('mousedown', handler)
     document.addEventListener('keydown', esc)
-    return () => { document.removeEventListener('mousedown', handler); document.removeEventListener('keydown', esc) }
+    return () => {
+      document.removeEventListener('mousedown', handler)
+      document.removeEventListener('keydown', esc)
+    }
   }, [onClose])
 
   return (
@@ -49,7 +59,12 @@ function FileContextMenu({ menu, onDelete, onClose }: {
   )
 }
 
-function DeleteConfirmDialog({ path, isDir, onConfirm, onCancel }: {
+function DeleteConfirmDialog({
+  path,
+  isDir,
+  onConfirm,
+  onCancel,
+}: {
   path: string
   isDir: boolean
   onConfirm: () => void
@@ -59,24 +74,38 @@ function DeleteConfirmDialog({ path, isDir, onConfirm, onCancel }: {
   const name = path.split('/').pop() ?? path
 
   useEffect(() => {
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel() }
+    const esc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onCancel()
+    }
     document.addEventListener('keydown', esc)
     return () => document.removeEventListener('keydown', esc)
   }, [onCancel])
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40" onClick={onCancel}>
-      <div ref={ref} onClick={e => e.stopPropagation()} className="w-[340px] rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] shadow-2xl p-5 animate-fade-in" style={{ animationDuration: '0.15s' }}>
+    <div
+      className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40"
+      onClick={onCancel}
+    >
+      <div
+        ref={ref}
+        onClick={(e) => e.stopPropagation()}
+        className="w-[340px] rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] shadow-2xl p-5 animate-fade-in"
+        style={{ animationDuration: '0.15s' }}
+      >
         <div className="flex items-center gap-2.5 mb-3">
           <div className="p-2 rounded-lg bg-red-500/10">
             <Icon icon="lucide:trash-2" width={16} height={16} className="text-red-400" />
           </div>
-          <h3 className="text-[13px] font-semibold text-[var(--text-primary)]">Delete {isDir ? 'folder' : 'file'}?</h3>
+          <h3 className="text-[13px] font-semibold text-[var(--text-primary)]">
+            Delete {isDir ? 'folder' : 'file'}?
+          </h3>
         </div>
         <p className="text-[12px] text-[var(--text-secondary)] mb-4 leading-relaxed">
-          Are you sure you want to delete <span className="font-mono text-[11px] px-1 py-0.5 rounded bg-[var(--bg-subtle)] text-[var(--text-primary)]">{name}</span>?
-          {isDir && ' This will delete all contents inside it.'}
-          {' '}This action cannot be undone.
+          Are you sure you want to delete{' '}
+          <span className="font-mono text-[11px] px-1 py-0.5 rounded bg-[var(--bg-subtle)] text-[var(--text-primary)]">
+            {name}
+          </span>
+          ?{isDir && ' This will delete all contents inside it.'} This action cannot be undone.
         </p>
         <div className="flex justify-end gap-2">
           <button
@@ -148,7 +177,13 @@ function buildTree(nodes: TreeNode[]): (TreeDir | TreeFile)[] {
       const isLast = i === parts.length - 1
 
       if (isLast && node.type === 'blob') {
-        current.children.push({ name, path: node.path, sha: node.sha, size: node.size, type: 'file' })
+        current.children.push({
+          name,
+          path: node.path,
+          sha: node.sha,
+          size: node.size,
+          type: 'file',
+        })
       } else {
         let dir = current.children.find((c): c is TreeDir => c.type === 'dir' && c.name === name)
         if (!dir) {
@@ -176,7 +211,13 @@ function buildTree(nodes: TreeNode[]): (TreeDir | TreeFile)[] {
 
 // ─── Tree Item ──────────────────────────────────────────────────
 
-function DirItem({ dir, depth, onContextMenu, focusPath, setFocusPath }: {
+function DirItem({
+  dir,
+  depth,
+  onContextMenu,
+  focusPath,
+  setFocusPath,
+}: {
   dir: TreeDir
   depth: number
   onContextMenu: (e: React.MouseEvent, path: string, isDir: boolean) => void
@@ -184,14 +225,14 @@ function DirItem({ dir, depth, onContextMenu, focusPath, setFocusPath }: {
   setFocusPath: (path: string) => void
 }) {
   const [expanded, setExpanded] = useState(depth < 1)
-  const childFileCount = dir.children.filter(c => c.type === 'file').length
-  const childDirCount = dir.children.filter(c => c.type === 'dir').length
+  const childFileCount = dir.children.filter((c) => c.type === 'file').length
+  const childDirCount = dir.children.filter((c) => c.type === 'dir').length
 
   return (
     <div>
       <button
         onClick={() => setExpanded(!expanded)}
-        onContextMenu={e => onContextMenu(e, dir.path, true)}
+        onContextMenu={(e) => onContextMenu(e, dir.path, true)}
         onFocus={() => setFocusPath(dir.path)}
         tabIndex={focusPath === dir.path ? 0 : -1}
         data-explorer-item="dir"
@@ -203,30 +244,50 @@ function DirItem({ dir, depth, onContextMenu, focusPath, setFocusPath }: {
       >
         <Icon
           icon={expanded ? 'lucide:chevron-down' : 'lucide:chevron-right'}
-          width={12} height={12}
+          width={12}
+          height={12}
           className="text-[var(--text-tertiary)] shrink-0 transition-transform duration-200"
           style={{ transform: expanded ? 'rotate(0deg)' : 'rotate(0deg)' }}
         />
         <Icon
           icon={expanded ? 'lucide:folder-open' : 'lucide:folder'}
-          width={14} height={14}
+          width={14}
+          height={14}
           className="text-[var(--brand)] shrink-0 transition-transform duration-150 group-hover:scale-110"
         />
         <span className="text-[12px] text-[var(--text-secondary)] truncate group-hover:text-[var(--text-primary)] transition-colors">
           {dir.name}
         </span>
-        {!expanded && (childFileCount + childDirCount) > 0 && (
+        {!expanded && childFileCount + childDirCount > 0 && (
           <span className="ml-auto mr-2 text-[9px] text-[var(--text-disabled)] opacity-0 group-hover:opacity-100 transition-opacity">
-            {childDirCount > 0 && `${childDirCount}d`}{childDirCount > 0 && childFileCount > 0 && ' '}{childFileCount > 0 && `${childFileCount}f`}
+            {childDirCount > 0 && `${childDirCount}d`}
+            {childDirCount > 0 && childFileCount > 0 && ' '}
+            {childFileCount > 0 && `${childFileCount}f`}
           </span>
         )}
       </button>
       {expanded && (
         <div className="animate-fade-in" style={{ animationDuration: '0.15s' }}>
-          {dir.children.map(child =>
-            child.type === 'dir'
-              ? <DirItem key={child.path} dir={child} depth={depth + 1} onContextMenu={onContextMenu} focusPath={focusPath} setFocusPath={setFocusPath} />
-              : <FileItem key={child.path} file={child} depth={depth + 1} onContextMenu={onContextMenu} focusPath={focusPath} setFocusPath={setFocusPath} />
+          {dir.children.map((child) =>
+            child.type === 'dir' ? (
+              <DirItem
+                key={child.path}
+                dir={child}
+                depth={depth + 1}
+                onContextMenu={onContextMenu}
+                focusPath={focusPath}
+                setFocusPath={setFocusPath}
+              />
+            ) : (
+              <FileItem
+                key={child.path}
+                file={child}
+                depth={depth + 1}
+                onContextMenu={onContextMenu}
+                focusPath={focusPath}
+                setFocusPath={setFocusPath}
+              />
+            ),
           )}
         </div>
       )}
@@ -243,7 +304,13 @@ const GIT_STATUS_COLORS: Record<string, { color: string; label: string }> = {
   '?': { color: 'var(--text-tertiary)', label: 'Untracked' },
 }
 
-function FileItem({ file, depth, onContextMenu, focusPath, setFocusPath }: {
+function FileItem({
+  file,
+  depth,
+  onContextMenu,
+  focusPath,
+  setFocusPath,
+}: {
   file: TreeFile
   depth: number
   onContextMenu: (e: React.MouseEvent, path: string, isDir: boolean) => void
@@ -252,20 +319,20 @@ function FileItem({ file, depth, onContextMenu, focusPath, setFocusPath }: {
 }) {
   const { activeFile } = useEditor()
   const local = useLocal()
-  const gitStatus = local.gitInfo?.status.find(s => s.path === file.path)?.status
+  const gitStatus = local.gitInfo?.status.find((s) => s.path === file.path)?.status
   const isActive = activeFile === file.path
   const icon = getFileIcon(file.path)
   const statusInfo = gitStatus ? GIT_STATUS_COLORS[gitStatus] : null
 
   const handleClick = async () => {
-    const event = new CustomEvent('file-select', { detail: { path: file.path, sha: file.sha } })
-    window.dispatchEvent(event)
+    // Typed event bus
+    emit('file-select', { path: file.path, sha: file.sha })
   }
 
   return (
     <button
       onClick={handleClick}
-      onContextMenu={e => onContextMenu(e, file.path, false)}
+      onContextMenu={(e) => onContextMenu(e, file.path, false)}
       onFocus={() => setFocusPath(file.path)}
       tabIndex={focusPath === file.path ? 0 : -1}
       data-explorer-item="file"
@@ -278,10 +345,19 @@ function FileItem({ file, depth, onContextMenu, focusPath, setFocusPath }: {
       }`}
       style={{ paddingLeft: `${(depth + 1) * 16 + 8}px` }}
     >
-      <Icon icon={icon.icon} width={14} height={14} style={{ color: icon.color }} className="shrink-0 transition-transform duration-150 group-hover:scale-110" />
-      <span className={`text-[12px] truncate group-hover:text-[var(--text-primary)] transition-colors ${
-        statusInfo ? '' : ''
-      }`} style={statusInfo ? { color: statusInfo.color } : undefined}>
+      <Icon
+        icon={icon.icon}
+        width={14}
+        height={14}
+        style={{ color: icon.color }}
+        className="shrink-0 transition-transform duration-150 group-hover:scale-110"
+      />
+      <span
+        className={`text-[12px] truncate group-hover:text-[var(--text-primary)] transition-colors ${
+          statusInfo ? '' : ''
+        }`}
+        style={statusInfo ? { color: statusInfo.color } : undefined}
+      >
         {file.name}
       </span>
       {statusInfo && (
@@ -332,9 +408,9 @@ export function FileExplorer() {
   // Convert local tree entries to TreeNode format for unified rendering
   const effectiveTree: TreeNode[] = useMemo(() => {
     if (local.localMode && local.localTree.length > 0) {
-      return local.localTree.map(e => ({
+      return local.localTree.map((e) => ({
         path: e.path,
-        type: e.is_dir ? 'tree' as const : 'blob' as const,
+        type: e.is_dir ? ('tree' as const) : ('blob' as const),
         sha: '',
       }))
     }
@@ -351,11 +427,16 @@ export function FileExplorer() {
   const filteredTree = useMemo(() => {
     if (!search.trim()) return treeNodes
     const term = search.toLowerCase()
-    const matches = effectiveTree.filter(n => n.type === 'blob' && n.path.toLowerCase().includes(term))
+    const matches = effectiveTree.filter(
+      (n) => n.type === 'blob' && n.path.toLowerCase().includes(term),
+    )
     return buildTree(matches)
   }, [effectiveTree, treeNodes, search])
 
-  const fileCount = useMemo(() => effectiveTree.filter(n => n.type === 'blob').length, [effectiveTree])
+  const fileCount = useMemo(
+    () => effectiveTree.filter((n) => n.type === 'blob').length,
+    [effectiveTree],
+  )
 
   // ─── Keyboard-first explorer navigation ──────────────────────────
   const listRef = useRef<HTMLDivElement>(null)
@@ -386,7 +467,9 @@ export function FileExplorer() {
     // If the current focus path is filtered out, fall back.
     const container = listRef.current
     if (!container) return
-    const esc = (globalThis as any).CSS?.escape ? (globalThis as any).CSS.escape(focusPath) : focusPath.replace(/["\\]/g, '\\$&')
+    const esc = (globalThis as any).CSS?.escape
+      ? (globalThis as any).CSS.escape(focusPath)
+      : focusPath.replace(/["\\]/g, '\\$&')
     const exists = Boolean(container.querySelector(`[data-path="${esc}"]`))
     if (!exists) {
       if (activeFile) setFocusPath(activeFile)
@@ -422,85 +505,113 @@ export function FileExplorer() {
     if (p) setFocusPath(p)
   }, [])
 
-  const onListKeyDown = useCallback((e: React.KeyboardEvent) => {
-    const container = listRef.current
-    if (!container) return
+  const onListKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      const container = listRef.current
+      if (!container) return
 
-    const active = document.activeElement as HTMLElement | null
-    const activeIsSearch = active === searchRef.current
-    const activeBtn = active?.closest?.('[data-explorer-item]') as HTMLButtonElement | null
+      const active = document.activeElement as HTMLElement | null
+      const activeIsSearch = active === searchRef.current
+      const activeBtn = active?.closest?.('[data-explorer-item]') as HTMLButtonElement | null
 
-    const items = Array.from(container.querySelectorAll<HTMLButtonElement>('[data-explorer-item]'))
-    if (items.length === 0) return
+      const items = Array.from(
+        container.querySelectorAll<HTMLButtonElement>('[data-explorer-item]'),
+      )
+      if (items.length === 0) return
 
-    if (activeIsSearch && e.key === 'ArrowDown') {
-      e.preventDefault()
-      focusItemByIndex(0)
-      return
-    }
-
-    if (!activeBtn) return
-
-    const idx = Math.max(0, items.indexOf(activeBtn))
-    const cur = items[idx]
-    const curType = cur?.dataset.explorerItem
-    const curDepth = parseInt(cur?.dataset.depth ?? '0') || 0
-    const curExpanded = cur?.dataset.expanded === 'true'
-
-    if (e.key === 'ArrowDown') { e.preventDefault(); focusItemByIndex(Math.min(items.length - 1, idx + 1)); return }
-    if (e.key === 'ArrowUp') { e.preventDefault(); focusItemByIndex(Math.max(0, idx - 1)); return }
-    if (e.key === 'Home') { e.preventDefault(); focusItemByIndex(0); return }
-    if (e.key === 'End') { e.preventDefault(); focusItemByIndex(items.length - 1); return }
-
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault()
-      cur?.click()
-      return
-    }
-
-    if (e.key === 'ArrowRight' && curType === 'dir') {
-      e.preventDefault()
-      if (!curExpanded) {
-        cur.click()
-        return
-      }
-      const next = items[idx + 1]
-      const nextDepth = parseInt(next?.dataset.depth ?? '0') || 0
-      if (next && nextDepth > curDepth) {
-        next.focus()
-        const p = next.dataset.path
-        if (p) setFocusPath(p)
-      }
-      return
-    }
-
-    if (e.key === 'ArrowLeft') {
-      if (curType === 'dir' && curExpanded) {
+      if (activeIsSearch && e.key === 'ArrowDown') {
         e.preventDefault()
-        cur.click()
+        focusItemByIndex(0)
         return
       }
-      // Focus parent directory (nearest previous item with smaller depth)
-      for (let i = idx - 1; i >= 0; i--) {
-        const it = items[i]
-        const d = parseInt(it.dataset.depth ?? '0') || 0
-        if (d < curDepth) {
-          e.preventDefault()
-          it.focus()
-          const p = it.dataset.path
-          if (p) setFocusPath(p)
+
+      if (!activeBtn) return
+
+      const idx = Math.max(0, items.indexOf(activeBtn))
+      const cur = items[idx]
+      const curType = cur?.dataset.explorerItem
+      const curDepth = parseInt(cur?.dataset.depth ?? '0') || 0
+      const curExpanded = cur?.dataset.expanded === 'true'
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        focusItemByIndex(Math.min(items.length - 1, idx + 1))
+        return
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        focusItemByIndex(Math.max(0, idx - 1))
+        return
+      }
+      if (e.key === 'Home') {
+        e.preventDefault()
+        focusItemByIndex(0)
+        return
+      }
+      if (e.key === 'End') {
+        e.preventDefault()
+        focusItemByIndex(items.length - 1)
+        return
+      }
+
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        cur?.click()
+        return
+      }
+
+      if (e.key === 'ArrowRight' && curType === 'dir') {
+        e.preventDefault()
+        if (!curExpanded) {
+          cur.click()
           return
         }
+        const next = items[idx + 1]
+        const nextDepth = parseInt(next?.dataset.depth ?? '0') || 0
+        if (next && nextDepth > curDepth) {
+          next.focus()
+          const p = next.dataset.path
+          if (p) setFocusPath(p)
+        }
+        return
       }
-    }
-  }, [focusItemByIndex])
+
+      if (e.key === 'ArrowLeft') {
+        if (curType === 'dir' && curExpanded) {
+          e.preventDefault()
+          cur.click()
+          return
+        }
+        // Focus parent directory (nearest previous item with smaller depth)
+        for (let i = idx - 1; i >= 0; i--) {
+          const it = items[i]
+          const d = parseInt(it.dataset.depth ?? '0') || 0
+          if (d < curDepth) {
+            e.preventDefault()
+            it.focus()
+            const p = it.dataset.path
+            if (p) setFocusPath(p)
+            return
+          }
+        }
+      }
+    },
+    [focusItemByIndex],
+  )
 
   if (!repo && !local.localMode) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-4 bg-[var(--sidebar-bg)]">
-        <Icon icon="lucide:folder-open" width={32} height={32} className="text-[var(--text-tertiary)] mb-3" />
+        <Icon
+          icon="lucide:folder-open"
+          width={32}
+          height={32}
+          className="text-[var(--text-tertiary)] mb-3"
+        />
         <p className="text-[12px] text-[var(--text-secondary)]">No repo selected</p>
-        <p className="text-[10px] text-[var(--text-tertiary)] mt-1">Select a repository to explore</p>
+        <p className="text-[10px] text-[var(--text-tertiary)] mt-1">
+          Select a repository to explore
+        </p>
       </div>
     )
   }
@@ -524,20 +635,30 @@ export function FileExplorer() {
           </div>
           <button
             disabled={treeLoading}
-            onClick={() => local.localMode ? local.refresh() : loadTree()}
+            onClick={() => (local.localMode ? local.refresh() : loadTree())}
             className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all cursor-pointer"
             title="Refresh"
           >
-            <Icon icon={treeLoading ? 'lucide:loader-2' : 'lucide:refresh-cw'} width={12} height={12} className={`transition-transform ${treeLoading ? 'animate-spin' : 'hover:rotate-45'}`} />
+            <Icon
+              icon={treeLoading ? 'lucide:loader-2' : 'lucide:refresh-cw'}
+              width={12}
+              height={12}
+              className={`transition-transform ${treeLoading ? 'animate-spin' : 'hover:rotate-45'}`}
+            />
           </button>
         </div>
         <div className="relative mt-1.5">
-          <Icon icon="lucide:search" width={12} height={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]" />
+          <Icon
+            icon="lucide:search"
+            width={12}
+            height={12}
+            className="absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]"
+          />
           <input
             type="text"
             placeholder="Search files..."
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
             ref={searchRef}
             className="w-full pl-7 pr-2 py-1 rounded bg-[var(--bg-subtle)] border border-[var(--border)] text-[11px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none focus:border-[var(--border-focus)]"
           />
@@ -549,10 +670,17 @@ export function FileExplorer() {
         {/* Local mode: no folder selected */}
         {local.localMode && !local.rootPath && effectiveTree.length === 0 && (
           <div className="flex flex-col items-center gap-3 px-4 py-8 text-center">
-            <Icon icon="lucide:folder-open" width={32} height={32} className="text-[var(--text-disabled)]" />
+            <Icon
+              icon="lucide:folder-open"
+              width={32}
+              height={32}
+              className="text-[var(--text-disabled)]"
+            />
             <div>
               <p className="text-[12px] text-[var(--text-secondary)] mb-1">No folder open</p>
-              <p className="text-[10px] text-[var(--text-tertiary)]">Open a project folder to browse and edit files locally.</p>
+              <p className="text-[10px] text-[var(--text-tertiary)]">
+                Open a project folder to browse and edit files locally.
+              </p>
             </div>
             <button
               onClick={local.openFolder}
@@ -567,24 +695,48 @@ export function FileExplorer() {
         {/* Loading */}
         {treeLoading && effectiveTree.length === 0 && !local.localMode && (
           <div className="flex items-center gap-2 px-3 py-4 text-[11px] text-[var(--text-secondary)]">
-            <Icon icon="lucide:loader-2" width={14} height={14} className="animate-spin text-[var(--brand)]" />
+            <Icon
+              icon="lucide:loader-2"
+              width={14}
+              height={14}
+              className="animate-spin text-[var(--brand)]"
+            />
             Loading tree...
           </div>
         )}
         {treeError && !local.localMode && (
           <div className="px-3 py-2 text-[11px] text-[var(--color-deletions)]">{treeError}</div>
         )}
-        {filteredTree.map(node =>
-          node.type === 'dir'
-            ? <DirItem key={node.path} dir={node} depth={0} onContextMenu={handleContextMenu} focusPath={focusPath} setFocusPath={setFocusPath} />
-            : <FileItem key={node.path} file={node as TreeFile} depth={0} onContextMenu={handleContextMenu} focusPath={focusPath} setFocusPath={setFocusPath} />
+        {filteredTree.map((node) =>
+          node.type === 'dir' ? (
+            <DirItem
+              key={node.path}
+              dir={node}
+              depth={0}
+              onContextMenu={handleContextMenu}
+              focusPath={focusPath}
+              setFocusPath={setFocusPath}
+            />
+          ) : (
+            <FileItem
+              key={node.path}
+              file={node as TreeFile}
+              depth={0}
+              onContextMenu={handleContextMenu}
+              focusPath={focusPath}
+              setFocusPath={setFocusPath}
+            />
+          ),
         )}
       </div>
 
       {contextMenu && (
         <FileContextMenu
           menu={contextMenu}
-          onDelete={() => { setDeleteTarget({ path: contextMenu.path, isDir: contextMenu.isDir }); setContextMenu(null) }}
+          onDelete={() => {
+            setDeleteTarget({ path: contextMenu.path, isDir: contextMenu.isDir })
+            setContextMenu(null)
+          }}
           onClose={() => setContextMenu(null)}
         />
       )}

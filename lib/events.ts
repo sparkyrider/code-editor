@@ -49,8 +49,39 @@ export interface AppEvents {
   'agent-push': void
   'agent-push-result': { success: boolean; error?: string }
 
+  // Terminal
+  'toggle-terminal': void
+
+  // Editor settings
+  'editor-settings-changed': {
+    fontSize: number
+    tabSize: number
+    wordWrap: boolean
+    minimap: boolean
+  }
+  'cursor-change': { line: number; column: number }
+  'explorer-search': { query: string }
+
   // Preview
   'preview-refresh': void
+
+  // Terminal
+  'run-script-in-terminal': { name: string; cwd: string }
+  'editor-navigate': { startLine: number }
+
+  // Permissions
+  'permissions-change': { permissions: string }
+
+  // Diff / streaming
+  'diff-review-update': Record<string, unknown>
+  'change-summary-update': Record<string, unknown>
+
+  // Auth
+  'spotify-auth-changed': void
+
+  // Plugins
+  'spotify-state-changed': Record<string, unknown>
+  'youtube-state-changed': { playing: boolean; type: string; id: string }
 }
 
 // ─── Typed wrappers ──────────────────────────────────────

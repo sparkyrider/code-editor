@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Icon } from '@iconify/react'
+import { emit } from '@/lib/events'
 import { usePlugins } from '@/context/plugin-context'
 
 const STORAGE_KEY = 'knot:youtube-playlist'
@@ -72,7 +73,9 @@ function loadHistory(): HistoryEntry[] {
 }
 
 function saveHistory(entries: HistoryEntry[]) {
-  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(entries.slice(0, MAX_HISTORY))) } catch {}
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(entries.slice(0, MAX_HISTORY)))
+  } catch {}
 }
 
 const CURATED_PLAYLISTS = [
@@ -94,55 +97,70 @@ export function YouTubePlayer() {
   const [error, setError] = useState<string | null>(null)
   const [showInput, setShowInput] = useState(false)
   const [ratio, setRatio] = useState<'16 / 9' | '4 / 3' | '1 / 1'>(() => {
-    try { return (localStorage.getItem('knot:youtube-ratio') as '16 / 9' | '4 / 3' | '1 / 1') || '16 / 9' } catch { return '16 / 9' }
+    try {
+      return (
+        (localStorage.getItem('knot:youtube-ratio') as '16 / 9' | '4 / 3' | '1 / 1') || '16 / 9'
+      )
+    } catch {
+      return '16 / 9'
+    }
   })
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (current) {
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(current)) } catch {}
-      window.dispatchEvent(new CustomEvent('youtube-state-changed', { detail: { playing: true, type: current.type, id: current.id } }))
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(current))
+      } catch {}
+      emit('youtube-state-changed', { playing: true, type: current.type, id: current.id })
     } else {
-      try { localStorage.removeItem(STORAGE_KEY) } catch {}
-      window.dispatchEvent(new CustomEvent('youtube-state-changed', { detail: null }))
+      try {
+        localStorage.removeItem(STORAGE_KEY)
+      } catch {}
+      emit('youtube-state-changed', { playing: false, type: '', id: '' })
     }
   }, [current])
 
   useEffect(() => {
-    try { localStorage.setItem('knot:youtube-ratio', ratio) } catch {}
+    try {
+      localStorage.setItem('knot:youtube-ratio', ratio)
+    } catch {}
   }, [ratio])
 
   const popoutPiP = useCallback(() => {
     setPipPluginId('youtube-player')
   }, [setPipPluginId])
 
-  const loadPlaylist = useCallback((value?: string) => {
-    const raw = value ?? input
-    if (!raw.trim()) return
+  const loadPlaylist = useCallback(
+    (value?: string) => {
+      const raw = value ?? input
+      if (!raw.trim()) return
 
-    const info = parseYouTubeUrl(raw)
-    if (!info) {
-      setError('Paste a YouTube playlist or video link')
-      return
-    }
+      const info = parseYouTubeUrl(raw)
+      if (!info) {
+        setError('Paste a YouTube playlist or video link')
+        return
+      }
 
-    setError(null)
-    setCurrent(info)
-    setInput('')
-    setShowInput(false)
+      setError(null)
+      setCurrent(info)
+      setInput('')
+      setShowInput(false)
 
-    setHistory(prev => {
-      const filtered = prev.filter(h => h.id !== info.id)
-      const next: HistoryEntry[] = [
-        { type: info.type, id: info.id, url: info.url, label: info.label, addedAt: Date.now() },
-        ...filtered,
-      ].slice(0, MAX_HISTORY)
-      saveHistory(next)
-      return next
-    })
-  }, [input])
+      setHistory((prev) => {
+        const filtered = prev.filter((h) => h.id !== info.id)
+        const next: HistoryEntry[] = [
+          { type: info.type, id: info.id, url: info.url, label: info.label, addedAt: Date.now() },
+          ...filtered,
+        ].slice(0, MAX_HISTORY)
+        saveHistory(next)
+        return next
+      })
+    },
+    [input],
+  )
 
-  const playCurated = useCallback((playlist: typeof CURATED_PLAYLISTS[number]) => {
+  const playCurated = useCallback((playlist: (typeof CURATED_PLAYLISTS)[number]) => {
     const info: PlaylistInfo = {
       type: 'playlist',
       id: playlist.id,
@@ -151,8 +169,8 @@ export function YouTubePlayer() {
     }
     setCurrent(info)
 
-    setHistory(prev => {
-      const filtered = prev.filter(h => h.id !== info.id)
+    setHistory((prev) => {
+      const filtered = prev.filter((h) => h.id !== info.id)
       const next: HistoryEntry[] = [
         { type: info.type, id: info.id, url: info.url, label: info.label, addedAt: Date.now() },
         ...filtered,
@@ -168,8 +186,8 @@ export function YouTubePlayer() {
 
   const removeHistoryItem = useCallback((id: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    setHistory(prev => {
-      const next = prev.filter(h => h.id !== id)
+    setHistory((prev) => {
+      const next = prev.filter((h) => h.id !== id)
       saveHistory(next)
       return next
     })
@@ -180,7 +198,9 @@ export function YouTubePlayer() {
       {/* Header */}
       <div className="flex items-center h-7 px-2.5 border-b border-[var(--border)] bg-[var(--bg-elevated)] shrink-0">
         <Icon icon="mdi:youtube" width={14} height={14} className="text-[#FF0000] shrink-0" />
-        <span className="text-[9px] font-semibold uppercase tracking-wider text-[var(--text-disabled)] ml-1.5">YouTube</span>
+        <span className="text-[9px] font-semibold uppercase tracking-wider text-[var(--text-disabled)] ml-1.5">
+          YouTube
+        </span>
         <div className="flex-1" />
         {current && (
           <>
@@ -208,7 +228,10 @@ export function YouTubePlayer() {
               <Icon icon="lucide:picture-in-picture-2" width={11} height={11} />
             </button>
             <button
-              onClick={() => { setShowInput(v => !v); setTimeout(() => inputRef.current?.focus(), 100) }}
+              onClick={() => {
+                setShowInput((v) => !v)
+                setTimeout(() => inputRef.current?.focus(), 100)
+              }}
               className={`p-0.5 rounded cursor-pointer ${showInput ? 'text-[#FF0000]' : 'text-[var(--text-disabled)] hover:text-[var(--text-secondary)]'}`}
               title="Change playlist"
             >
@@ -222,17 +245,29 @@ export function YouTubePlayer() {
       {(showInput || !current) && (
         <div className="border-b border-[var(--border)]">
           <div className="flex items-center gap-1.5 px-2.5 py-1.5">
-            <Icon icon="lucide:link" width={10} height={10} className="text-[var(--text-disabled)] shrink-0" />
+            <Icon
+              icon="lucide:link"
+              width={10}
+              height={10}
+              className="text-[var(--text-disabled)] shrink-0"
+            />
             <input
               ref={inputRef}
               type="text"
               value={input}
-              onChange={e => { setInput(e.target.value); setError(null) }}
-              onKeyDown={e => {
-                if (e.key === 'Enter') loadPlaylist()
-                if (e.key === 'Escape') { setShowInput(false); setInput(''); setError(null) }
+              onChange={(e) => {
+                setInput(e.target.value)
+                setError(null)
               }}
-              onPaste={e => {
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') loadPlaylist()
+                if (e.key === 'Escape') {
+                  setShowInput(false)
+                  setInput('')
+                  setError(null)
+                }
+              }}
+              onPaste={(e) => {
                 const text = e.clipboardData.getData('text')
                 if (parseYouTubeUrl(text)) {
                   e.preventDefault()
@@ -246,22 +281,26 @@ export function YouTubePlayer() {
               spellCheck={false}
             />
             {input && (
-              <button onClick={() => loadPlaylist()} className="p-0.5 rounded hover:bg-[var(--bg-subtle)] text-[#FF0000] cursor-pointer" title="Load">
+              <button
+                onClick={() => loadPlaylist()}
+                className="p-0.5 rounded hover:bg-[var(--bg-subtle)] text-[#FF0000] cursor-pointer"
+                title="Load"
+              >
                 <Icon icon="lucide:arrow-right" width={10} height={10} />
               </button>
             )}
           </div>
-          {error && (
-            <p className="px-2.5 pb-1.5 text-[9px] text-[var(--error)]">{error}</p>
-          )}
+          {error && <p className="px-2.5 pb-1.5 text-[9px] text-[var(--error)]">{error}</p>}
 
           {/* Curated playlists */}
           {!current && (
             <div className="border-t border-[var(--border)]">
               <div className="px-2.5 pt-1.5 pb-1">
-                <span className="text-[8px] font-semibold uppercase tracking-wider text-[var(--text-disabled)]">Quick play</span>
+                <span className="text-[8px] font-semibold uppercase tracking-wider text-[var(--text-disabled)]">
+                  Quick play
+                </span>
               </div>
-              {CURATED_PLAYLISTS.map(p => (
+              {CURATED_PLAYLISTS.map((p) => (
                 <button
                   key={p.id}
                   onClick={() => playCurated(p)}
@@ -278,24 +317,38 @@ export function YouTubePlayer() {
           {!current && history.length > 0 && (
             <div className="max-h-[120px] overflow-y-auto border-t border-[var(--border)]">
               <div className="px-2.5 pt-1.5 pb-1">
-                <span className="text-[8px] font-semibold uppercase tracking-wider text-[var(--text-disabled)]">Recent</span>
+                <span className="text-[8px] font-semibold uppercase tracking-wider text-[var(--text-disabled)]">
+                  Recent
+                </span>
               </div>
-              {history.map(h => (
+              {history.map((h) => (
                 <button
                   key={h.id}
                   onClick={() => {
-                    const info: PlaylistInfo = { type: h.type, id: h.id, url: h.url, label: h.label }
+                    const info: PlaylistInfo = {
+                      type: h.type,
+                      id: h.id,
+                      url: h.url,
+                      label: h.label,
+                    }
                     setCurrent(info)
                     setShowInput(false)
                   }}
                   className="w-full flex items-center gap-2 px-2.5 py-1.5 hover:bg-[var(--bg-subtle)] cursor-pointer text-left group"
                 >
-                  <Icon icon={h.type === 'playlist' ? 'lucide:list-music' : 'lucide:play'} width={10} height={10} className="text-[#FF0000] shrink-0" />
+                  <Icon
+                    icon={h.type === 'playlist' ? 'lucide:list-music' : 'lucide:play'}
+                    width={10}
+                    height={10}
+                    className="text-[#FF0000] shrink-0"
+                  />
                   <div className="flex-1 min-w-0">
-                    <div className="text-[10px] text-[var(--text-primary)] truncate">{h.label} · {h.id.slice(0, 12)}…</div>
+                    <div className="text-[10px] text-[var(--text-primary)] truncate">
+                      {h.label} · {h.id.slice(0, 12)}…
+                    </div>
                   </div>
                   <button
-                    onClick={e => removeHistoryItem(h.id, e)}
+                    onClick={(e) => removeHistoryItem(h.id, e)}
                     className="p-0.5 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-disabled)] opacity-0 group-hover:opacity-100 cursor-pointer"
                   >
                     <Icon icon="lucide:x" width={8} height={8} />
@@ -311,7 +364,10 @@ export function YouTubePlayer() {
       <div className="flex-1 flex flex-col min-h-0">
         {current ? (
           <div className="flex-1 min-h-0 p-2">
-            <div className="w-full h-full rounded-xl overflow-hidden bg-black/80" style={{ aspectRatio: ratio }}>
+            <div
+              className="w-full h-full rounded-xl overflow-hidden bg-black/80"
+              style={{ aspectRatio: ratio }}
+            >
               <iframe
                 src={buildEmbedUrl(current)}
                 className="w-full h-full border-0"
@@ -324,13 +380,16 @@ export function YouTubePlayer() {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center gap-2.5 py-8 px-3">
-            <Icon icon="mdi:youtube" width={24} height={24} className="text-[var(--text-disabled)]" />
+            <Icon
+              icon="mdi:youtube"
+              width={24}
+              height={24}
+              className="text-[var(--text-disabled)]"
+            />
             <p className="text-[10px] text-[var(--text-tertiary)] text-center leading-relaxed">
               Paste a public YouTube playlist link to play music, or pick from quick play above
             </p>
-            <p className="text-[8px] text-[var(--text-disabled)] text-center">
-              No API key needed
-            </p>
+            <p className="text-[8px] text-[var(--text-disabled)] text-center">No API key needed</p>
           </div>
         )}
       </div>
@@ -338,10 +397,20 @@ export function YouTubePlayer() {
       {/* Footer */}
       {current && (
         <div className="flex items-center h-6 px-2.5 border-t border-[var(--border)] shrink-0">
-          <Icon icon={current.type === 'playlist' ? 'lucide:list-music' : 'lucide:play'} width={9} height={9} className="text-[var(--text-disabled)]" />
-          <span className="text-[8px] text-[var(--text-disabled)] ml-1 truncate">{current.label}</span>
+          <Icon
+            icon={current.type === 'playlist' ? 'lucide:list-music' : 'lucide:play'}
+            width={9}
+            height={9}
+            className="text-[var(--text-disabled)]"
+          />
+          <span className="text-[8px] text-[var(--text-disabled)] ml-1 truncate">
+            {current.label}
+          </span>
           <div className="flex-1" />
-          <button onClick={clearCurrent} className="text-[8px] text-[var(--text-disabled)] hover:text-[var(--text-secondary)] cursor-pointer">
+          <button
+            onClick={clearCurrent}
+            className="text-[8px] text-[var(--text-disabled)] hover:text-[var(--text-secondary)] cursor-pointer"
+          >
             Clear
           </button>
         </div>

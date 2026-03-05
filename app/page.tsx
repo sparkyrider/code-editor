@@ -491,32 +491,6 @@ export default function EditorLayout() {
 
           <div className="flex-1 tauri-drag-region" data-tauri-drag-region />
 
-          {/* TUI: optional editor toggle */}
-          {modeSpec.terminalCenter && (
-            <button
-              onClick={() => {
-                if (terminalVisible) {
-                  layout.hide('terminal')
-                  setView('editor')
-                } else {
-                  layout.show('terminal')
-                }
-              }}
-              className={`tauri-no-drag p-2 rounded-lg hover:bg-[var(--bg-subtle)] cursor-pointer transition-colors ${
-                !terminalVisible
-                  ? 'text-[var(--brand)]'
-                  : 'text-[var(--text-disabled)] hover:text-[var(--text-secondary)]'
-              }`}
-              title={terminalVisible ? 'Show Editor (⌘E)' : 'Back to Terminal'}
-            >
-              <Icon
-                icon={terminalVisible ? 'lucide:code-2' : 'lucide:terminal'}
-                width={18}
-                height={18}
-              />
-            </button>
-          )}
-
           {/* Mode switcher — 3D pill group */}
           <div className="tauri-no-drag flex items-center rounded-full bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] p-[3px] gap-[2px] shadow-[inset_0_1px_2px_rgba(0,0,0,0.25)]">
             {[

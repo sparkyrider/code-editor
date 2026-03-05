@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Icon } from '@iconify/react'
-import { usePlugins } from '@/context/plugin-context'
 import {
   spotifyAvailable,
   isSpotifyAuthenticated,
@@ -70,7 +69,6 @@ function formatMs(ms: number): string {
 }
 
 export function SpotifyPlayer() {
-  const { setPipPluginId } = usePlugins()
   const [authenticated, setAuthenticated] = useState(false)
   const [visible, setVisible] = useState(true)
   const [loggingIn, setLoggingIn] = useState(false)
@@ -231,18 +229,9 @@ export function SpotifyPlayer() {
         <span className="text-[9px] font-semibold uppercase tracking-wider text-[var(--text-disabled)] ml-1.5">Music</span>
         <div className="flex-1" />
         {authenticated && (
-          <>
-            <button
-              onClick={() => setPipPluginId('spotify-player')}
-              className="p-0.5 rounded cursor-pointer text-[var(--text-disabled)] hover:text-[var(--text-secondary)]"
-              title="Pop out to PiP"
-            >
-              <Icon icon="lucide:picture-in-picture-2" width={11} height={11} />
-            </button>
-            <button onClick={() => setShowSearch(v => !v)} className={`p-0.5 rounded cursor-pointer ${showSearch ? 'text-[#1DB954]' : 'text-[var(--text-disabled)] hover:text-[var(--text-secondary)]'}`} title="Search">
-              <Icon icon="lucide:search" width={11} height={11} />
-            </button>
-          </>
+          <button onClick={() => setShowSearch(v => !v)} className={`p-0.5 rounded cursor-pointer ${showSearch ? 'text-[#1DB954]' : 'text-[var(--text-disabled)] hover:text-[var(--text-secondary)]'}`} title="Search">
+            <Icon icon="lucide:search" width={11} height={11} />
+          </button>
         )}
       </div>
 

@@ -282,6 +282,7 @@ function SidebarPluginSlot() {
                   </div>
                 )}
                 <div className="flex-1 min-h-0 overflow-hidden relative group/plugin">
+                  {e.id === 'youtube-player' && (
                   <button
                     onClick={() => setPipPluginId(e.id)}
                     className="absolute top-1 right-1 z-10 p-1 rounded-md bg-[var(--bg-elevated)]/80 backdrop-blur-sm text-[var(--text-disabled)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] cursor-pointer opacity-0 group-hover/plugin:opacity-100 transition-opacity"
@@ -289,6 +290,7 @@ function SidebarPluginSlot() {
                   >
                     <Icon icon="lucide:picture-in-picture-2" width={12} height={12} />
                   </button>
+                  )}
                   <C />
                 </div>
               </div>
@@ -440,6 +442,14 @@ export default function EditorLayout() {
       if (e.key === 'Escape') {
         setQuickOpenVisible(false); setGlobalSearchVisible(false)
         setCommandPaletteVisible(false); setShortcutsVisible(false)
+      }
+      // ⌘⇧1/2/3 — Mode switching
+      if (meta && e.shiftKey && ['1', '2', '3'].includes(e.key)) {
+        e.preventDefault()
+        const modes: AppMode[] = ['classic', 'chat', 'tui']
+        const target = modes[parseInt(e.key) - 1]
+        if (target) setMode(target)
+        return
       }
       // ⌘1..N — View switching (mode-aware)
       if (meta && e.key >= '1' && e.key <= String(visibleViews.length)) {

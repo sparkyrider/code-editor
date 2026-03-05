@@ -16,6 +16,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '@iconify/react'
 import { useGateway } from '@/context/gateway-context'
+import { useTheme } from '@/context/theme-context'
 import { MarkdownPreview } from '@/components/markdown-preview'
 
 // ─── Command registry ────────────────────────────────────
@@ -253,10 +254,19 @@ function AutocompleteDropdown({
 
 // ─── Entry renderer ──────────────────────────────────────
 
-function EntryView({ entry }: { entry: TerminalEntry }) {
+const ENTRY_BACKDROP = 'backdrop-blur-md rounded-lg px-3 py-1.5'
+const ENTRY_BG = 'color-mix(in srgb, var(--bg) 55%, transparent)'
+
+function EntryView({ entry, hasBg }: { entry: TerminalEntry; hasBg: boolean }) {
+  const backdrop = hasBg ? ENTRY_BACKDROP : ''
+  const bgStyle = hasBg ? { background: ENTRY_BG } : undefined
+
   if (entry.type === 'command') {
     return (
-      <div className="text-[13px] leading-relaxed" style={{ fontFamily: MONO }}>
+      <div
+        className={`text-[13px] leading-relaxed ${backdrop}`}
+        style={{ fontFamily: MONO, ...bgStyle }}
+      >
         <span className="text-[var(--brand)] font-semibold">❯ </span>
         <span className="text-[var(--text-primary)]">{entry.text}</span>
       </div>
@@ -266,8 +276,8 @@ function EntryView({ entry }: { entry: TerminalEntry }) {
   if (entry.type === 'system') {
     return (
       <div
-        className="text-[12px] leading-relaxed text-[var(--text-disabled)]"
-        style={{ fontFamily: MONO }}
+        className={`text-[12px] leading-relaxed text-[var(--text-disabled)] ${backdrop}`}
+        style={{ fontFamily: MONO, ...bgStyle }}
       >
         {entry.text}
       </div>
@@ -277,10 +287,12 @@ function EntryView({ entry }: { entry: TerminalEntry }) {
   if (entry.type === 'error') {
     return (
       <div
-        className="ml-2 pl-3 py-2 pr-8 rounded-lg text-[13px] leading-relaxed"
+        className={`ml-2 pl-3 py-2 pr-8 rounded-lg text-[13px] leading-relaxed ${hasBg ? 'backdrop-blur-md' : ''}`}
         style={{
           borderLeft: '3px solid var(--error, #ef4444)',
-          background: 'rgba(239, 68, 68, 0.06)',
+          background: hasBg
+            ? 'color-mix(in srgb, var(--bg) 60%, rgba(239, 68, 68, 0.08))'
+            : 'rgba(239, 68, 68, 0.06)',
         }}
       >
         <span className="text-red-300">{entry.text}</span>
@@ -291,10 +303,12 @@ function EntryView({ entry }: { entry: TerminalEntry }) {
   if (entry.type === 'rpc-result') {
     return (
       <div
-        className="ml-2 pl-3 py-2 pr-8 rounded-lg text-[13px] leading-relaxed overflow-x-auto"
+        className={`ml-2 pl-3 py-2 pr-8 rounded-lg text-[13px] leading-relaxed overflow-x-auto ${hasBg ? 'backdrop-blur-md' : ''}`}
         style={{
           borderLeft: '3px solid var(--success, #10b981)',
-          background: 'rgba(16, 185, 129, 0.04)',
+          background: hasBg
+            ? 'color-mix(in srgb, var(--bg) 60%, rgba(16, 185, 129, 0.06))'
+            : 'rgba(16, 185, 129, 0.04)',
           fontFamily: MONO,
         }}
       >
@@ -306,10 +320,12 @@ function EntryView({ entry }: { entry: TerminalEntry }) {
   if (entry.type === 'streaming') {
     return (
       <div
-        className="ml-2 pl-3 py-2 pr-8 rounded-lg text-[13px] leading-relaxed"
+        className={`ml-2 pl-3 py-2 pr-8 rounded-lg text-[13px] leading-relaxed ${hasBg ? 'backdrop-blur-md' : ''}`}
         style={{
           borderLeft: '3px solid var(--brand)',
-          background: 'color-mix(in srgb, var(--brand) 4%, transparent)',
+          background: hasBg
+            ? 'color-mix(in srgb, var(--bg) 60%, color-mix(in srgb, var(--brand) 6%, transparent))'
+            : 'color-mix(in srgb, var(--brand) 4%, transparent)',
         }}
       >
         <MarkdownPreview content={entry.text} className="terminal-md" />
@@ -321,10 +337,12 @@ function EntryView({ entry }: { entry: TerminalEntry }) {
   // response
   return (
     <div
-      className="ml-2 pl-3 py-2 pr-8 rounded-lg text-[13px] leading-relaxed"
+      className={`ml-2 pl-3 py-2 pr-8 rounded-lg text-[13px] leading-relaxed ${hasBg ? 'backdrop-blur-md' : ''}`}
       style={{
         borderLeft: '3px solid var(--success, #10b981)',
-        background: 'rgba(16, 185, 129, 0.04)',
+        background: hasBg
+          ? 'color-mix(in srgb, var(--bg) 60%, rgba(16, 185, 129, 0.06))'
+          : 'rgba(16, 185, 129, 0.04)',
       }}
     >
       <MarkdownPreview content={entry.text} className="terminal-md" />
@@ -336,7 +354,9 @@ function EntryView({ entry }: { entry: TerminalEntry }) {
 
 export function GatewayTerminal() {
   const { status, sendRequest, onEvent } = useGateway()
+  const { terminalBg, terminalBgOpacity } = useTheme()
   const isConnected = status === 'connected'
+  const hasBgImage = !!terminalBg
 
   const [entries, setEntries] = useState<TerminalEntry[]>([])
   const [input, setInput] = useState('')
@@ -623,17 +643,31 @@ export function GatewayTerminal() {
 
   return (
     <div
-      className="flex flex-col h-full w-full overflow-hidden"
-      style={{ fontFamily: MONO, background: 'var(--bg)' }}
+      className={`flex flex-col h-full w-full overflow-hidden relative ${hasBgImage ? '' : 'bg-[var(--bg)]'}`}
+      style={{ fontFamily: MONO }}
     >
+      {hasBgImage && (
+        <>
+          <div
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: `url(${terminalBg})` }}
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundColor: `color-mix(in srgb, var(--bg) ${Math.max(terminalBgOpacity, 60)}%, transparent)`,
+            }}
+          />
+        </>
+      )}
       {/* Output */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-2 min-h-0"
+        className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-2 min-h-0 relative"
         onClick={() => inputRef.current?.focus()}
       >
         {entries.map((entry) => (
-          <EntryView key={entry.id} entry={entry} />
+          <EntryView key={entry.id} entry={entry} hasBg={hasBgImage} />
         ))}
         {sending && !streamId.current && (
           <div className="flex items-center gap-2 text-[12px] text-[var(--text-disabled)] pl-1">
@@ -657,7 +691,12 @@ export function GatewayTerminal() {
       </div>
 
       {/* Input */}
-      <div className="relative shrink-0 border-t border-[var(--border)]">
+      <div
+        className={`relative z-[1] shrink-0 border-t border-[var(--border)] ${hasBgImage ? 'backdrop-blur-xl' : ''}`}
+        style={
+          hasBgImage ? { background: 'color-mix(in srgb, var(--bg) 70%, transparent)' } : undefined
+        }
+      >
         <AutocompleteDropdown
           query={input}
           selectedIndex={acIdx}

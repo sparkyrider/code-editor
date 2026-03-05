@@ -45,42 +45,42 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
       transition={SIDEBAR_SPRING}
       className={`relative flex flex-col shrink-0 overflow-hidden ${
         collapsed
-          ? `items-center gap-3.5 ${isTauriDesktop ? 'pt-8' : 'pt-3'} pb-3`
-          : 'h-full bg-[var(--sidebar-bg)] border-[1.5px] border-[var(--border)] rounded-2xl shadow-[var(--shadow-xs)]'
+          ? `items-center gap-3 ${isTauriDesktop ? 'pt-8' : 'pt-3'} pb-3`
+          : 'h-full bg-[var(--sidebar-bg)] border border-[var(--border)] rounded-xl shadow-[var(--shadow-xs)]'
       }`}
     >
       {collapsed ? (
         <>
           <button
             onClick={onToggle}
-            className="p-3 rounded-xl hover:bg-[var(--bg-subtle)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-all cursor-pointer hover:scale-110"
+            className="p-2.5 rounded-lg hover:bg-[var(--bg-subtle)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-all cursor-pointer hover:scale-110"
             title="Expand sidebar (⌘\\)"
           >
-            <Icon icon="lucide:panel-left" width={22} height={22} />
+            <Icon icon="lucide:panel-left" width={20} height={20} />
           </button>
 
           {/* Collapsed quick actions */}
           <button
             onClick={() => emit('open-folder')}
-            className="p-3 rounded-xl hover:bg-[var(--bg-subtle)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-all cursor-pointer hover:scale-110"
+            className="p-2.5 rounded-lg hover:bg-[var(--bg-subtle)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-all cursor-pointer hover:scale-110"
             title="Open Folder"
           >
-            <Icon icon="lucide:folder-open" width={22} height={22} />
+            <Icon icon="lucide:folder-open" width={20} height={20} />
           </button>
 
           <button
             onClick={() => emit('open-git-panel')}
-            className="p-3 rounded-xl hover:bg-[var(--bg-subtle)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-all cursor-pointer hover:scale-110"
+            className="p-2.5 rounded-lg hover:bg-[var(--bg-subtle)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-all cursor-pointer hover:scale-110"
             title="Source Control"
           >
-            <Icon icon="lucide:git-branch" width={22} height={22} />
+            <Icon icon="lucide:git-branch" width={20} height={20} />
           </button>
         </>
       ) : (
         <>
           {/* Header */}
           <div
-            className={`flex items-center justify-between px-4 h-16 shrink-0 ${isTauriDesktop ? 'pt-5' : ''}`}
+            className={`flex items-center justify-between px-4 h-12 shrink-0 ${isTauriDesktop ? 'pt-5' : ''}`}
           >
             <div className="flex items-center gap-3 min-w-0">
               <Icon

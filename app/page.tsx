@@ -402,7 +402,7 @@ export default function EditorLayout() {
   }, [local])
 
   return (
-    <div className="flex h-full w-full bg-[var(--bg)] text-[var(--text-primary)] overflow-hidden gap-2 p-2">
+    <div className="flex h-full w-full bg-[var(--bg)] text-[var(--text-primary)] overflow-hidden gap-1.5 p-1.5">
       {/* Tauri drag region */}
       {isTauriDesktop && (
         <div
@@ -421,20 +421,20 @@ export default function EditorLayout() {
       )}
 
       {/* Main content area */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-0 rounded-2xl overflow-hidden border-[1.5px] border-[var(--border)] shadow-[var(--shadow-sm)]">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 rounded-xl overflow-hidden border border-[var(--border)] shadow-[var(--shadow-sm)]">
         {/* Mode accent line */}
         <div
-          className="h-[3px] shrink-0 transition-colors duration-500"
+          className="h-[2px] shrink-0 transition-colors duration-500"
           style={{
             background: `linear-gradient(90deg, transparent, var(--mode-accent, var(--brand)), transparent)`,
-            opacity: 0.5,
+            opacity: 0.4,
           }}
         />
 
         {/* View navigation bar — folder tabs */}
         <div
           data-tauri-drag-region
-          className={`flex items-center ${modeSpec.hideTabs ? 'h-12' : 'h-14'} bg-[var(--bg-elevated)] shrink-0 px-4 gap-2 tauri-drag-region ${isMacTauri && sidebarCollapsed ? 'pl-20' : ''}`}
+          className={`flex items-center h-12 bg-[var(--bg-elevated)] shrink-0 px-4 gap-2 tauri-drag-region ${isMacTauri && sidebarCollapsed ? 'pl-20' : ''}`}
         >
           {/* Folder-style tab strip — hidden in TUI mode */}
           {!modeSpec.hideTabs && (
@@ -458,11 +458,11 @@ export default function EditorLayout() {
                     whileTap={{ scale: 0.95 }}
                     layout
                   >
-                    <span className="flex items-center gap-2.5">
+                    <span className="flex items-center gap-2">
                       <Icon
                         icon={VIEW_ICONS[v].icon}
-                        width={19}
-                        height={19}
+                        width={17}
+                        height={17}
                         className="folder-tab__icon"
                       />
                       <span className="hidden sm:inline">{VIEW_ICONS[v].label}</span>
@@ -508,7 +508,7 @@ export default function EditorLayout() {
           <div className="flex-1 tauri-drag-region" data-tauri-drag-region />
 
           {/* Mode switcher — 3D pill group */}
-          <div className="tauri-no-drag flex items-center rounded-full bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] p-[4px] gap-[3px] shadow-[inset_0_1px_3px_rgba(0,0,0,0.3)]">
+          <div className="tauri-no-drag flex items-center rounded-full bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] p-[3px] gap-[2px] shadow-[inset_0_1px_3px_rgba(0,0,0,0.3)]">
             {[
               { id: 'classic' as AppMode, icon: 'lucide:code-2', label: 'Classic' },
               { id: 'chat' as AppMode, icon: 'lucide:message-square', label: 'Chat' },
@@ -517,14 +517,14 @@ export default function EditorLayout() {
               <button
                 key={m.id}
                 onClick={() => setMode(m.id)}
-                className={`relative h-8 w-8 flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer ${
+                className={`relative h-7 w-7 flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer ${
                   mode === m.id
                     ? 'bg-[var(--bg)] text-[var(--text-primary)] shadow-[0_2px_6px_rgba(0,0,0,0.3),0_1px_0_rgba(255,255,255,0.08)_inset]'
                     : 'text-[var(--text-disabled)] hover:text-[var(--text-secondary)] hover:bg-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] active:shadow-[inset_0_1px_2px_rgba(0,0,0,0.2)] hover:scale-105'
                 }`}
                 title={`${m.label} mode (⌘⇧${['classic', 'chat', 'tui'].indexOf(m.id) + 1})`}
               >
-                <Icon icon={m.icon} width={17} height={17} />
+                <Icon icon={m.icon} width={15} height={15} />
               </button>
             ))}
           </div>
@@ -532,10 +532,10 @@ export default function EditorLayout() {
           {/* Settings */}
           <button
             onClick={() => setSettingsVisible(true)}
-            className="tauri-no-drag p-2.5 rounded-xl hover:bg-[var(--bg-subtle)] text-[var(--text-disabled)] hover:text-[var(--text-secondary)] cursor-pointer transition-all hover:scale-110"
+            className="tauri-no-drag p-2 rounded-xl hover:bg-[var(--bg-subtle)] text-[var(--text-disabled)] hover:text-[var(--text-secondary)] cursor-pointer transition-all hover:scale-110"
             title="Settings"
           >
-            <Icon icon="lucide:settings" width={21} height={21} className="animate-gear-sway" />
+            <Icon icon="lucide:settings" width={18} height={18} className="animate-gear-sway" />
           </button>
         </div>
 
@@ -551,7 +551,7 @@ export default function EditorLayout() {
           >
             {/* TUI mode: gateway terminal fills center */}
             {modeSpec.terminalCenter ? (
-              <div className="flex-1 flex min-h-0 min-w-0 overflow-hidden rounded-2xl border-[1.5px] border-[var(--border)]">
+              <div className="flex-1 flex min-h-0 min-w-0 overflow-hidden rounded-xl border border-[var(--border)]">
                 <GatewayTerminalLazy />
               </div>
             ) : (
@@ -622,7 +622,7 @@ export default function EditorLayout() {
                   animate={{ y: 0 }}
                   exit={{ y: 520 }}
                   transition={TERMINAL_SPRING}
-                  className="fixed left-2 right-2 bottom-2 z-[80] rounded-3xl border-[1.5px] border-[var(--border)] bg-[var(--bg-elevated)] shadow-2xl overflow-hidden"
+                  className="fixed left-1.5 right-1.5 bottom-1.5 z-[80] rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)] shadow-2xl overflow-hidden"
                   style={
                     {
                       '--height': Math.min(

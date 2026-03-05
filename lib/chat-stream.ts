@@ -14,6 +14,7 @@ export interface ChatMessage {
   content: string
   timestamp: number
   editProposals?: EditProposal[]
+  images?: Array<{ name: string; dataUrl: string }>
 }
 
 export interface StreamState {

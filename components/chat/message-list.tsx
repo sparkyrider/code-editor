@@ -7,6 +7,7 @@ import { MarkdownPreview } from '@/components/markdown-preview'
 import { PlanView, type PlanStep } from '@/components/plan-view'
 import { navigateToLine } from '@/lib/line-links'
 import { copyToClipboard } from '@/lib/clipboard'
+import { useChatAppearance } from '@/context/chat-appearance-context'
 import type { ChatMessage } from '@/lib/chat-stream'
 import type { EditProposal } from '@/lib/edit-parser'
 
@@ -109,6 +110,8 @@ export function MessageList({
   const menuRef = useRef<HTMLDivElement>(null)
   const [thinkingOpen, setThinkingOpen] = useState(false)
   const [showSystemMessages, setShowSystemMessages] = useState(false)
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
+  const { chatFontSize, chatFontCss } = useChatAppearance()
 
   const visibleMessages = useMemo(
     () => messages.filter((m) => !isSystemPromptMessage(m)),
@@ -155,6 +158,40 @@ export function MessageList({
 
   return (
     <>
+      {/* Image lightbox */}
+      {lightboxSrc && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm cursor-zoom-out animate-fade-in"
+          style={{ animationDuration: '0.15s' }}
+          onClick={() => setLightboxSrc(null)}
+        >
+          <div
+            className="relative max-w-[90vw] max-h-[85vh] animate-scale-in"
+            style={{ animationDuration: '0.2s' }}
+          >
+            <img
+              src={lightboxSrc}
+              alt="Preview"
+              className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl"
+            />
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setLightboxSrc(null)
+              }}
+              className="absolute -top-3 -right-3 w-7 h-7 rounded-full bg-[var(--bg-elevated)] border border-[var(--border)] flex items-center justify-center shadow-lg hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer"
+            >
+              <Icon
+                icon="lucide:x"
+                width={14}
+                height={14}
+                className="text-[var(--text-secondary)]"
+              />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Streaming progress bar */}
       {isStreaming && <div className="streaming-progress-bar shrink-0" />}
 
@@ -211,7 +248,7 @@ export function MessageList({
           return (
             <div
               key={msg.id}
-              className={`group/msg flex flex-col ${isUser ? 'items-end' : 'items-start'} animate-fade-in-up`}
+              className={`group/msg flex flex-col ${isUser ? 'items-end' : 'items-start'} w-full animate-fade-in-up`}
               style={{ animationDuration: '0.2s' }}
             >
               {/* Assistant avatar row */}
@@ -224,7 +261,7 @@ export function MessageList({
                 </div>
               )}
 
-              <div className="relative max-w-[90%] min-w-0">
+              <div className={`relative min-w-0 ${isUser ? 'max-w-[85%]' : 'w-full'}`}>
                 {/* Ellipsis menu trigger */}
                 <button
                   onClick={() => setMenuOpenId((prev) => (prev === msg.id ? null : msg.id))}
@@ -281,7 +318,14 @@ export function MessageList({
                 )}
 
                 {/* Message bubble */}
-                <div className={`rounded-xl px-3 py-2 text-[12px] leading-relaxed ${bubbleClass}`}>
+                <div
+                  className={`rounded-xl px-3 py-2 leading-relaxed ${bubbleClass}`}
+                  style={
+                    isUser || isAssistant
+                      ? { fontSize: `${chatFontSize}px`, fontFamily: chatFontCss }
+                      : undefined
+                  }
+                >
                   {(t === 'tool' || t === 'status' || t === 'error') && typeIcon && (
                     <span className="inline-flex items-center gap-1 mr-1 align-middle">
                       <Icon
@@ -302,7 +346,42 @@ export function MessageList({
                     </span>
                   )}
                   {isUser ? (
-                    <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                    <div>
+                      {msg.images && msg.images.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mb-2">
+                          {msg.images.map((img, imgIdx) => (
+                            <div
+                              key={imgIdx}
+                              className="relative group/msgimg rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-[var(--brand)] transition-all"
+                              style={{ width: 96, height: 72 }}
+                              onClick={() => setLightboxSrc(img.dataUrl)}
+                            >
+                              <img
+                                src={img.dataUrl}
+                                alt={img.name}
+                                className="w-full h-full object-cover transition-transform duration-200 group-hover/msgimg:scale-105"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover/msgimg:opacity-100 transition-opacity flex items-end p-1.5">
+                                <span className="text-[8px] text-white/90 font-mono truncate leading-tight">
+                                  {img.name}
+                                </span>
+                              </div>
+                              <div className="absolute top-1 right-1 opacity-0 group-hover/msgimg:opacity-100 transition-opacity">
+                                <Icon
+                                  icon="lucide:zoom-in"
+                                  width={10}
+                                  height={10}
+                                  className="text-white/80 drop-shadow-md"
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <p className="whitespace-pre-wrap break-words">
+                        {msg.content.replace(/^\[[^\]]*🖼[^\]]*\]\n?/, '')}
+                      </p>
+                    </div>
                   ) : isSystem && (t === 'tool' || t === 'status' || t === 'error') ? (
                     <span className="inline">{msg.content}</span>
                   ) : (
@@ -435,7 +514,7 @@ export function MessageList({
             )}
 
             {streamBuffer ? (
-              <div className="max-w-[90%] min-w-0">
+              <div className="w-full min-w-0">
                 {/* Avatar for streaming */}
                 <div className="flex items-center gap-1.5 mb-1">
                   <div className="message-avatar-ring">
@@ -443,7 +522,10 @@ export function MessageList({
                   </div>
                   <span className="text-[9px] font-medium text-[var(--text-tertiary)]">Knot</span>
                 </div>
-                <div className="rounded-xl px-3 py-2 text-[12px] leading-relaxed bg-[var(--bg-subtle)] border border-[color-mix(in_srgb,var(--brand)_20%,var(--border))] text-[var(--text-primary)] rounded-bl-sm">
+                <div
+                  className="rounded-xl px-3 py-2 leading-relaxed bg-[var(--bg-subtle)] border border-[color-mix(in_srgb,var(--brand)_20%,var(--border))] text-[var(--text-primary)] rounded-bl-sm"
+                  style={{ fontSize: `${chatFontSize}px`, fontFamily: chatFontCss }}
+                >
                   <div className="prose-chat">
                     <MarkdownPreview content={streamBuffer} />
                   </div>
@@ -451,7 +533,7 @@ export function MessageList({
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col gap-1 px-3 py-2.5 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border)] rounded-bl-sm max-w-[90%]">
+              <div className="flex flex-col gap-1 px-3 py-2.5 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border)] rounded-bl-sm w-full">
                 {/* Thinking disclosure (collapsed by default) */}
                 {thinkingTrail.length > 0 && (
                   <details className="thinking-disclosure mb-1" open={thinkingOpen}>

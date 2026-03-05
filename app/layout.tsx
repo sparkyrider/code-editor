@@ -9,6 +9,7 @@ import { ViewProvider } from '@/context/view-context'
 import { GitHubAuthProvider } from '@/context/github-auth-context'
 import { PluginProvider } from '@/context/plugin-context'
 import { PreviewProvider } from '@/context/preview-context'
+import { ChatAppearanceProvider } from '@/context/chat-appearance-context'
 
 import { LayoutProvider } from '@/context/layout-context'
 import { AppModeProvider } from '@/context/app-mode-context'
@@ -40,9 +41,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                         <LayoutProvider>
                           <AppModeProvider>
                             <PreviewProvider>
-                              <PluginProvider>
-                                <Suspense fallback={<AppSkeleton />}>{children}</Suspense>
-                              </PluginProvider>
+                              <ChatAppearanceProvider>
+                                <PluginProvider>
+                                  <Suspense fallback={<AppSkeleton />}>{children}</Suspense>
+                                </PluginProvider>
+                              </ChatAppearanceProvider>
                             </PreviewProvider>
                           </AppModeProvider>
                         </LayoutProvider>

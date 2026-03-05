@@ -188,7 +188,7 @@ export function EditorView() {
                   style={treeResize.resizing ? { width: treeWidth } : undefined}
                   className="shrink-0 bg-[var(--sidebar-bg)] overflow-hidden border-r border-[var(--border)] flex flex-col"
                 >
-                  <div className="flex items-center justify-between h-9 px-3 border-b border-[var(--border)] shrink-0">
+                  <div className="flex items-center justify-between h-10 px-3 border-b border-[var(--border)] shrink-0">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-disabled)]">
                       Explorer
                     </span>
@@ -362,7 +362,7 @@ export function EditorView() {
             )}
 
             {/* Bottom bar */}
-            <div className="flex items-center h-10 px-3 border-t border-[var(--border)] bg-[var(--bg-elevated)] shrink-0 gap-2">
+            <div className="flex items-center h-8 px-3 border-t border-[var(--border)] bg-[var(--bg-elevated)] shrink-0 gap-2">
               {branchName && (
                 <span className="text-[12px] font-mono text-[var(--text-disabled)] flex items-center gap-1.5 ml-1">
                   <Icon icon="lucide:git-branch" width={14} height={14} />
@@ -415,25 +415,25 @@ export function EditorView() {
             style={chatResize.resizing && !editorCollapsed ? { width: chatWidth } : undefined}
             className={`shrink-0 flex flex-col bg-[var(--bg)] overflow-hidden ${editorCollapsed ? 'flex-1' : 'border-l border-[var(--border)]'}`}
           >
-            <div className="flex items-center justify-between h-9 px-3 border-b border-[var(--border)] bg-[var(--bg-elevated)] shrink-0">
+            <div className="flex items-center justify-between h-10 px-3 border-b border-[var(--border)] bg-[var(--bg-elevated)] shrink-0">
               <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-disabled)] flex items-center gap-2">
-                <Icon icon="lucide:bot" width={15} height={15} className="text-[var(--brand)]" />
+                <Icon icon="lucide:bot" width={14} height={14} className="text-[var(--brand)]" />
                 Agent
               </span>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-0.5">
                 <button
                   onClick={() => layout.setFloating('chat', true)}
                   className="p-1.5 rounded-lg hover:bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] text-[var(--text-disabled)] hover:text-[var(--text-tertiary)] cursor-pointer"
                   title="Float panel"
                 >
-                  <Icon icon="lucide:app-window" width={15} height={15} />
+                  <Icon icon="lucide:app-window" width={14} height={14} />
                 </button>
                 <button
                   onClick={() => layout.hide('chat')}
                   className="p-1.5 rounded-lg hover:bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] text-[var(--text-disabled)] hover:text-[var(--text-tertiary)] cursor-pointer"
                   title="Hide (⌘I)"
                 >
-                  <Icon icon="lucide:panel-right-close" width={15} height={15} />
+                  <Icon icon="lucide:panel-right-close" width={14} height={14} />
                 </button>
               </div>
             </div>
@@ -465,7 +465,7 @@ export function EditorView() {
               transition={PANEL_SPRING}
               className="absolute inset-y-0 left-0 z-50 w-[min(92vw,360px)] bg-[var(--sidebar-bg)] border-r border-[var(--border)] flex flex-col"
             >
-              <div className="flex items-center justify-between h-11 px-3 border-b border-[var(--border)] shrink-0 bg-[var(--bg-elevated)]">
+              <div className="flex items-center justify-between h-10 px-3 border-b border-[var(--border)] shrink-0 bg-[var(--bg-elevated)]">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-disabled)]">
                   Explorer
                 </span>
@@ -505,9 +505,9 @@ export function EditorView() {
               transition={PANEL_SPRING}
               className="absolute inset-y-0 right-0 z-50 w-[min(96vw,420px)] bg-[var(--bg)] border-l border-[var(--border)] flex flex-col overflow-hidden"
             >
-              <div className="flex items-center justify-between h-11 px-3 border-b border-[var(--border)] bg-[var(--bg-elevated)] shrink-0">
+              <div className="flex items-center justify-between h-10 px-3 border-b border-[var(--border)] bg-[var(--bg-elevated)] shrink-0">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-disabled)] flex items-center gap-2">
-                  <Icon icon="lucide:bot" width={15} height={15} className="text-[var(--brand)]" />
+                  <Icon icon="lucide:bot" width={14} height={14} className="text-[var(--brand)]" />
                   Agent
                 </span>
                 <div className="flex items-center gap-1">

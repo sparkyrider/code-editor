@@ -138,9 +138,19 @@ interface Props {
   onSend: (text: string, mode: AgentMode) => void
   onSelectFolder: () => void
   onCloneRepo: () => void
+  onImageAttach?: () => void
+  imageAttachments?: Array<{ name: string; dataUrl: string }>
+  onRemoveImage?: (index: number) => void
 }
 
-export const ChatHome = memo(function ChatHome({ onSend, onSelectFolder, onCloneRepo }: Props) {
+export const ChatHome = memo(function ChatHome({
+  onSend,
+  onSelectFolder,
+  onCloneRepo,
+  onImageAttach,
+  imageAttachments = [],
+  onRemoveImage,
+}: Props) {
   const [input, setInput] = useState('')
   const [agentMode, setAgentMode] = useState<AgentMode>('ask')
   const [isFocused, setIsFocused] = useState(false)
@@ -345,130 +355,103 @@ export const ChatHome = memo(function ChatHome({ onSend, onSelectFolder, onClone
   }, [hasWorkspace, openFiles, local.localTree, primaryLanguage, branchName])
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-8 sm:py-10 pb-16 sm:pb-20 relative">
+    <div className="flex-1 overflow-y-auto relative">
       <KnotBackground />
-      <div className="min-h-full w-full max-w-[884px] mx-auto flex flex-col justify-center relative z-[1]">
-        {/* Logo + Heading */}
-        <div className="flex flex-col items-center mb-3">
+      <div className="min-h-full w-full max-w-[680px] mx-auto flex flex-col justify-center px-6 py-12 relative z-[1]">
+        {/* Header */}
+        <div className="flex flex-col items-center mb-10">
           <div
-            className={`mb-2.5 text-[var(--text-tertiary)] ${
+            className={`mb-5 ${
               status === 'connected' ? 'logo-breathe-connected' : 'logo-breathe-idle'
             }`}
           >
-            <KnotLogo size={42} />
+            <KnotLogo size={36} color="var(--brand)" />
           </div>
-          <h1 className="text-center text-[clamp(36px,6vw,52px)] font-bold text-[var(--text-primary)] tracking-[-0.03em] leading-[1.1] pb-4">
-            <span
-              className="bg-gradient-to-r from-[var(--text-primary)] via-[var(--brand)] to-[var(--text-primary)] bg-clip-text text-transparent bg-[length:200%_100%]"
-              style={{ textShadow: '0 0 60px color-mix(in srgb, var(--brand) 20%, transparent)' }}
-            >
-              Knot Code
-            </span>
-          </h1>
-          {/* <p className="mt-2 text-center text-[15px] text-[var(--text-secondary)] font-medium">
-            {repoShort ? `What should we work on?` : `What do you want to build?`}
-          </p>
-          <p className="mt-1 text-center text-[12px] text-[var(--text-disabled)] tracking-wide">
-            AI coding, without the bloat.
-          </p> */}
 
-          {/* Workspace stats — single compact row */}
-          <div className="mt-2 flex items-center justify-center gap-2.5 flex-wrap text-[11px] text-[var(--text-disabled)]">
-            {hasWorkspace && (fileCount > 0 || primaryLanguage || branchName) && (
-              <>
-                {fileCount > 0 && (
-                  <span className="inline-flex items-center gap-1 text-[10px]">
-                    <Icon icon="lucide:files" width={10} height={10} />
-                    {fileCount} files
-                  </span>
-                )}
-                {primaryLanguage && (
-                  <span className="inline-flex items-center gap-1 text-[10px]">
-                    <Icon icon="lucide:code-2" width={10} height={10} />
-                    {primaryLanguage}
-                  </span>
-                )}
-                {branchName && (
-                  <span className="inline-flex items-center gap-1 text-[10px]">
-                    <Icon icon="lucide:git-branch" width={10} height={10} />
-                    {branchName}
-                  </span>
-                )}
-              </>
-            )}
-            {hasWorkspace ? (
-              <button
-                onClick={onSelectFolder}
-                className="inline-flex items-center gap-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
-              >
-                <Icon icon="lucide:folder-git-2" width={11} height={11} />
-                {repoShort}
-              </button>
-            ) : (
-              <span className="text-[11px] text-[var(--text-disabled)]">
-                KnotCode — AI-powered editor
-              </span>
-            )}
+          <h1 className="text-center text-[28px] font-semibold tracking-[-0.04em] leading-none text-[var(--text-primary)]">
+            KnotCode
+          </h1>
+          <p className="mt-2 text-center text-[13px] text-[var(--text-disabled)] font-normal tracking-[-0.01em]">
+            {repoShort ? `What should we work on?` : `Open a file or start a conversation to begin`}
+          </p>
+
+          {/* Status chips */}
+          <div className="mt-4 flex items-center justify-center gap-2 flex-wrap">
             <span
-              className={`inline-flex items-center gap-1.5 ${
-                status === 'connected' ? 'text-[var(--success)]' : 'text-[var(--text-disabled)]'
+              className={`home-chip inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-mono tracking-wide uppercase ${
+                status === 'connected'
+                  ? 'text-[var(--success)] bg-[color-mix(in_srgb,var(--success)_8%,transparent)] border border-[color-mix(in_srgb,var(--success)_15%,transparent)]'
+                  : 'text-[var(--text-disabled)] bg-[color-mix(in_srgb,var(--text-disabled)_6%,transparent)] border border-[var(--border)]'
               }`}
             >
               <span
-                className={`w-1.5 h-1.5 rounded-full ${status === 'connected' ? 'bg-[var(--success)]' : 'bg-[var(--text-disabled)]'}`}
+                className={`w-1.5 h-1.5 rounded-full ${status === 'connected' ? 'bg-[var(--success)] home-pulse-dot' : 'bg-[var(--text-disabled)]'}`}
               />
-              {status === 'connected' ? 'Gateway connected' : 'Gateway offline'}
+              {status === 'connected' ? 'Connected' : 'Offline'}
             </span>
+
+            {hasWorkspace && (
+              <button
+                onClick={onSelectFolder}
+                className="home-chip inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-mono tracking-wide uppercase text-[var(--text-secondary)] bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)] border border-[var(--border)] hover:border-[var(--text-disabled)] transition-colors cursor-pointer"
+              >
+                <Icon icon="lucide:folder" width={10} height={10} />
+                {repoShort}
+              </button>
+            )}
+
+            {hasWorkspace && primaryLanguage && (
+              <span className="home-chip inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-mono tracking-wide uppercase text-[var(--text-disabled)] bg-[color-mix(in_srgb,var(--text-primary)_3%,transparent)] border border-[var(--border)]">
+                <Icon icon="lucide:code-2" width={10} height={10} />
+                {primaryLanguage}
+              </span>
+            )}
+
+            {hasWorkspace && branchName && (
+              <span className="home-chip inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-mono tracking-wide uppercase text-[var(--text-disabled)] bg-[color-mix(in_srgb,var(--text-primary)_3%,transparent)] border border-[var(--border)]">
+                <Icon icon="lucide:git-branch" width={10} height={10} />
+                {branchName}
+              </span>
+            )}
+
+            {hasWorkspace && fileCount > 0 && (
+              <span className="home-chip inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-mono tracking-wide uppercase text-[var(--text-disabled)] bg-[color-mix(in_srgb,var(--text-primary)_3%,transparent)] border border-[var(--border)]">
+                {fileCount} files
+              </span>
+            )}
+
             {agentConfig && (
               <button
                 onClick={() => emit('open-agent-settings')}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-[color-mix(in_srgb,var(--brand)_20%,var(--border))] bg-[color-mix(in_srgb,var(--brand)_6%,transparent)] text-[var(--brand)] hover:bg-[color-mix(in_srgb,var(--brand)_10%,transparent)] transition-colors cursor-pointer"
+                className="home-chip inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-mono tracking-wide uppercase text-[var(--brand)] bg-[color-mix(in_srgb,var(--brand)_6%,transparent)] border border-[color-mix(in_srgb,var(--brand)_15%,transparent)] hover:bg-[color-mix(in_srgb,var(--brand)_10%,transparent)] transition-colors cursor-pointer"
               >
-                <span className="text-[10px]">
-                  {agentConfig.persona === 'fullstack'
-                    ? '\u{1F525}'
-                    : agentConfig.persona === 'frontend'
-                      ? '\u{1F3AF}'
-                      : agentConfig.persona === 'security'
-                        ? '\u{1F6E1}\u{FE0F}'
-                        : agentConfig.persona === 'architect'
-                          ? '\u{1F3D7}\u{FE0F}'
-                          : '\u{2728}'}
-                </span>
-                <span className="text-[10px] font-medium">
-                  {agentConfig.persona === 'fullstack'
-                    ? 'Full-Stack Engineer'
-                    : agentConfig.persona === 'frontend'
-                      ? 'Frontend Specialist'
-                      : agentConfig.persona === 'security'
-                        ? 'Security Engineer'
-                        : agentConfig.persona === 'architect'
-                          ? 'Systems Architect'
-                          : 'Custom Agent'}
-                </span>
+                {agentConfig.persona === 'fullstack'
+                  ? 'Full-Stack'
+                  : agentConfig.persona === 'frontend'
+                    ? 'Frontend'
+                    : agentConfig.persona === 'security'
+                      ? 'Security'
+                      : agentConfig.persona === 'architect'
+                        ? 'Architect'
+                        : 'Custom'}
               </button>
             )}
           </div>
         </div>
 
-        {/* Composer card */}
+        {/* Composer */}
         <div
           ref={cardRef}
           onClick={() => inputRef.current?.focus()}
-          className={`chat-input-card rounded-xl border bg-[color-mix(in_srgb,var(--bg-elevated)_92%,transparent)] overflow-hidden transition-shadow duration-200 ${
+          className={`home-composer rounded-xl border backdrop-blur-sm overflow-hidden transition-all duration-200 ${
             isFocused
               ? input.trim()
-                ? 'chat-input-card-typing border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] shadow-[0_0_20px_color-mix(in_srgb,var(--brand)_12%,transparent)]'
-                : 'chat-input-card-focused border-[color-mix(in_srgb,var(--brand)_25%,var(--border))] shadow-[0_0_16px_color-mix(in_srgb,var(--brand)_8%,transparent)]'
-              : 'border-[var(--border)] hover:border-[var(--text-disabled)]'
+                ? 'home-composer-typing border-[color-mix(in_srgb,var(--brand)_50%,var(--border))]'
+                : 'home-composer-focused border-[color-mix(in_srgb,var(--brand)_25%,var(--border))]'
+              : 'border-[var(--border)] hover:border-[color-mix(in_srgb,var(--text-disabled)_60%,var(--border))]'
           }`}
+          style={{ background: 'color-mix(in srgb, var(--bg-elevated) 80%, transparent)' }}
         >
-          <div className="px-4 pt-3 pb-0.5 flex items-center justify-between gap-2 text-[10px] text-[var(--text-disabled)]">
-            <span className="truncate">
-              {hasWorkspace ? `Context: ${repoShort}` : 'Tip: Press Tab to toggle mode'}
-            </span>
-            <span className="hidden sm:inline shrink-0">Shift+Enter adds a new line</span>
-          </div>
           <textarea
             ref={inputRef}
             value={input}
@@ -484,94 +467,120 @@ export const ChatHome = memo(function ChatHome({ onSend, onSelectFolder, onClone
             aria-label={
               repoShort ? `Ask anything about ${repoShort}` : 'Describe what you want to build'
             }
-            className="w-full bg-transparent px-4 pt-2 pb-1 text-[14px] leading-[1.6] text-[var(--text-primary)] placeholder:text-[var(--text-disabled)] outline-none resize-none min-h-[52px] max-h-[200px] overflow-y-auto"
+            className="w-full bg-transparent px-4 pt-4 pb-1 text-[14px] leading-[1.6] text-[var(--text-primary)] placeholder:text-[var(--text-disabled)] outline-none resize-none min-h-[48px] max-h-[200px] overflow-y-auto"
           />
 
-          {/* Toolbar */}
-          <div className="px-3 pb-2 pt-0.5">
+          {/* Image previews */}
+          {imageAttachments.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 px-3 pb-1">
+              {imageAttachments.map((img, i) => (
+                <div
+                  key={i}
+                  className="relative group/img rounded-md border border-[var(--border)] bg-[var(--bg-subtle)] overflow-hidden"
+                  style={{ width: 72, height: 48 }}
+                >
+                  <img src={img.dataUrl} alt={img.name} className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover/img:opacity-100 transition-opacity flex items-end p-1">
+                    <span className="text-[7px] text-white/90 font-mono truncate">{img.name}</span>
+                  </div>
+                  {onRemoveImage && (
+                    <button
+                      onClick={() => onRemoveImage(i)}
+                      className="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-black/50 text-white/80 hover:bg-red-500/80 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-all cursor-pointer"
+                    >
+                      <Icon icon="lucide:x" width={7} height={7} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="px-3 pb-2.5 pt-0.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-0.5">
                 <IconButton icon="lucide:paperclip" title="Attach file" />
-                <IconButton icon="lucide:image-plus" title="Attach image" />
+                <IconButton icon="lucide:image-plus" title="Attach image" onClick={onImageAttach} />
                 <IconButton icon="lucide:at-sign" title="@ mention file" />
-                <div className="w-px h-4 bg-[var(--border)] mx-1" />
+                <div className="w-px h-3.5 bg-[var(--border)] mx-1.5" />
                 <ModeSelector mode={agentMode} onChange={setAgentMode} size="sm" />
               </div>
 
               <button
                 onClick={startOrSend}
                 aria-label={input.trim() ? 'Send message' : 'Start chat'}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all cursor-pointer active:scale-95 ${
+                className={`home-send-btn flex items-center justify-center w-8 h-8 rounded-lg text-[11px] font-medium transition-all cursor-pointer active:scale-95 ${
                   input.trim()
-                    ? 'bg-[var(--brand)] text-[var(--brand-contrast,#fff)] shadow-sm shadow-[color-mix(in_srgb,var(--brand)_25%,transparent)] hover:opacity-90'
-                    : 'bg-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[color-mix(in_srgb,var(--text-primary)_15%,transparent)]'
+                    ? 'bg-[var(--brand)] text-[var(--brand-contrast,#fff)] shadow-[0_0_12px_color-mix(in_srgb,var(--brand)_20%,transparent)]'
+                    : 'bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[color-mix(in_srgb,var(--text-primary)_12%,transparent)]'
                 }`}
               >
-                <span>{input.trim() ? 'Send' : 'Start'}</span>
-                <kbd className="text-[9px] opacity-60">↵</kbd>
+                <Icon
+                  icon={input.trim() ? 'lucide:arrow-up' : 'lucide:arrow-right'}
+                  width={14}
+                  height={14}
+                />
               </button>
-            </div>
-            {/* Keyboard hint */}
-            <div className="flex justify-center mt-1 text-[9px] text-[var(--text-disabled)] opacity-60">
-              Enter to {input.trim() ? 'send' : 'start'} · Shift+Enter for newline
             </div>
           </div>
         </div>
 
-        {/* Quick action cards */}
-        <div className="mt-5">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {suggestions.slice(0, 4).map((a, i) => (
-              <button
-                key={a.label}
-                onClick={() => {
-                  onSend(a.prompt, agentMode)
-                }}
-                aria-label={a.prompt}
-                className="quick-action-card chip-enter flex items-center gap-2 px-3 py-2.5 rounded-lg text-[12px] font-medium bg-[var(--bg-elevated)] text-[var(--text-secondary)] border border-[var(--border)] hover:text-[var(--text-primary)] cursor-pointer"
-                style={{ animationDelay: `${i * 0.08}s` }}
-              >
-                <div className="w-7 h-7 rounded-md bg-[color-mix(in_srgb,var(--brand)_10%,transparent)] flex items-center justify-center shrink-0">
-                  <Icon icon={a.icon} width={14} height={14} className="text-[var(--brand)]" />
+        {/* Quick actions */}
+        <div className="mt-5 grid grid-cols-2 gap-2">
+          {suggestions.slice(0, 4).map((a, i) => (
+            <button
+              key={a.label}
+              onClick={() => onSend(a.prompt, agentMode)}
+              aria-label={a.prompt}
+              className="home-action-card chip-enter group flex items-start gap-3 px-3.5 py-3 rounded-lg text-left cursor-pointer border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-elevated)_60%,transparent)] backdrop-blur-sm"
+              style={{ animationDelay: `${i * 0.06}s` }}
+            >
+              <div className="w-7 h-7 rounded-md bg-[color-mix(in_srgb,var(--brand)_8%,transparent)] border border-[color-mix(in_srgb,var(--brand)_12%,transparent)] flex items-center justify-center shrink-0 mt-0.5">
+                <Icon
+                  icon={a.icon}
+                  width={13}
+                  height={13}
+                  className="text-[var(--brand)] opacity-70 group-hover:opacity-100 transition-opacity"
+                />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[12px] font-medium text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">
+                  {a.label}
                 </div>
-                <div className="text-left min-w-0">
-                  <div className="text-[12px] font-medium">{a.label}</div>
-                  {'desc' in a && a.desc && (
-                    <div className="text-[10px] text-[var(--text-disabled)] mt-0.5">{a.desc}</div>
-                  )}
-                </div>
-              </button>
-            ))}
-          </div>
+                {'desc' in a && a.desc && (
+                  <div className="text-[10px] text-[var(--text-disabled)] mt-0.5 leading-relaxed">
+                    {a.desc}
+                  </div>
+                )}
+              </div>
+            </button>
+          ))}
         </div>
 
         {/* Recent conversations */}
         {recentConversations.length > 0 && (
-          <div className="mt-4">
-            <p className="text-center text-[10px] uppercase tracking-[0.08em] text-[var(--text-disabled)] font-medium mb-2">
+          <div className="mt-6">
+            <p className="text-[10px] uppercase tracking-[0.1em] text-[var(--text-disabled)] font-medium mb-2 font-mono">
               Continue
             </p>
             {recentConversations.map((conv, i) => (
               <button
                 key={i}
-                onClick={() => {
-                  // Conversation already loaded — just scroll user into the chat
-                  onSend('', agentMode)
-                }}
+                onClick={() => onSend('', agentMode)}
                 className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left hover:bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)] transition-colors cursor-pointer group"
               >
                 <Icon
                   icon="lucide:message-square"
-                  width={13}
-                  height={13}
+                  width={12}
+                  height={12}
                   className="text-[var(--text-disabled)] group-hover:text-[var(--text-tertiary)] shrink-0"
                 />
                 <div className="min-w-0 flex-1">
                   <div className="text-[12px] text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] truncate">
                     {conv.title}
                   </div>
-                  <div className="text-[10px] text-[var(--text-disabled)]">
-                    {conv.messageCount} messages · {new Date(conv.timestamp).toLocaleDateString()}
+                  <div className="text-[10px] text-[var(--text-disabled)] font-mono">
+                    {conv.messageCount} msgs · {new Date(conv.timestamp).toLocaleDateString()}
                   </div>
                 </div>
               </button>
@@ -579,54 +588,51 @@ export const ChatHome = memo(function ChatHome({ onSend, onSelectFolder, onClone
           </div>
         )}
 
-        {/* Workspace actions — shown when no folder/repo is open */}
+        {/* Workspace setup */}
         {!hasWorkspace && (
-          <div className="mt-6 border-t border-[var(--border)] pt-4 space-y-3">
-            <div>
-              <h2 className="text-[12px] font-semibold text-[var(--text-primary)]">
-                Set up your workspace
-              </h2>
-              <p className="text-[11px] text-[var(--text-disabled)] mt-1">
-                Open local files or clone a repository to unlock context-aware help.
-              </p>
-            </div>
+          <div className="mt-8 space-y-4">
+            <div className="h-px bg-[var(--border)]" />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <button
                 onClick={onSelectFolder}
-                className="group flex items-center gap-2.5 p-2.5 rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] text-left hover:text-[var(--text-primary)] hover:border-[var(--text-disabled)] hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer"
+                className="home-action-card group flex items-center gap-3 p-3 rounded-lg border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-elevated)_60%,transparent)] text-left cursor-pointer"
               >
-                <Icon
-                  icon="lucide:folder-open"
-                  width={14}
-                  height={14}
-                  className="text-[var(--text-tertiary)]"
-                />
+                <div className="w-8 h-8 rounded-md bg-[color-mix(in_srgb,var(--text-primary)_5%,transparent)] border border-[var(--border)] flex items-center justify-center shrink-0">
+                  <Icon
+                    icon="lucide:folder-open"
+                    width={14}
+                    height={14}
+                    className="text-[var(--text-tertiary)]"
+                  />
+                </div>
                 <span className="min-w-0">
-                  <span className="block text-[12px] font-medium text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]">
+                  <span className="block text-[12px] font-medium text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">
                     Open Folder
                   </span>
-                  <span className="block text-[11px] text-[var(--text-disabled)]">
-                    Continue from a local project
+                  <span className="block text-[10px] text-[var(--text-disabled)] font-mono">
+                    local project
                   </span>
                 </span>
               </button>
               <button
                 onClick={onCloneRepo}
-                className="group flex items-center gap-2.5 p-2.5 rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] text-left hover:text-[var(--text-primary)] hover:border-[var(--text-disabled)] hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer"
+                className="home-action-card group flex items-center gap-3 p-3 rounded-lg border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-elevated)_60%,transparent)] text-left cursor-pointer"
               >
-                <Icon
-                  icon="lucide:git-branch"
-                  width={14}
-                  height={14}
-                  className="text-[var(--text-tertiary)]"
-                />
+                <div className="w-8 h-8 rounded-md bg-[color-mix(in_srgb,var(--text-primary)_5%,transparent)] border border-[var(--border)] flex items-center justify-center shrink-0">
+                  <Icon
+                    icon="lucide:git-branch"
+                    width={14}
+                    height={14}
+                    className="text-[var(--text-tertiary)]"
+                  />
+                </div>
                 <span className="min-w-0">
-                  <span className="block text-[12px] font-medium text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]">
+                  <span className="block text-[12px] font-medium text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">
                     Clone Repository
                   </span>
-                  <span className="block text-[11px] text-[var(--text-disabled)]">
-                    Pull from GitHub and start coding
+                  <span className="block text-[10px] text-[var(--text-disabled)] font-mono">
+                    from GitHub
                   </span>
                 </span>
               </button>
@@ -635,7 +641,7 @@ export const ChatHome = memo(function ChatHome({ onSend, onSelectFolder, onClone
             {/* Recent folders */}
             {recentFolders.length > 0 && (
               <div>
-                <p className="text-[10px] uppercase tracking-[0.08em] text-[var(--text-disabled)] font-medium mb-2">
+                <p className="text-[10px] uppercase tracking-[0.1em] text-[var(--text-disabled)] font-medium mb-2 font-mono">
                   Recent
                 </p>
                 <div className="flex flex-col gap-0.5">
@@ -650,15 +656,15 @@ export const ChatHome = memo(function ChatHome({ onSend, onSelectFolder, onClone
                       >
                         <Icon
                           icon="lucide:folder"
-                          width={14}
-                          height={14}
+                          width={13}
+                          height={13}
                           className="text-[var(--text-disabled)] group-hover:text-[var(--text-tertiary)] shrink-0"
                         />
                         <div className="min-w-0">
                           <div className="text-[12px] text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] truncate">
                             {name}
                           </div>
-                          <div className="text-[10px] text-[var(--text-disabled)] truncate">
+                          <div className="text-[10px] text-[var(--text-disabled)] truncate font-mono">
                             {parent}
                           </div>
                         </div>
@@ -669,14 +675,14 @@ export const ChatHome = memo(function ChatHome({ onSend, onSelectFolder, onClone
               </div>
             )}
 
-            {/* GitHub Token — collapsed by default */}
+            {/* GitHub Token */}
             <div>
               <button
                 onClick={() => setGhSectionOpen((v) => !v)}
                 className="w-full flex items-center gap-3 cursor-pointer group"
               >
                 <div className="flex-1 h-px bg-[var(--border)]" />
-                <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.08em] text-[var(--text-disabled)] font-medium group-hover:text-[var(--text-tertiary)] transition-colors">
+                <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.1em] text-[var(--text-disabled)] font-medium font-mono group-hover:text-[var(--text-tertiary)] transition-colors">
                   GitHub
                   {authenticated && (
                     <Icon
@@ -698,14 +704,14 @@ export const ChatHome = memo(function ChatHome({ onSend, onSelectFolder, onClone
               {ghSectionOpen && (
                 <div className="mt-2">
                   {authenticated ? (
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)]">
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-elevated)_60%,transparent)]">
                       <Icon
                         icon="lucide:check-circle"
                         width={14}
                         height={14}
                         className="text-[var(--success)] shrink-0"
                       />
-                      <span className="text-[12px] text-[var(--text-secondary)] flex-1 font-mono truncate">
+                      <span className="text-[11px] text-[var(--text-secondary)] flex-1 font-mono truncate">
                         {tokenRevealed ? ghToken : maskedToken}
                       </span>
                       <IconButton
@@ -735,7 +741,7 @@ export const ChatHome = memo(function ChatHome({ onSend, onSelectFolder, onClone
                     </div>
                   ) : showTokenInput ? (
                     <div className="flex items-center gap-1.5">
-                      <div className="flex-1 flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2 focus-within:border-[var(--border-focus)] transition-colors">
+                      <div className="flex-1 flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-elevated)_60%,transparent)] px-3 py-2 focus-within:border-[var(--border-focus)] transition-colors">
                         <Icon
                           icon="lucide:key"
                           width={13}
@@ -771,7 +777,7 @@ export const ChatHome = memo(function ChatHome({ onSend, onSelectFolder, onClone
                       <button
                         onClick={handleSaveToken}
                         disabled={!tokenDraft.trim()}
-                        className={`px-3.5 py-2 rounded-xl text-[12px] font-medium transition-all cursor-pointer ${
+                        className={`px-3.5 py-2 rounded-lg text-[12px] font-medium transition-all cursor-pointer ${
                           tokenDraft.trim()
                             ? 'bg-[var(--brand)] text-[var(--brand-contrast)] hover:bg-[var(--brand-hover)]'
                             : 'bg-[var(--bg-subtle)] text-[var(--text-disabled)] cursor-not-allowed'
@@ -793,55 +799,64 @@ export const ChatHome = memo(function ChatHome({ onSend, onSelectFolder, onClone
                   ) : (
                     <button
                       onClick={() => setShowTokenInput(true)}
-                      className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-dashed border-[var(--border)] text-[12px] text-[var(--text-disabled)] hover:text-[var(--text-secondary)] hover:border-[var(--text-disabled)] transition-all cursor-pointer"
+                      className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border border-dashed border-[var(--border)] text-[12px] text-[var(--text-disabled)] font-mono hover:text-[var(--text-secondary)] hover:border-[var(--text-disabled)] transition-all cursor-pointer"
                     >
                       <Icon icon="lucide:key" width={13} height={13} />
                       Add GitHub Token
                     </button>
                   )}
-                  <p className="text-[10px] text-[var(--text-disabled)] text-center mt-2">
+                  <p className="text-[10px] text-[var(--text-disabled)] text-center mt-2 font-mono">
                     {authenticated
                       ? tokenRevealed
-                        ? 'Token reveal auto-hides after 15s. Avoid screen sharing.'
+                        ? 'Token reveal auto-hides after 15s.'
                         : tokenCopied
-                          ? 'Token copied to clipboard.'
-                          : 'Desktop stores token in OS keychain. Web keeps token in memory only.'
-                      : 'Required for remote repos. Generate at github.com/settings/tokens'}
+                          ? 'Copied.'
+                          : 'Stored in OS keychain.'
+                      : 'github.com/settings/tokens'}
                   </p>
                 </div>
               )}
             </div>
 
-            {/* Agent customization banner */}
+            {/* Agent customization */}
             {!agentConfig && (
               <button
                 onClick={() => emit('open-agent-settings')}
-                className="agent-banner w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg border border-[var(--border)] text-left cursor-pointer"
+                className="home-action-card w-full flex items-center gap-3 px-3.5 py-3 rounded-lg border border-[var(--border)] text-left cursor-pointer group"
               >
-                <Icon
-                  icon="lucide:sparkles"
-                  width={14}
-                  height={14}
-                  className="text-[var(--brand)] shrink-0"
-                />
-                <div className="min-w-0">
-                  <span className="block text-[12px] font-medium text-[var(--text-secondary)]">
-                    Customize your AI agent
+                <div className="w-7 h-7 rounded-md bg-[color-mix(in_srgb,var(--brand)_8%,transparent)] border border-[color-mix(in_srgb,var(--brand)_12%,transparent)] flex items-center justify-center shrink-0">
+                  <Icon
+                    icon="lucide:sparkles"
+                    width={13}
+                    height={13}
+                    className="text-[var(--brand)] opacity-70"
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <span className="block text-[12px] font-medium text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">
+                    Configure Agent
                   </span>
-                  <span className="block text-[10px] text-[var(--text-disabled)]">
-                    Set up persona and behavior
+                  <span className="block text-[10px] text-[var(--text-disabled)] font-mono">
+                    persona & behavior
                   </span>
                 </div>
                 <Icon
                   icon="lucide:chevron-right"
                   width={12}
                   height={12}
-                  className="text-[var(--text-disabled)] shrink-0 ml-auto"
+                  className="text-[var(--text-disabled)] shrink-0"
                 />
               </button>
             )}
           </div>
         )}
+
+        {/* Footer watermark */}
+        <div className="mt-8 flex justify-center">
+          <span className="text-[10px] font-mono tracking-[0.08em] text-[var(--text-disabled)] opacity-40 uppercase">
+            KnotCode
+          </span>
+        </div>
       </div>
     </div>
   )

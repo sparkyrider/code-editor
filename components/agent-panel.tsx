@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo, type DragEvent } from 'react'
 import { Icon } from '@iconify/react'
 import { ModeSelector } from '@/components/mode-selector'
 import { ChatHome } from '@/components/chat-home'
@@ -28,6 +28,7 @@ import { emit, on } from '@/lib/events'
 import { copyToClipboard } from '@/lib/clipboard'
 import type { PlanStep } from '@/components/plan-view'
 import { navigateToLine } from '@/lib/line-links'
+import { useChatAppearance, FONT_OPTIONS } from '@/context/chat-appearance-context'
 import {
   CODE_EDITOR_SESSION_KEY,
   SESSION_INIT_STORAGE_KEY,
@@ -169,6 +170,14 @@ export function AgentPanel() {
   const { repo, tree: repoTree } = useRepo()
   const local = useLocal()
   const permissions = usePermissions()
+  const {
+    chatFontSize,
+    chatFontFamily,
+    chatFontCss,
+    increaseFontSize,
+    decreaseFontSize,
+    setChatFontFamily,
+  } = useChatAppearance()
 
   // Single persistent session — no multi-chat
   const sessionKey = CODE_EDITOR_SESSION_KEY
@@ -527,6 +536,86 @@ export function AgentPanel() {
       }
     }
     picker.click()
+  }, [])
+
+  const handleImageAttach = useCallback(() => {
+    const picker = document.createElement('input')
+    picker.type = 'file'
+    picker.multiple = true
+    picker.accept = 'image/*'
+    picker.onchange = () => {
+      const selected = Array.from(picker.files || []).slice(0, 5)
+      for (const file of selected) {
+        const reader = new FileReader()
+        reader.onload = () => {
+          setImageAttachments((prev) => [
+            ...prev,
+            { name: file.name, dataUrl: reader.result as string },
+          ])
+        }
+        reader.readAsDataURL(file)
+      }
+    }
+    picker.click()
+  }, [])
+
+  // ─── Full-panel drag-and-drop overlay ─────────────────────
+  const [panelDragOver, setPanelDragOver] = useState(false)
+  const dragCounterRef = useRef(0)
+
+  const handlePanelDragEnter = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    dragCounterRef.current++
+    if (e.dataTransfer.types.includes('Files')) {
+      setPanelDragOver(true)
+    }
+  }, [])
+
+  const handlePanelDragLeave = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    dragCounterRef.current--
+    if (dragCounterRef.current <= 0) {
+      dragCounterRef.current = 0
+      setPanelDragOver(false)
+    }
+  }, [])
+
+  const handlePanelDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'copy'
+  }, [])
+
+  const handlePanelDrop = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    dragCounterRef.current = 0
+    setPanelDragOver(false)
+    const dropped = Array.from(e.dataTransfer.files).slice(0, 5)
+    for (const file of dropped) {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader()
+        reader.onload = () => {
+          setImageAttachments((prev) => [
+            ...prev,
+            { name: file.name, dataUrl: reader.result as string },
+          ])
+        }
+        reader.readAsDataURL(file)
+      } else {
+        const reader = new FileReader()
+        reader.onload = () => {
+          setContextAttachments((prev) => [
+            ...prev,
+            {
+              type: 'file' as const,
+              path: file.name,
+              content: (reader.result as string).slice(0, 12000),
+            },
+          ])
+        }
+        reader.readAsText(file)
+      }
+    }
+    inputRef.current?.focus()
   }, [])
 
   // ─── Estimate context token usage ──────────────────────────
@@ -989,12 +1078,17 @@ export function AgentPanel() {
       attachLabels.push(`🖼 ${img.name}`)
     }
     const displayText = attachLabels.length > 0 ? `[${attachLabels.join(' · ')}]\n${text}` : text
+    const messageImages =
+      imageAttachments.length > 0
+        ? imageAttachments.map((img) => ({ name: img.name, dataUrl: img.dataUrl }))
+        : undefined
     appendMessage({
       id: crypto.randomUUID(),
       role: 'user',
       type: 'text',
       content: displayText,
       timestamp: Date.now(),
+      images: messageImages,
     })
 
     if (!isConnected) {
@@ -1505,7 +1599,40 @@ export function AgentPanel() {
       .replace(/\n/g, ' ') || null
 
   return (
-    <div className="flex flex-col h-full w-full overflow-hidden bg-[var(--sidebar-bg)]">
+    <div
+      className="flex flex-col h-full w-full overflow-hidden bg-[var(--sidebar-bg)] relative"
+      onDragEnter={handlePanelDragEnter}
+      onDragLeave={handlePanelDragLeave}
+      onDragOver={handlePanelDragOver}
+      onDrop={handlePanelDrop}
+    >
+      {/* Drag-and-drop overlay */}
+      {panelDragOver && (
+        <div className="absolute inset-0 z-[100] bg-[color-mix(in_srgb,var(--bg)_85%,transparent)] backdrop-blur-sm flex items-center justify-center pointer-events-none">
+          <div
+            className="flex flex-col items-center gap-3 p-8 rounded-2xl border-2 border-dashed border-[var(--brand)] bg-[color-mix(in_srgb,var(--brand)_6%,transparent)] animate-fade-in"
+            style={{ animationDuration: '0.15s' }}
+          >
+            <div className="w-14 h-14 rounded-xl bg-[color-mix(in_srgb,var(--brand)_12%,transparent)] flex items-center justify-center">
+              <Icon
+                icon="lucide:image-plus"
+                width={28}
+                height={28}
+                className="text-[var(--brand)]"
+              />
+            </div>
+            <div className="text-center">
+              <p className="text-[14px] font-semibold text-[var(--text-primary)]">
+                Drop files here
+              </p>
+              <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">
+                Images, code files, or documents
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header — children are no-drag so they stay clickable above drag region */}
       <ChatHeader
         title={chatTitle ?? undefined}
@@ -1515,7 +1642,45 @@ export function AgentPanel() {
         contextTokens={contextTokens}
       />
       {messages.length > 0 && (
-        <div className="flex items-center justify-end px-3 py-1 border-b border-[var(--border)] bg-[var(--bg-elevated)] shrink-0">
+        <div className="flex items-center justify-between px-3 py-0.5 border-b border-[var(--border)] bg-[var(--bg-elevated)] shrink-0">
+          <div className="flex items-center gap-1">
+            {/* Font size controls */}
+            <button
+              onClick={decreaseFontSize}
+              className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer"
+              title="Decrease text size (⌘-)"
+            >
+              <Icon icon="lucide:minus" width={12} height={12} />
+            </button>
+            <span className="text-[9px] font-mono text-[var(--text-disabled)] w-5 text-center tabular-nums select-none">
+              {chatFontSize}
+            </span>
+            <button
+              onClick={increaseFontSize}
+              className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer"
+              title="Increase text size (⌘+)"
+            >
+              <Icon icon="lucide:plus" width={12} height={12} />
+            </button>
+
+            <span className="w-px h-3.5 bg-[var(--border)] mx-1" />
+
+            {/* Font family picker */}
+            {FONT_OPTIONS.map((f) => (
+              <button
+                key={f.id}
+                onClick={() => setChatFontFamily(f.id)}
+                className={`px-1.5 py-0.5 rounded text-[9px] font-medium transition-colors cursor-pointer ${
+                  chatFontFamily === f.id
+                    ? 'text-[var(--brand)] bg-[color-mix(in_srgb,var(--brand)_10%,transparent)]'
+                    : 'text-[var(--text-disabled)] hover:text-[var(--text-tertiary)]'
+                }`}
+                title={`${f.label} font`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
           <button
             onClick={handleClear}
             className={`p-1 rounded text-[10px] transition-colors cursor-pointer ${
@@ -1551,6 +1716,9 @@ export function AgentPanel() {
           }}
           onSelectFolder={() => emit('open-folder')}
           onCloneRepo={() => emit('open-folder')}
+          onImageAttach={handleImageAttach}
+          imageAttachments={imageAttachments}
+          onRemoveImage={(i) => setImageAttachments((prev) => prev.filter((_, j) => j !== i))}
         />
       )}
 
@@ -1602,16 +1770,17 @@ export function AgentPanel() {
           onFileDrop={handleFileDrop}
           onImagePaste={handleImagePaste}
           onFileAttach={handleFileAttach}
+          onImageAttach={handleImageAttach}
         />
       )}
 
       {/* Branded footer */}
-      <div className="shrink-0 flex items-center justify-center gap-1.5 px-3 py-1 border-t border-[var(--border)] bg-[var(--bg-elevated)]">
-        <KnotLogo size={10} className="opacity-40" />
-        <span className="text-[9px] text-[var(--text-disabled)] font-medium tracking-wide">
+      <div className="shrink-0 flex items-center justify-center gap-1.5 px-3 py-0.5 border-t border-[var(--border)] bg-[var(--bg-elevated)]">
+        <KnotLogo size={9} className="opacity-40" />
+        <span className="text-[8px] text-[var(--text-disabled)] font-medium tracking-wide">
           KnotCode
         </span>
-        <span className="text-[8px] text-[var(--text-disabled)] opacity-50">v1.0.0</span>
+        <span className="text-[7px] text-[var(--text-disabled)] opacity-50">v1.0.0</span>
       </div>
     </div>
   )

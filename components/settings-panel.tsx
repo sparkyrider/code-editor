@@ -8,6 +8,7 @@ import { usePlugins } from '@/context/plugin-context'
 import { useGitHubAuth } from '@/context/github-auth-context'
 import { AgentBuilder, AgentSummary } from '@/components/agent-builder'
 import { type AgentConfig, getAgentConfig, clearAgentConfig } from '@/lib/agent-session'
+import { isTauri, tauriReadFileBase64 } from '@/lib/tauri'
 
 interface Props {
   open: boolean
@@ -555,81 +556,12 @@ export function SettingsPanel({ open, onClose, initialTab }: Props) {
               </Section>
 
               <Section title="Terminal Background">
-                <div className="space-y-3">
-                  {terminalBg ? (
-                    <div className="relative rounded-lg overflow-hidden border border-[var(--border)] group">
-                      <div
-                        className="w-full h-20 bg-cover bg-center"
-                        style={{ backgroundImage: `url(${terminalBg})` }}
-                      />
-                      <div
-                        className="absolute inset-0 pointer-events-none"
-                        style={{
-                          backgroundColor: `color-mix(in srgb, var(--bg) ${terminalBgOpacity}%, transparent)`,
-                        }}
-                      />
-                      <button
-                        onClick={() => setTerminalBg(null)}
-                        className="absolute top-1.5 right-1.5 p-1 rounded-md bg-black/60 text-white/80 hover:text-white hover:bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                        title="Remove background"
-                      >
-                        <Icon icon="lucide:x" width={10} height={10} />
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={async () => {
-                        const input = document.createElement('input')
-                        input.type = 'file'
-                        input.accept = 'image/*'
-                        input.onchange = () => {
-                          const file = input.files?.[0]
-                          if (!file) return
-                          const reader = new FileReader()
-                          reader.onload = () => {
-                            const dataUrl = reader.result as string
-                            setTerminalBg(dataUrl)
-                          }
-                          reader.readAsDataURL(file)
-                        }
-                        input.click()
-                      }}
-                      className="w-full flex items-center justify-center gap-2 px-3 py-3 rounded-lg border border-dashed border-[var(--border)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:border-[var(--text-disabled)] transition-all cursor-pointer"
-                    >
-                      <Icon icon="lucide:image-plus" width={14} height={14} />
-                      <span className="text-[10px] font-medium">Choose image</span>
-                    </button>
-                  )}
-                  {terminalBg && (
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-[var(--text-tertiary)]">
-                          Theme overlay
-                        </span>
-                        <span className="text-[10px] font-mono text-[var(--text-tertiary)] w-8 text-right tabular-nums">
-                          {terminalBgOpacity}%
-                        </span>
-                      </div>
-                      <input
-                        type="range"
-                        min={0}
-                        max={95}
-                        step={5}
-                        value={terminalBgOpacity}
-                        onChange={(e) => setTerminalBgOpacity(Number(e.target.value))}
-                        className="w-full h-1 appearance-none rounded-full bg-[var(--bg-tertiary)] accent-[var(--brand)] cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[var(--brand)] [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:cursor-pointer"
-                      />
-                      <div className="flex items-center justify-between text-[8px] text-[var(--text-disabled)]">
-                        <span>Image only</span>
-                        <span>Mostly theme</span>
-                      </div>
-                    </div>
-                  )}
-                  <p className="text-[9px] text-[var(--text-disabled)]">
-                    Set a wallpaper behind your terminal. The theme overlay blends your current
-                    theme on top.
-                  </p>
-                </div>
+                <TerminalBgPicker
+                  terminalBg={terminalBg}
+                  terminalBgOpacity={terminalBgOpacity}
+                  setTerminalBg={setTerminalBg}
+                  setTerminalBgOpacity={setTerminalBgOpacity}
+                />
               </Section>
             </>
           )}
@@ -708,6 +640,213 @@ export function SettingsPanel({ open, onClose, initialTab }: Props) {
           )}
         </div>
       </div>
+    </div>
+  )
+}
+
+/* ── Terminal Background Picker ──────────────────────────── */
+
+function mimeFromExt(path: string): string {
+  const ext = path.split('.').pop()?.toLowerCase() ?? ''
+  const map: Record<string, string> = {
+    png: 'image/png',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    gif: 'image/gif',
+    webp: 'image/webp',
+    svg: 'image/svg+xml',
+    bmp: 'image/bmp',
+    avif: 'image/avif',
+  }
+  return map[ext] ?? 'image/png'
+}
+
+async function loadImageFromPath(absolutePath: string): Promise<string | null> {
+  const base64 = await tauriReadFileBase64(absolutePath)
+  if (!base64) return null
+  return `data:${mimeFromExt(absolutePath)};base64,${base64}`
+}
+
+function TerminalBgPicker({
+  terminalBg,
+  terminalBgOpacity,
+  setTerminalBg,
+  setTerminalBgOpacity,
+}: {
+  terminalBg: string | null
+  terminalBgOpacity: number
+  setTerminalBg: (url: string | null) => void
+  setTerminalBgOpacity: (v: number) => void
+}) {
+  const [pathDraft, setPathDraft] = useState('')
+  const [pathError, setPathError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const desktop = isTauri()
+
+  const applyPath = useCallback(
+    async (filePath: string) => {
+      const trimmed = filePath.trim()
+      if (!trimmed) return
+      setLoading(true)
+      setPathError(null)
+      try {
+        const dataUrl = await loadImageFromPath(trimmed)
+        if (dataUrl) {
+          setTerminalBg(dataUrl)
+          setPathDraft('')
+        } else {
+          setPathError('Could not read image file')
+        }
+      } catch {
+        setPathError('Failed to load image')
+      } finally {
+        setLoading(false)
+      }
+    },
+    [setTerminalBg],
+  )
+
+  const pickWithNativeDialog = useCallback(async () => {
+    try {
+      const { open } = await import('@tauri-apps/plugin-dialog')
+      const selected = await open({
+        multiple: false,
+        title: 'Choose terminal background',
+        filters: [
+          {
+            name: 'Images',
+            extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'avif'],
+          },
+        ],
+      })
+      if (selected && typeof selected === 'string') {
+        await applyPath(selected)
+      }
+    } catch {
+      setPathError('File dialog unavailable')
+    }
+  }, [applyPath])
+
+  const pickWithFileInput = useCallback(() => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/*'
+    input.onchange = () => {
+      const file = input.files?.[0]
+      if (!file) return
+      const reader = new FileReader()
+      reader.onload = () => {
+        setTerminalBg(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+    input.click()
+  }, [setTerminalBg])
+
+  return (
+    <div className="space-y-3">
+      {terminalBg ? (
+        <div className="relative rounded-lg overflow-hidden border border-[var(--border)] group">
+          <div
+            className="w-full h-20 bg-cover bg-center"
+            style={{ backgroundImage: `url(${terminalBg})` }}
+          />
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              backgroundColor: `color-mix(in srgb, var(--bg) ${terminalBgOpacity}%, transparent)`,
+            }}
+          />
+          <button
+            onClick={() => setTerminalBg(null)}
+            className="absolute top-1.5 right-1.5 p-1 rounded-md bg-black/60 text-white/80 hover:text-white hover:bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+            title="Remove background"
+          >
+            <Icon icon="lucide:x" width={10} height={10} />
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <button
+            onClick={desktop ? pickWithNativeDialog : pickWithFileInput}
+            className="w-full flex items-center justify-center gap-2 px-3 py-3 rounded-lg border border-dashed border-[var(--border)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:border-[var(--text-disabled)] transition-all cursor-pointer"
+          >
+            {loading ? (
+              <Icon icon="lucide:loader-2" width={14} height={14} className="animate-spin" />
+            ) : (
+              <Icon icon="lucide:image-plus" width={14} height={14} />
+            )}
+            <span className="text-[10px] font-medium">{loading ? 'Loading…' : 'Choose image'}</span>
+          </button>
+
+          {desktop && (
+            <div className="flex items-center gap-1.5">
+              <div className="flex-1 flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-2.5 py-1.5 focus-within:border-[var(--border-focus)] transition-colors">
+                <Icon
+                  icon="lucide:file-image"
+                  width={11}
+                  height={11}
+                  className="text-[var(--text-disabled)] shrink-0"
+                />
+                <input
+                  type="text"
+                  value={pathDraft}
+                  onChange={(e) => {
+                    setPathDraft(e.target.value)
+                    setPathError(null)
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && pathDraft.trim()) {
+                      void applyPath(pathDraft)
+                    }
+                  }}
+                  placeholder="/path/to/image.png"
+                  className="flex-1 bg-transparent text-[10px] font-mono text-[var(--text-primary)] placeholder:text-[var(--text-disabled)] outline-none min-w-0"
+                  spellCheck={false}
+                />
+              </div>
+              <button
+                onClick={() => pathDraft.trim() && applyPath(pathDraft)}
+                disabled={!pathDraft.trim() || loading}
+                className={`px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-colors cursor-pointer ${pathDraft.trim() ? 'bg-[var(--brand)] text-[var(--brand-contrast)] hover:opacity-90' : 'bg-[var(--bg-subtle)] text-[var(--text-disabled)] cursor-not-allowed'}`}
+              >
+                Set
+              </button>
+            </div>
+          )}
+          {pathError && (
+            <p className="text-[9px] text-[var(--color-deletions,#ef4444)]">{pathError}</p>
+          )}
+        </div>
+      )}
+      {terminalBg && (
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-[var(--text-tertiary)]">Theme overlay</span>
+            <span className="text-[10px] font-mono text-[var(--text-tertiary)] w-8 text-right tabular-nums">
+              {terminalBgOpacity}%
+            </span>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={95}
+            step={5}
+            value={terminalBgOpacity}
+            onChange={(e) => setTerminalBgOpacity(Number(e.target.value))}
+            className="w-full h-1 appearance-none rounded-full bg-[var(--bg-tertiary)] accent-[var(--brand)] cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[var(--brand)] [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:cursor-pointer"
+          />
+          <div className="flex items-center justify-between text-[8px] text-[var(--text-disabled)]">
+            <span>Image only</span>
+            <span>Mostly theme</span>
+          </div>
+        </div>
+      )}
+      <p className="text-[9px] text-[var(--text-disabled)]">
+        {desktop
+          ? 'Pick an image or paste an absolute path. The theme overlay blends your current theme on top.'
+          : 'Set a wallpaper behind your terminal. The theme overlay blends your current theme on top.'}
+      </p>
     </div>
   )
 }

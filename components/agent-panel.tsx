@@ -40,20 +40,12 @@ interface ChatMessage {
 }
 
 function AgentConnectPrompt() {
-  const { status, error, connect, gatewayUrl } = useGateway()
-  const [url, setUrl] = useState('')
+  const { status, error, connect } = useGateway()
+  const [showManual, setShowManual] = useState(false)
+  const [url, setUrl] = useState('ws://localhost:18789')
   const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
 
   const isConnecting = status === 'connecting' || status === 'authenticating'
-
-  useEffect(() => {
-    try {
-      const savedUrl = localStorage.getItem('code-flow:gateway-url')
-      if (savedUrl && !url) setUrl(savedUrl)
-    } catch {}
-    if (gatewayUrl && !url) setUrl(gatewayUrl)
-  }, [gatewayUrl])
 
   const handleConnect = () => {
     if (!url.trim()) return
@@ -64,81 +56,84 @@ function AgentConnectPrompt() {
     <div className="flex flex-col items-center justify-center text-center py-8 px-4">
       <div className="relative mb-5">
         <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[color-mix(in_srgb,var(--brand)_20%,transparent)] to-[color-mix(in_srgb,var(--brand)_6%,transparent)] border border-[color-mix(in_srgb,var(--brand)_25%,transparent)] flex items-center justify-center shadow-lg">
-          <Icon icon="lucide:cpu" width={28} height={28} className="text-[var(--brand)]" />
+          <Icon icon={isConnecting ? 'lucide:loader-2' : 'lucide:cpu'} width={28} height={28} className={`text-[var(--brand)] ${isConnecting ? 'animate-spin' : ''}`} />
         </div>
-        <span className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[var(--sidebar-bg)] ${
+        <span className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[var(--bg)] ${
           isConnecting ? 'bg-[var(--warning,#eab308)] animate-pulse' : 'bg-[var(--text-disabled)]'
         }`} />
       </div>
 
-      <h3 className="text-[16px] font-semibold text-[var(--text-primary)] mb-1.5">Connect to Gateway</h3>
-      <p className="text-[13px] text-[var(--text-tertiary)] leading-relaxed mb-5 max-w-[280px]">
-        Your OpenClaw gateway powers the AI agent. Connect to enable completions, chat, and slash commands.
-      </p>
+      {isConnecting ? (
+        <>
+          <h3 className="text-[16px] font-semibold text-[var(--text-primary)] mb-1.5">Connecting…</h3>
+          <p className="text-[13px] text-[var(--text-tertiary)]">Looking for OpenClaw gateway</p>
+        </>
+      ) : (
+        <>
+          <h3 className="text-[16px] font-semibold text-[var(--text-primary)] mb-1.5">Gateway not found</h3>
+          <p className="text-[13px] text-[var(--text-tertiary)] leading-relaxed mb-4 max-w-[280px]">
+            Make sure OpenClaw is running on this machine.
+          </p>
 
-      <div className="w-full max-w-[300px] space-y-2.5">
-        <input
-          type="text"
-          value={url || 'ws://openclaw.local:18789'}
-          onChange={e => setUrl(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') handleConnect() }}
-          placeholder="ws://openclaw.local:18789"
-          className="w-full px-3 py-2.5 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-[13px] font-mono text-[var(--text-primary)] placeholder:text-[var(--text-disabled)] outline-none focus:border-[var(--border-focus)] transition-colors"
-          disabled={isConnecting}
-        />
-        <div className="relative">
-          <input
-            type={showPassword ? 'text' : 'password'}
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') handleConnect() }}
-            placeholder="Password (optional)"
-            className="w-full px-3 py-2.5 pr-9 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-[13px] font-mono text-[var(--text-primary)] placeholder:text-[var(--text-disabled)] outline-none focus:border-[var(--border-focus)] transition-colors"
-            disabled={isConnecting}
-          />
-          <button
-            onClick={() => setShowPassword(v => !v)}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] cursor-pointer p-0.5"
-            tabIndex={-1}
-          >
-            <Icon icon={showPassword ? 'lucide:eye-off' : 'lucide:eye'} width={14} height={14} />
-          </button>
-        </div>
-        <button
-          onClick={handleConnect}
-          disabled={!url.trim() || isConnecting}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-[13px] font-medium transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{
-            backgroundColor: 'var(--brand)',
-            color: 'var(--brand-contrast, #fff)',
-          }}
-        >
-          {isConnecting ? (
-            <Icon icon="lucide:loader-2" width={14} height={14} className="animate-spin" />
-          ) : (
-            <Icon icon="lucide:plug" width={14} height={14} />
+          <div className="space-y-2.5 w-full max-w-[280px]">
+            <button
+              onClick={() => connect('ws://localhost:18789', '')}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-[13px] font-medium transition-all cursor-pointer"
+              style={{ backgroundColor: 'var(--brand)', color: 'var(--brand-contrast, #fff)' }}
+            >
+              <Icon icon="lucide:refresh-cw" width={14} height={14} />
+              Retry connection
+            </button>
+
+            <button
+              onClick={() => setShowManual(v => !v)}
+              className="w-full flex items-center justify-center gap-1.5 py-2 text-[12px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
+            >
+              <Icon icon="lucide:settings-2" width={12} height={12} />
+              {showManual ? 'Hide' : 'Manual connection'}
+            </button>
+
+            {showManual && (
+              <div className="space-y-2 pt-1">
+                <input
+                  type="text"
+                  value={url}
+                  onChange={e => setUrl(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleConnect() }}
+                  placeholder="ws://localhost:18789"
+                  className="w-full px-3 py-2 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-[12px] font-mono text-[var(--text-primary)] placeholder:text-[var(--text-disabled)] outline-none focus:border-[var(--border-focus)]"
+                />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleConnect() }}
+                  placeholder="Password (if set)"
+                  className="w-full px-3 py-2 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-[12px] font-mono text-[var(--text-primary)] placeholder:text-[var(--text-disabled)] outline-none focus:border-[var(--border-focus)]"
+                />
+                <button
+                  onClick={handleConnect}
+                  disabled={!url.trim()}
+                  className="w-full py-2 rounded-lg text-[12px] font-medium bg-[var(--bg-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  Connect
+                </button>
+              </div>
+            )}
+          </div>
+
+          {error && (
+            <div className="flex items-start gap-2 mt-3 text-[11px] text-[var(--color-deletions)] max-w-[280px] text-left">
+              <Icon icon="lucide:alert-circle" width={12} height={12} className="shrink-0 mt-0.5" />
+              <span>{error}</span>
+            </div>
           )}
-          {isConnecting ? 'Connecting…' : 'Connect'}
-        </button>
-      </div>
 
-      {status === 'error' && error && (
-        <div className="flex items-start gap-2 mt-4 text-[12px] text-[var(--color-deletions)] max-w-[300px] text-left">
-          <Icon icon="lucide:alert-circle" width={14} height={14} className="shrink-0 mt-0.5" />
-          <span className="leading-relaxed">{error}</span>
-        </div>
+          <p className="mt-5 text-[11px] text-[var(--text-disabled)]">
+            Run <code className="px-1 py-0.5 bg-[var(--bg-secondary)] rounded text-[var(--brand)]">openclaw gateway start</code> to start
+          </p>
+        </>
       )}
-
-      <div className="mt-6 space-y-2 text-[12px] text-[var(--text-disabled)] max-w-[260px]">
-        <div className="flex items-center gap-2">
-          <Icon icon="lucide:shield" width={13} height={13} />
-          <span>Runs locally. Code never leaves your machine</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Icon icon="lucide:zap" width={13} height={13} />
-          <span>Works with any LLM provider</span>
-        </div>
-      </div>
     </div>
   )
 }

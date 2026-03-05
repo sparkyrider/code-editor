@@ -448,10 +448,28 @@ export function GatewayProvider({ children }: { children: React.ReactNode }) {
             localStorage.setItem(STORAGE_URL, config.url)
             localStorage.setItem(STORAGE_PASS, config.password)
             doConnect(config.url, config.password)
+            return
           }
         } catch {
-          // Config not found or parse error — that's fine, gateway is optional
+          // Config not found or parse error — fall through to localhost discovery
         }
+      }
+
+      // 3. Auto-discover local gateway at default port (no password)
+      if (cancelled) return
+      try {
+        const localUrl = 'ws://localhost:18789'
+        const probe = await fetch('http://localhost:18789/health', { signal: AbortSignal.timeout(2000) }).catch(() => null)
+        if (cancelled) return
+        if (probe && probe.ok) {
+          credentialsRef.current = { url: localUrl, password: '' }
+          setGatewayUrl(localUrl)
+          localStorage.setItem(STORAGE_URL, localUrl)
+          localStorage.setItem(STORAGE_PASS, '')
+          doConnect(localUrl, '')
+        }
+      } catch {
+        // No local gateway found — user will see the connect prompt
       }
     })()
 

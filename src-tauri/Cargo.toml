@@ -1,8 +1,8 @@
 [package]
 name = "app"
 version = "0.8.0"
-description = "A Tauri App"
-authors = ["you"]
+description = "Knot Code — AI-native desktop code editor by OpenKnots"
+authors = ["OpenKnots"]
 license = ""
 repository = ""
 edition = "2021"

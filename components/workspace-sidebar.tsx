@@ -7,7 +7,7 @@ import { KnotLogo } from '@/components/knot-logo'
 import { isTauri } from '@/lib/tauri'
 import { useGateway } from '@/context/gateway-context'
 import { useLayout, usePanelResize } from '@/context/layout-context'
-import { CODE_EDITOR_SESSION_KEY } from '@/lib/agent-session'
+import { CODE_EDITOR_SESSION_KEY, SESSION_INIT_STORAGE_KEY, CODE_EDITOR_SYSTEM_PROMPT_VERSION } from '@/lib/agent-session'
 
 export interface ChatSession {
   id: string
@@ -112,7 +112,7 @@ export function WorkspaceSidebar({ activeId, onSelect, onNew, onDelete, collapse
       sendRequest('sessions.delete', { key: sessionKey }).catch(() => {})
     }
     try { localStorage.removeItem(`code-editor:chat:${id}`) } catch {}
-    try { sessionStorage.removeItem(`code-editor:session-init:${sessionKey}`) } catch {}
+    try { sessionStorage.removeItem(`${SESSION_INIT_STORAGE_KEY}:${sessionKey}:v${CODE_EDITOR_SYSTEM_PROMPT_VERSION}`) } catch {}
     onDelete?.(id)
   }, [onDelete, sendRequest, gwStatus])
 

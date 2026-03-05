@@ -37,30 +37,65 @@ export function AiCard({ card }: Props) {
       const data = payload as Record<string, unknown>
       if (data.sessionKey !== sessionKeyRef.current) return
 
-      if (data.type === 'delta') {
-        setStreamContent(prev => prev + (data.content as string ?? ''))
-      } else if (data.type === 'final') {
-        const content = data.content as string ?? streamContent
-        const msg: AiMessage = {
-          id: crypto.randomUUID(),
-          role: 'assistant',
-          content,
-          timestamp: Date.now(),
-        }
-        updateCard(card.id, { aiMessages: [...messages, msg] })
-        setStreamContent('')
-        setStreaming(false)
-      } else if (data.type === 'error' || data.type === 'aborted') {
-        if (streamContent) {
-          const msg: AiMessage = {
-            id: crypto.randomUUID(),
-            role: 'assistant',
-            content: streamContent || (data.type === 'error' ? 'An error occurred.' : 'Response was cancelled.'),
-            timestamp: Date.now(),
+      const state = (data.state ?? data.type) as string | undefined
+
+      if (state === 'delta') {
+        const message = data.message as Record<string, unknown> | undefined
+        let text = ''
+        if (message) {
+          const content = message.content as string | Array<Record<string, unknown>> | undefined
+          if (typeof content === 'string') text = content
+          else if (Array.isArray(content)) {
+            text = content
+              .filter((b) => b.type === 'text' || b.type === 'output_text')
+              .map((b) => (b.text as string) || '')
+              .join('')
           }
-          updateCard(card.id, { aiMessages: [...messages, msg] })
         }
-        setStreamContent('')
+        if (!text) text = (data.content as string) ?? ''
+        if (text) setStreamContent(prev => prev + text)
+      } else if (state === 'final') {
+        const message = data.message as Record<string, unknown> | undefined
+        let finalText = ''
+        if (message) {
+          const content = message.content as string | Array<Record<string, unknown>> | undefined
+          if (typeof content === 'string') finalText = content
+          else if (Array.isArray(content)) {
+            finalText = content
+              .filter((b) => b.type === 'text' || b.type === 'output_text')
+              .map((b) => (b.text as string) || '')
+              .join('')
+          }
+        }
+        if (!finalText) finalText = (data.content as string) ?? ''
+        setStreamContent(prev => {
+          const text = finalText || prev
+          if (text) {
+            const msg: AiMessage = {
+              id: crypto.randomUUID(),
+              role: 'assistant',
+              content: text,
+              timestamp: Date.now(),
+            }
+            updateCard(card.id, { aiMessages: [...messages, msg] })
+          }
+          return ''
+        })
+        setStreaming(false)
+      } else if (state === 'error' || state === 'aborted') {
+        setStreamContent(prev => {
+          const errorContent = prev || (state === 'error' ? 'An error occurred.' : 'Response was cancelled.')
+          if (errorContent) {
+            const msg: AiMessage = {
+              id: crypto.randomUUID(),
+              role: 'assistant',
+              content: errorContent,
+              timestamp: Date.now(),
+            }
+            updateCard(card.id, { aiMessages: [...messages, msg] })
+          }
+          return ''
+        })
         setStreaming(false)
       }
     })

@@ -398,6 +398,7 @@ export function AgentPanel() {
               timestamp: Date.now(),
               editProposals: editProposals.length > 0 ? editProposals : undefined,
             }])
+            window.dispatchEvent(new CustomEvent('agent-reply'))
           }
           return ''
         })
@@ -931,6 +932,7 @@ export function AgentPanel() {
           timestamp: Date.now(),
           editProposals: editProposals.length > 0 ? editProposals : undefined,
         })
+        window.dispatchEvent(new CustomEvent('agent-reply'))
       }
       setIsStreaming(false)
       setSending(false)
@@ -995,6 +997,7 @@ export function AgentPanel() {
             type: editProposals.length > 0 ? 'edit' : 'text',
             editProposals: editProposals.length > 0 ? editProposals : undefined,
           })
+          window.dispatchEvent(new CustomEvent('agent-reply'))
         }
         setIsStreaming(false)
         setSending(false)

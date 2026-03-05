@@ -68,6 +68,50 @@ interface ChatInputBarProps {
   onFileAttach: () => void
 }
 
+/** Map file extension to an icon */
+function getFileTypeIcon(path: string): string {
+  const ext = path.split('.').pop()?.toLowerCase() ?? ''
+  switch (ext) {
+    case 'ts':
+    case 'tsx':
+      return 'lucide:file-type'
+    case 'js':
+    case 'jsx':
+      return 'lucide:file-json'
+    case 'css':
+    case 'scss':
+    case 'less':
+      return 'lucide:palette'
+    case 'json':
+      return 'lucide:braces'
+    case 'md':
+    case 'mdx':
+      return 'lucide:file-text'
+    case 'py':
+      return 'lucide:file-code'
+    case 'rs':
+    case 'go':
+    case 'java':
+    case 'cpp':
+    case 'c':
+      return 'lucide:file-code-2'
+    case 'svg':
+    case 'png':
+    case 'jpg':
+    case 'gif':
+      return 'lucide:image'
+    default:
+      return 'lucide:file-text'
+  }
+}
+
+const PLACEHOLDER_HINTS = [
+  'Ask anything...',
+  'Ask anything... \u2318L to add selection',
+  'Ask anything... @ to mention a file',
+  'Ask anything... /commit to save changes',
+]
+
 export function ChatInputBar({
   input,
   setInput,
@@ -102,6 +146,20 @@ export function ChatInputBar({
   const [modelMenuOpen, setModelMenuOpen] = useState(false)
   const [modelMenuPos, setModelMenuPos] = useState<{ left: number; bottom: number } | null>(null)
   const modelBtnRef = useRef<HTMLButtonElement>(null)
+  const [placeholderIdx, setPlaceholderIdx] = useState(0)
+
+  // Cycle through placeholder hints
+  useEffect(() => {
+    if (input) return // Don't cycle when user is typing
+    const interval = setInterval(() => {
+      setPlaceholderIdx((i) => (i + 1) % PLACEHOLDER_HINTS.length)
+    }, 4000)
+    return () => clearInterval(interval)
+  }, [input])
+
+  const currentPlaceholder = activeFile
+    ? `Ask about ${activeFile.split('/').pop()}...`
+    : PLACEHOLDER_HINTS[placeholderIdx]
 
   return (
     <>
@@ -154,7 +212,7 @@ export function ChatInputBar({
                     }`}
                   >
                     <Icon
-                      icon="lucide:file-text"
+                      icon={getFileTypeIcon(path)}
                       width={12}
                       height={12}
                       className="text-[var(--text-tertiary)] shrink-0"
@@ -171,8 +229,23 @@ export function ChatInputBar({
             </div>
           )}
 
-          {/* Unified input container */}
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] focus-within:border-[color-mix(in_srgb,var(--brand)_50%,var(--border))] transition-colors overflow-hidden">
+          {/* Unified input container with animated focus border */}
+          <div className="input-focus-glow rounded-xl border border-[var(--border)] bg-[var(--bg)] focus-within:border-[color-mix(in_srgb,var(--brand)_50%,var(--border))] transition-colors overflow-hidden">
+            {/* Active file context pill */}
+            {activeFile && contextAttachments.length === 0 && imageAttachments.length === 0 && (
+              <div className="flex items-center gap-1.5 px-2.5 pt-1.5">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-mono bg-[color-mix(in_srgb,var(--brand)_6%,transparent)] border border-[color-mix(in_srgb,var(--brand)_12%,transparent)] text-[var(--text-tertiary)]">
+                  <Icon
+                    icon={getFileTypeIcon(activeFile)}
+                    width={9}
+                    height={9}
+                    className="text-[var(--brand)]"
+                  />
+                  Editing: {activeFile.split('/').pop()}
+                </span>
+              </div>
+            )}
+
             {/* Attachment chips */}
             {(contextAttachments.length > 0 || imageAttachments.length > 0) && (
               <div className="flex flex-wrap gap-1 px-2.5 pt-2">
@@ -203,7 +276,9 @@ export function ChatInputBar({
                   >
                     <Icon
                       icon={
-                        att.type === 'selection' ? 'lucide:text-cursor-input' : 'lucide:file-text'
+                        att.type === 'selection'
+                          ? 'lucide:text-cursor-input'
+                          : getFileTypeIcon(att.path)
                       }
                       width={11}
                       height={11}
@@ -277,11 +352,7 @@ export function ChatInputBar({
               onDrop={onFileDrop}
               onDragOver={(e) => e.preventDefault()}
               onPaste={onImagePaste}
-              placeholder={
-                activeFile
-                  ? `Ask about ${activeFile.split('/').pop()}...`
-                  : 'Ask or type /command...'
-              }
+              placeholder={currentPlaceholder}
               rows={1}
               className="w-full resize-none bg-transparent px-3 py-2 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-disabled)] outline-none"
             />

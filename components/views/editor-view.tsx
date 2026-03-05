@@ -78,10 +78,8 @@ export function EditorView() {
     }
   }, [files.length, activeFile, editorCollapsed, setEditorCollapsed])
 
-  // ⌘B toggle tree, ⌘I toggle chat, ⌘E toggle editor collapse
+  // ⌘B toggle tree, ⌘I toggle chat
   const { toggle } = layout
-  const editorCollapsedRef = useRef(editorCollapsed)
-  editorCollapsedRef.current = editorCollapsed
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'b') {
@@ -92,14 +90,10 @@ export function EditorView() {
         e.preventDefault()
         toggle('chat')
       }
-      if ((e.metaKey || e.ctrlKey) && e.key === 'e' && !e.shiftKey) {
-        e.preventDefault()
-        setEditorCollapsed(!editorCollapsedRef.current)
-      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [toggle, setEditorCollapsed])
+  }, [toggle])
 
   // Command palette events & open-side-chat are now handled by LayoutContext's event bridge
 
@@ -314,15 +308,6 @@ export function EditorView() {
               <div className="flex-1" />
 
               <button
-                onClick={() => layout.setEditorCollapsed(true)}
-                className="h-7 px-3 rounded-lg text-[12px] font-medium flex items-center gap-1.5 hover:bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] cursor-pointer text-[var(--text-disabled)]"
-                title="Collapse editor (⌘E)"
-              >
-                <Icon icon="lucide:minimize-2" width={14} height={14} />
-                <span>Collapse</span>
-              </button>
-
-              <button
                 onClick={() => layout.toggle('chat')}
                 className={`relative h-7 px-3 rounded-lg text-[12px] font-medium flex items-center gap-1.5 cursor-pointer transition-colors ${chatVisible ? 'bg-[color-mix(in_srgb,var(--brand)_14%,transparent)] text-[var(--brand)]' : 'text-[var(--text-disabled)] hover:text-[var(--text-secondary)] hover:bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)]'}`}
                 title="Chat (⌘I)"
@@ -377,23 +362,6 @@ export function EditorView() {
                   title="Float panel"
                 >
                   <Icon icon="lucide:app-window" width={15} height={15} />
-                </button>
-                <button
-                  onClick={() => {
-                    if (editorCollapsed) {
-                      layout.setEditorCollapsed(false)
-                    } else {
-                      layout.setEditorCollapsed(true)
-                    }
-                  }}
-                  className="p-1.5 rounded-lg hover:bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] text-[var(--text-disabled)] hover:text-[var(--text-tertiary)] cursor-pointer"
-                  title={editorCollapsed ? 'Restore editor (⌘E)' : 'Expand chat (⌘E)'}
-                >
-                  <Icon
-                    icon={editorCollapsed ? 'lucide:minimize-2' : 'lucide:maximize-2'}
-                    width={15}
-                    height={15}
-                  />
                 </button>
                 <button
                   onClick={() => layout.hide('chat')}

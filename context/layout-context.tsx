@@ -1,6 +1,18 @@
 'use client'
 
-import { createContext, useContext, useReducer, useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type Dispatch } from 'react'
+import {
+  createContext,
+  useContext,
+  useReducer,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+  type Dispatch,
+} from 'react'
+import { useView } from '@/context/view-context'
 
 // ─── Panel Definitions ──────────────────────────────────
 // Add a new panel here → it automatically gets toggle, resize, persistence, presets
@@ -38,11 +50,16 @@ function computeBreakpoint(width: number): Breakpoint {
 
 function bpRank(bp: Breakpoint): number {
   switch (bp) {
-    case 'gt1200': return 5
-    case 'lte1200': return 4
-    case 'lte992': return 3
-    case 'lte768': return 2
-    case 'lte640': return 1
+    case 'gt1200':
+      return 5
+    case 'lte1200':
+      return 4
+    case 'lte992':
+      return 3
+    case 'lte768':
+      return 2
+    case 'lte640':
+      return 1
   }
 }
 
@@ -64,12 +81,60 @@ interface PanelDef {
 }
 
 export const PANEL_DEFS: Record<PanelId, PanelDef> = {
-  sidebar: { key: 'sidebar-collapsed', defaultVisible: true, defaultSize: 260, minSize: 200, maxSize: 420, axis: 'horizontal', resizable: true },
-  tree:    { key: 'tree',    defaultVisible: false, defaultSize: 220, minSize: 160, maxSize: 400, axis: 'horizontal', resizable: true },
-  chat:    { key: 'chat',    defaultVisible: true,  defaultSize: 360, minSize: 280, maxSize: 600, axis: 'horizontal', resizable: true },
-  engine:  { key: 'engine',  defaultVisible: false, defaultSize: 240, minSize: 120, maxSize: 500, axis: 'vertical',   resizable: true },
-  terminal:{ key: 'terminal',defaultVisible: false, defaultSize: 240, minSize: 100, maxSize: 500, axis: 'vertical',   resizable: true },
-  plugins: { key: 'plugins', defaultVisible: true,  defaultSize: 220, minSize: 160, maxSize: 400, axis: 'horizontal', resizable: true },
+  sidebar: {
+    key: 'sidebar-collapsed',
+    defaultVisible: true,
+    defaultSize: 260,
+    minSize: 200,
+    maxSize: 420,
+    axis: 'horizontal',
+    resizable: true,
+  },
+  tree: {
+    key: 'tree',
+    defaultVisible: false,
+    defaultSize: 220,
+    minSize: 160,
+    maxSize: 400,
+    axis: 'horizontal',
+    resizable: true,
+  },
+  chat: {
+    key: 'chat',
+    defaultVisible: true,
+    defaultSize: 360,
+    minSize: 280,
+    maxSize: 600,
+    axis: 'horizontal',
+    resizable: true,
+  },
+  engine: {
+    key: 'engine',
+    defaultVisible: false,
+    defaultSize: 240,
+    minSize: 120,
+    maxSize: 500,
+    axis: 'vertical',
+    resizable: true,
+  },
+  terminal: {
+    key: 'terminal',
+    defaultVisible: false,
+    defaultSize: 240,
+    minSize: 100,
+    maxSize: 500,
+    axis: 'vertical',
+    resizable: true,
+  },
+  plugins: {
+    key: 'plugins',
+    defaultVisible: true,
+    defaultSize: 220,
+    minSize: 160,
+    maxSize: 400,
+    axis: 'horizontal',
+    resizable: true,
+  },
 }
 
 const PANEL_IDS = Object.keys(PANEL_DEFS) as PanelId[]
@@ -108,11 +173,14 @@ export type LayoutPreset = 'focus' | 'review' | 'build' | 'default'
 
 // ─── Presets ────────────────────────────────────────────
 
-const PRESETS: Record<LayoutPreset, Partial<Record<PanelId, boolean>> & { editorCollapsed?: boolean }> = {
-  focus:   { tree: false, engine: false, chat: false, terminal: false, editorCollapsed: false },
-  review:  { tree: true,  engine: false, chat: true,  terminal: false, editorCollapsed: false },
-  build:   { tree: false, engine: true,  chat: false, terminal: true,  editorCollapsed: false },
-  default: { tree: false, engine: false, chat: true,  terminal: false, editorCollapsed: false },
+const PRESETS: Record<
+  LayoutPreset,
+  Partial<Record<PanelId, boolean>> & { editorCollapsed?: boolean }
+> = {
+  focus: { tree: false, engine: false, chat: false, terminal: false, editorCollapsed: false },
+  review: { tree: true, engine: false, chat: true, terminal: false, editorCollapsed: false },
+  build: { tree: false, engine: true, chat: false, terminal: true, editorCollapsed: false },
+  default: { tree: false, engine: false, chat: true, terminal: false, editorCollapsed: false },
 }
 
 // ─── Reducer ────────────────────────────────────────────
@@ -137,26 +205,38 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
       if (state.panels[action.panel].visible) return state
       return {
         ...state,
-        panels: { ...state.panels, [action.panel]: { ...state.panels[action.panel], visible: true } },
+        panels: {
+          ...state.panels,
+          [action.panel]: { ...state.panels[action.panel], visible: true },
+        },
       }
     case 'HIDE':
       if (!state.panels[action.panel].visible) return state
       return {
         ...state,
-        panels: { ...state.panels, [action.panel]: { ...state.panels[action.panel], visible: false } },
+        panels: {
+          ...state.panels,
+          [action.panel]: { ...state.panels[action.panel], visible: false },
+        },
       }
     case 'SET_VISIBLE':
       if (state.panels[action.panel].visible === action.visible) return state
       return {
         ...state,
-        panels: { ...state.panels, [action.panel]: { ...state.panels[action.panel], visible: action.visible } },
+        panels: {
+          ...state.panels,
+          [action.panel]: { ...state.panels[action.panel], visible: action.visible },
+        },
       }
     case 'RESIZE': {
       const clamped = clampSize(action.panel, action.size)
       if (state.panels[action.panel].size === clamped) return state
       return {
         ...state,
-        panels: { ...state.panels, [action.panel]: { ...state.panels[action.panel], size: clamped } },
+        panels: {
+          ...state.panels,
+          [action.panel]: { ...state.panels[action.panel], size: clamped },
+        },
       }
     }
     case 'SET_EDITOR_COLLAPSED':
@@ -165,7 +245,10 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
     case 'SET_FLOATING': {
       const cur = state.floating[action.panel]
       if (cur.floating === action.floating) return state
-      return { ...state, floating: { ...state.floating, [action.panel]: { ...cur, floating: action.floating } } }
+      return {
+        ...state,
+        floating: { ...state.floating, [action.panel]: { ...cur, floating: action.floating } },
+      }
     }
     case 'SET_FLOAT_BOUNDS': {
       const cur = state.floating[action.panel]
@@ -211,7 +294,10 @@ function layoutReducer(state: LayoutState, action: LayoutAction): LayoutState {
       if (action.state.floating) {
         for (const [id, fs] of Object.entries(action.state.floating)) {
           if (id in floating) {
-            floating[id as FloatingPanelId] = { ...floating[id as FloatingPanelId], ...(fs as Partial<FloatingPanelState>) }
+            floating[id as FloatingPanelId] = {
+              ...floating[id as FloatingPanelId],
+              ...(fs as Partial<FloatingPanelState>),
+            }
           }
         }
       }
@@ -306,7 +392,8 @@ function hydrateFromStorage(): Partial<LayoutState> {
   // Also check legacy keys
   try {
     const legacyTermVis = localStorage.getItem('code-editor:terminal-visible')
-    if (legacyTermVis !== null && !panels.terminal) panels.terminal = { visible: legacyTermVis === 'true' }
+    if (legacyTermVis !== null && !panels.terminal)
+      panels.terminal = { visible: legacyTermVis === 'true' }
   } catch {}
   try {
     const legacyTermH = localStorage.getItem('code-editor:terminal-height')
@@ -316,7 +403,11 @@ function hydrateFromStorage(): Partial<LayoutState> {
     }
   } catch {}
 
-  return { panels: panels as Record<PanelId, PanelState>, editorCollapsed, floating: floating as Record<FloatingPanelId, FloatingPanelState> }
+  return {
+    panels: panels as Record<PanelId, PanelState>,
+    editorCollapsed,
+    floating: floating as Record<FloatingPanelId, FloatingPanelState>,
+  }
 }
 
 function persistToStorage(state: LayoutState) {
@@ -336,7 +427,10 @@ function persistToStorage(state: LayoutState) {
     }
     localStorage.setItem(`${STORAGE_PREFIX}editor-collapsed`, String(state.editorCollapsed))
     localStorage.setItem(`${STORAGE_PREFIX}floating-chat`, JSON.stringify(state.floating.chat))
-    localStorage.setItem(`${STORAGE_PREFIX}floating-terminal`, JSON.stringify(state.floating.terminal))
+    localStorage.setItem(
+      `${STORAGE_PREFIX}floating-terminal`,
+      JSON.stringify(state.floating.terminal),
+    )
     // Also persist legacy keys for backward compat
     localStorage.setItem('code-editor:terminal-visible', String(state.panels.terminal.visible))
     localStorage.setItem('code-editor:terminal-height', String(state.panels.terminal.size))
@@ -383,6 +477,7 @@ const LayoutContext = createContext<LayoutContextValue | null>(null)
 
 export function LayoutProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(layoutReducer, undefined, buildInitialState)
+  const { activeView } = useView()
   const hydrated = useRef(false)
   const [viewport, setViewport] = useState<ViewportInfo>(() => {
     if (typeof window === 'undefined') return { width: 1400, height: 900, breakpoint: 'gt1200' }
@@ -405,7 +500,7 @@ export function LayoutProvider({ children }: { children: ReactNode }) {
     const onResize = () => {
       const w = window.innerWidth
       const h = window.innerHeight
-      setViewport(prev => {
+      setViewport((prev) => {
         const nextBp = computeBreakpoint(w)
         if (prev.width === w && prev.height === h && prev.breakpoint === nextBp) return prev
         return { width: w, height: h, breakpoint: nextBp }
@@ -453,17 +548,41 @@ export function LayoutProvider({ children }: { children: ReactNode }) {
     persistToStorage(state)
   }, [state])
 
+  // In editor view, the center coding area should always stay expanded.
+  useEffect(() => {
+    if (activeView === 'editor' && state.editorCollapsed) {
+      dispatch({ type: 'SET_EDITOR_COLLAPSED', collapsed: false })
+    }
+  }, [activeView, state.editorCollapsed])
+
   // ─── Convenience methods ───
   const toggle = useCallback((panel: PanelId) => dispatch({ type: 'TOGGLE', panel }), [])
   const show = useCallback((panel: PanelId) => dispatch({ type: 'SHOW', panel }), [])
   const hide = useCallback((panel: PanelId) => dispatch({ type: 'HIDE', panel }), [])
-  const resize = useCallback((panel: PanelId, size: number) => dispatch({ type: 'RESIZE', panel, size }), [])
+  const resize = useCallback(
+    (panel: PanelId, size: number) => dispatch({ type: 'RESIZE', panel, size }),
+    [],
+  )
   const preset = useCallback((p: LayoutPreset) => dispatch({ type: 'PRESET', preset: p }), [])
-  const setEditorCollapsed = useCallback((collapsed: boolean) => dispatch({ type: 'SET_EDITOR_COLLAPSED', collapsed }), [])
-  const setFloating = useCallback((panel: FloatingPanelId, floating: boolean) => dispatch({ type: 'SET_FLOATING', panel, floating }), [])
-  const setFloatingBounds = useCallback((panel: FloatingPanelId, x: number, y: number, w: number, h: number) => dispatch({ type: 'SET_FLOAT_BOUNDS', panel, x, y, w, h }), [])
+  const setEditorCollapsed = useCallback(
+    (collapsed: boolean) => {
+      if (collapsed && activeView === 'editor') return
+      dispatch({ type: 'SET_EDITOR_COLLAPSED', collapsed })
+    },
+    [activeView],
+  )
+  const setFloating = useCallback(
+    (panel: FloatingPanelId, floating: boolean) =>
+      dispatch({ type: 'SET_FLOATING', panel, floating }),
+    [],
+  )
+  const setFloatingBounds = useCallback(
+    (panel: FloatingPanelId, x: number, y: number, w: number, h: number) =>
+      dispatch({ type: 'SET_FLOAT_BOUNDS', panel, x, y, w, h }),
+    [],
+  )
   const bringFloatingToFront = useCallback((panel: FloatingPanelId) => {
-    const maxZ = Math.max(...Object.values(stateRef.current.floating).map(f => f.z ?? 0), 80)
+    const maxZ = Math.max(...Object.values(stateRef.current.floating).map((f) => f.z ?? 0), 80)
     dispatch({ type: 'BRING_FLOAT_FRONT', panel, z: maxZ + 1 })
   }, [])
 
@@ -471,11 +590,17 @@ export function LayoutProvider({ children }: { children: ReactNode }) {
   const panelDef = useCallback((id: PanelId) => PANEL_DEFS[id], [])
   const isVisible = useCallback((id: PanelId) => state.panels[id].visible, [state.panels])
   const getSize = useCallback((id: PanelId) => state.panels[id].size, [state.panels])
-  const isAtMost = useCallback((bp: Exclude<Breakpoint, 'gt1200'>) => {
-    return bpRank(viewport.breakpoint) <= bpRank(bp)
-  }, [viewport.breakpoint])
+  const isAtMost = useCallback(
+    (bp: Exclude<Breakpoint, 'gt1200'>) => {
+      return bpRank(viewport.breakpoint) <= bpRank(bp)
+    },
+    [viewport.breakpoint],
+  )
   const floating = useCallback((panel: FloatingPanelId) => state.floating[panel], [state.floating])
-  const isFloating = useCallback((panel: FloatingPanelId) => state.floating[panel].floating, [state.floating])
+  const isFloating = useCallback(
+    (panel: FloatingPanelId) => state.floating[panel].floating,
+    [state.floating],
+  )
 
   // ─── Window event bridge (backward compat) ───
   useEffect(() => {
@@ -488,10 +613,13 @@ export function LayoutProvider({ children }: { children: ReactNode }) {
       ['show-terminal', () => show('terminal')],
       ['hide-terminal', () => hide('terminal')],
       ['open-side-chat', () => show('chat')],
-      ['cmd:layout-preset', (e?: Event) => {
-        const p = (e as CustomEvent)?.detail as LayoutPreset
-        if (p && p in PRESETS) preset(p)
-      }],
+      [
+        'cmd:layout-preset',
+        (e?: Event) => {
+          const p = (e as CustomEvent)?.detail as LayoutPreset
+          if (p && p in PRESETS) preset(p)
+        },
+      ],
     ]
     // Need to handle the event parameter for preset
     const wrappedHandlers = handlers.map(([event, fn]) => {
@@ -506,19 +634,52 @@ export function LayoutProvider({ children }: { children: ReactNode }) {
     }
   }, [toggle, show, hide, preset, setEditorCollapsed])
 
-  const value = useMemo<LayoutContextValue>(() => ({
-    state, dispatch, viewport, isAtMost,
-    floating, isFloating, setFloating, setFloatingBounds, bringFloatingToFront,
-    toggle, show, hide, resize, preset,
-    panel, panelDef, isVisible, getSize,
-    setEditorCollapsed, editorCollapsed: state.editorCollapsed,
-  }), [state, viewport, isAtMost, floating, isFloating, setFloating, setFloatingBounds, bringFloatingToFront, toggle, show, hide, resize, preset, panel, panelDef, isVisible, getSize, setEditorCollapsed])
-
-  return (
-    <LayoutContext.Provider value={value}>
-      {children}
-    </LayoutContext.Provider>
+  const value = useMemo<LayoutContextValue>(
+    () => ({
+      state,
+      dispatch,
+      viewport,
+      isAtMost,
+      floating,
+      isFloating,
+      setFloating,
+      setFloatingBounds,
+      bringFloatingToFront,
+      toggle,
+      show,
+      hide,
+      resize,
+      preset,
+      panel,
+      panelDef,
+      isVisible,
+      getSize,
+      setEditorCollapsed,
+      editorCollapsed: state.editorCollapsed,
+    }),
+    [
+      state,
+      viewport,
+      isAtMost,
+      floating,
+      isFloating,
+      setFloating,
+      setFloatingBounds,
+      bringFloatingToFront,
+      toggle,
+      show,
+      hide,
+      resize,
+      preset,
+      panel,
+      panelDef,
+      isVisible,
+      getSize,
+      setEditorCollapsed,
+    ],
   )
+
+  return <LayoutContext.Provider value={value}>{children}</LayoutContext.Provider>
 }
 
 export function useLayout() {
@@ -535,28 +696,29 @@ export function usePanelResize(panel: PanelId) {
   const def = panelDef(panel)
   const [resizing, setResizing] = useState(false)
 
-  const onResizeStart = useCallback((e: React.MouseEvent) => {
-    e.preventDefault()
-    const startPos = def.axis === 'horizontal' ? e.clientX : e.clientY
-    const startSize = getSize(panel)
-    setResizing(true)
+  const onResizeStart = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault()
+      const startPos = def.axis === 'horizontal' ? e.clientX : e.clientY
+      const startSize = getSize(panel)
+      setResizing(true)
 
-    const onMove = (ev: MouseEvent) => {
-      const currentPos = def.axis === 'horizontal' ? ev.clientX : ev.clientY
-      const invertDelta = panel === 'chat' || panel === 'terminal' || panel === 'plugins'
-      const delta = invertDelta
-        ? startPos - currentPos
-        : currentPos - startPos
-      resize(panel, startSize + delta)
-    }
-    const onUp = () => {
-      setResizing(false)
-      document.removeEventListener('mousemove', onMove)
-      document.removeEventListener('mouseup', onUp)
-    }
-    document.addEventListener('mousemove', onMove)
-    document.addEventListener('mouseup', onUp)
-  }, [panel, def.axis, getSize, resize])
+      const onMove = (ev: MouseEvent) => {
+        const currentPos = def.axis === 'horizontal' ? ev.clientX : ev.clientY
+        const invertDelta = panel === 'chat' || panel === 'terminal' || panel === 'plugins'
+        const delta = invertDelta ? startPos - currentPos : currentPos - startPos
+        resize(panel, startSize + delta)
+      }
+      const onUp = () => {
+        setResizing(false)
+        document.removeEventListener('mousemove', onMove)
+        document.removeEventListener('mouseup', onUp)
+      }
+      document.addEventListener('mousemove', onMove)
+      document.addEventListener('mouseup', onUp)
+    },
+    [panel, def.axis, getSize, resize],
+  )
 
   return { onResizeStart, resizing }
 }

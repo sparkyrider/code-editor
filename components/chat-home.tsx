@@ -13,13 +13,78 @@ import { useEditor } from '@/context/editor-context'
 import { getRecentFolders } from '@/context/local-context'
 
 const STATIC_SUGGESTIONS = [
-  { icon: 'lucide:sparkles', label: 'Edit this', prefix: 'Edit ' },
-  { icon: 'lucide:zap', label: 'Squash bug', prefix: 'Fix ' },
-  { icon: 'lucide:flame', label: 'Explain plz', prefix: 'Explain ' },
-  { icon: 'lucide:wand-2', label: 'Test it', prefix: 'Write tests for ' },
-  { icon: 'lucide:star', label: 'Review PR', prefix: 'Review ' },
+  { icon: 'lucide:sparkles', label: 'Edit this', prefix: 'Edit ', desc: 'Modify selected code' },
+  { icon: 'lucide:zap', label: 'Squash bug', prefix: 'Fix ', desc: 'Debug and fix issues' },
+  { icon: 'lucide:flame', label: 'Explain plz', prefix: 'Explain ', desc: 'Understand code flow' },
+  {
+    icon: 'lucide:wand-2',
+    label: 'Test it',
+    prefix: 'Write tests for ',
+    desc: 'Generate test cases',
+  },
+  { icon: 'lucide:star', label: 'Review PR', prefix: 'Review ', desc: 'Analyze pull request' },
 ]
 const TOKEN_REVEAL_TIMEOUT_MS = 15000
+
+/** Get recent conversation previews from localStorage */
+function getRecentConversations(): Array<{
+  title: string
+  timestamp: number
+  messageCount: number
+}> {
+  try {
+    const saved = localStorage.getItem('code-editor:chat:main')
+    if (!saved) return []
+    const messages = JSON.parse(saved) as Array<{
+      role: string
+      content: string
+      timestamp: number
+    }>
+    if (!messages.length) return []
+    const firstUser = messages.find((m) => m.role === 'user')
+    if (!firstUser) return []
+    return [
+      {
+        title: firstUser.content.slice(0, 60).replace(/\n/g, ' '),
+        timestamp: messages[messages.length - 1].timestamp,
+        messageCount: messages.length,
+      },
+    ]
+  } catch {
+    return []
+  }
+}
+
+/** Detect primary language from file extensions */
+function detectPrimaryLanguage(files: Array<{ path: string; is_dir: boolean }>): string | null {
+  const extCounts: Record<string, number> = {}
+  const langMap: Record<string, string> = {
+    ts: 'TypeScript',
+    tsx: 'TypeScript',
+    js: 'JavaScript',
+    jsx: 'JavaScript',
+    py: 'Python',
+    rs: 'Rust',
+    go: 'Go',
+    rb: 'Ruby',
+    java: 'Java',
+    swift: 'Swift',
+    kt: 'Kotlin',
+    cpp: 'C++',
+    c: 'C',
+    cs: 'C#',
+    php: 'PHP',
+    vue: 'Vue',
+    svelte: 'Svelte',
+  }
+  for (const f of files) {
+    if (f.is_dir) continue
+    const ext = f.path.split('.').pop()?.toLowerCase() ?? ''
+    if (langMap[ext]) extCounts[ext] = (extCounts[ext] ?? 0) + 1
+  }
+  const top = Object.entries(extCounts).sort((a, b) => b[1] - a[1])[0]
+  return top ? (langMap[top[0]] ?? null) : null
+}
 
 function IconButton({
   icon,
@@ -76,10 +141,21 @@ export const ChatHome = memo(function ChatHome({ onSend, onSelectFolder, onClone
   const hasWorkspace = !!repoShort
 
   const [recentFolders, setRecentFolders] = useState<string[]>(() => getRecentFolders())
+  const [recentConversations, setRecentConversations] = useState(() => getRecentConversations())
 
   useEffect(() => {
     setRecentFolders(getRecentFolders())
+    setRecentConversations(getRecentConversations())
   }, [local.rootPath])
+
+  // Workspace stats
+  const wsTreeFiles = local.localTree?.filter((e) => !e.is_dir) ?? []
+  const fileCount = wsTreeFiles.length
+  const primaryLanguage = useMemo(
+    () => detectPrimaryLanguage(local.localTree ?? []),
+    [local.localTree],
+  )
+  const branchName = local.gitInfo?.branch ?? null
 
   useEffect(() => {
     const t = setTimeout(() => inputRef.current?.focus(), 100)
@@ -178,12 +254,13 @@ export const ChatHome = memo(function ChatHome({ onSend, onSelectFolder, onClone
         icon: 'lucide:sparkles',
         label: `Edit ${name}`,
         prefix: `Edit ${recent.path} `,
+        desc: 'Modify this file',
       })
     }
 
     // Suggest explaining a notable file from the tree
-    const treeFiles = local.localTree?.filter((e) => !e.is_dir) ?? []
-    const interesting = treeFiles.find(
+    const ctxTreeFiles = local.localTree?.filter((e) => !e.is_dir) ?? []
+    const interesting = ctxTreeFiles.find(
       (f) =>
         /\.(ts|tsx|rs|py|go)$/.test(f.path) &&
         !f.path.includes('node_modules') &&
@@ -195,14 +272,20 @@ export const ChatHome = memo(function ChatHome({ onSend, onSelectFolder, onClone
         icon: 'lucide:flame',
         label: `Explain ${name}`,
         prefix: `Explain ${interesting.path} `,
+        desc: 'Understand code flow',
       })
     }
 
     // Always include some generic actions
     contextChips.push(
-      { icon: 'lucide:zap', label: 'Squash bug', prefix: 'Fix ' },
-      { icon: 'lucide:wand-2', label: 'Test it', prefix: 'Write tests for ' },
-      { icon: 'lucide:star', label: 'Review PR', prefix: 'Review ' },
+      { icon: 'lucide:zap', label: 'Squash bug', prefix: 'Fix ', desc: 'Debug and fix issues' },
+      {
+        icon: 'lucide:wand-2',
+        label: 'Test it',
+        prefix: 'Write tests for ',
+        desc: 'Generate test cases',
+      },
+      { icon: 'lucide:star', label: 'Review PR', prefix: 'Review ', desc: 'Analyze pull request' },
     )
 
     return contextChips.slice(0, 5)
@@ -213,7 +296,11 @@ export const ChatHome = memo(function ChatHome({ onSend, onSelectFolder, onClone
       <div className="w-full max-w-[700px]">
         {/* Logo + Heading */}
         <div className="flex flex-col items-center mb-5">
-          <div className="mb-2.5 text-[var(--text-tertiary)]">
+          <div
+            className={`mb-2.5 text-[var(--text-tertiary)] ${
+              status === 'connected' ? 'logo-breathe-connected' : 'logo-breathe-idle'
+            }`}
+          >
             <KnotLogo size={30} />
           </div>
           <h1 className="text-center text-[18px] font-semibold text-[var(--text-primary)] tracking-[-0.01em] leading-tight">
@@ -224,7 +311,32 @@ export const ChatHome = memo(function ChatHome({ onSend, onSelectFolder, onClone
               ? 'Move from idea to merged code with focused prompts, fast edits, and built-in review workflows.'
               : 'Open a project or describe your idea to start coding with a context-aware agent.'}
           </p>
-          <div className="mt-2.5 flex items-center justify-center gap-2.5 flex-wrap text-[11px] text-[var(--text-disabled)]">
+
+          {/* Workspace stats */}
+          {hasWorkspace && (fileCount > 0 || primaryLanguage || branchName) && (
+            <div className="mt-2.5 flex items-center justify-center gap-3 flex-wrap text-[10px] text-[var(--text-disabled)]">
+              {fileCount > 0 && (
+                <span className="inline-flex items-center gap-1">
+                  <Icon icon="lucide:files" width={10} height={10} />
+                  {fileCount} files
+                </span>
+              )}
+              {primaryLanguage && (
+                <span className="inline-flex items-center gap-1">
+                  <Icon icon="lucide:code-2" width={10} height={10} />
+                  {primaryLanguage}
+                </span>
+              )}
+              {branchName && (
+                <span className="inline-flex items-center gap-1">
+                  <Icon icon="lucide:git-branch" width={10} height={10} />
+                  {branchName}
+                </span>
+              )}
+            </div>
+          )}
+
+          <div className="mt-2 flex items-center justify-center gap-2.5 flex-wrap text-[11px] text-[var(--text-disabled)]">
             {hasWorkspace ? (
               <button
                 onClick={onSelectFolder}
@@ -311,12 +423,12 @@ export const ChatHome = memo(function ChatHome({ onSend, onSelectFolder, onClone
           </div>
         </div>
 
-        {/* Quick action chips */}
+        {/* Quick action cards */}
         <div className="mt-3">
           <p className="text-center text-[10px] uppercase tracking-[0.08em] text-[var(--text-disabled)] font-medium">
             Quick prompts
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-1.5 mt-1.5">
+          <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
             {suggestions.map((a, i) => (
               <button
                 key={a.label}
@@ -325,20 +437,56 @@ export const ChatHome = memo(function ChatHome({ onSend, onSelectFolder, onClone
                   inputRef.current?.focus()
                 }}
                 aria-label={`${a.label}: ${a.prefix}`}
-                className="anime-chip chip-enter flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium bg-transparent text-[var(--text-secondary)] border border-[var(--border)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] hover:border-[var(--text-disabled)] active:scale-95 transition-all cursor-pointer"
+                className="quick-action-card chip-enter flex items-center gap-2 px-3.5 py-2 rounded-lg text-[12px] font-medium bg-[var(--bg-elevated)] text-[var(--text-secondary)] border border-[var(--border)] hover:text-[var(--text-primary)] cursor-pointer"
                 style={{ animationDelay: `${i * 0.08}s` }}
               >
-                <Icon
-                  icon={a.icon}
-                  width={14}
-                  height={14}
-                  className="text-[var(--text-tertiary)]"
-                />
-                {a.label}
+                <div className="w-7 h-7 rounded-md bg-[color-mix(in_srgb,var(--brand)_10%,transparent)] flex items-center justify-center shrink-0">
+                  <Icon icon={a.icon} width={14} height={14} className="text-[var(--brand)]" />
+                </div>
+                <div className="text-left min-w-0">
+                  <div className="text-[12px] font-medium">{a.label}</div>
+                  {'desc' in a && a.desc && (
+                    <div className="text-[10px] text-[var(--text-disabled)] mt-0.5">{a.desc}</div>
+                  )}
+                </div>
               </button>
             ))}
           </div>
         </div>
+
+        {/* Recent conversations */}
+        {recentConversations.length > 0 && (
+          <div className="mt-4">
+            <p className="text-center text-[10px] uppercase tracking-[0.08em] text-[var(--text-disabled)] font-medium mb-2">
+              Continue
+            </p>
+            {recentConversations.map((conv, i) => (
+              <button
+                key={i}
+                onClick={() => {
+                  // Conversation already loaded — just scroll user into the chat
+                  onSend('', agentMode)
+                }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left hover:bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)] transition-colors cursor-pointer group"
+              >
+                <Icon
+                  icon="lucide:message-square"
+                  width={13}
+                  height={13}
+                  className="text-[var(--text-disabled)] group-hover:text-[var(--text-tertiary)] shrink-0"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="text-[12px] text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] truncate">
+                    {conv.title}
+                  </div>
+                  <div className="text-[10px] text-[var(--text-disabled)]">
+                    {conv.messageCount} messages · {new Date(conv.timestamp).toLocaleDateString()}
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Workspace actions — shown when no folder/repo is open */}
         {!hasWorkspace && (

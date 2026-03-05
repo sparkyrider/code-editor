@@ -1490,7 +1490,13 @@ export function AgentPanel() {
   return (
     <div className="flex flex-col h-full w-full overflow-hidden bg-[var(--sidebar-bg)]">
       {/* Header — children are no-drag so they stay clickable above drag region */}
-      <ChatHeader title={chatTitle ?? undefined} messageCount={messages.length} />
+      <ChatHeader
+        title={chatTitle ?? undefined}
+        messageCount={messages.length}
+        isStreaming={isStreaming}
+        modelName={modelInfo.current || undefined}
+        contextTokens={contextTokens}
+      />
       {messages.length > 0 && (
         <div className="flex items-center justify-end px-3 py-1 border-b border-[var(--border)] bg-[var(--bg-elevated)] shrink-0">
           <button

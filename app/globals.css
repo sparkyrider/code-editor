@@ -3989,3 +3989,366 @@ p {
   background: rgba(245, 169, 184, 0.08);
   color: #a8566a;
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   Chat UI Overhaul — Animations & Utility Classes
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ─── Wave typing indicator (replaces bouncing dots) ───────────── */
+@keyframes wave-typing {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  20% {
+    transform: translateY(-3px);
+    opacity: 1;
+  }
+  40% {
+    transform: translateY(0);
+    opacity: 0.6;
+  }
+}
+
+.typing-wave {
+  display: inline-flex;
+  gap: 2px;
+  align-items: flex-end;
+}
+
+.typing-wave span {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--brand);
+  animation: wave-typing 1.2s ease-in-out infinite;
+}
+
+.typing-wave span:nth-child(2) {
+  animation-delay: 0.1s;
+}
+.typing-wave span:nth-child(3) {
+  animation-delay: 0.2s;
+}
+.typing-wave span:nth-child(4) {
+  animation-delay: 0.3s;
+}
+
+/* ─── Animated border gradient for input focus ─────────────────── */
+@keyframes border-rotate {
+  from {
+    --border-angle: 0deg;
+  }
+  to {
+    --border-angle: 360deg;
+  }
+}
+
+.input-focus-glow {
+  position: relative;
+}
+
+.input-focus-glow::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(
+    from var(--border-angle, 0deg),
+    transparent 40%,
+    color-mix(in srgb, var(--brand) 40%, transparent) 50%,
+    transparent 60%
+  );
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  animation: border-rotate 4s linear infinite;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.input-focus-glow:focus-within::before {
+  opacity: 1;
+}
+
+/* ─── Progress bar (indeterminate streaming) ───────────────────── */
+@keyframes progress-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
+}
+
+.streaming-progress-bar {
+  position: relative;
+  height: 2px;
+  width: 100%;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--brand) 10%, transparent);
+}
+
+.streaming-progress-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 25%;
+  height: 100%;
+  background: var(--brand);
+  border-radius: 2px;
+  animation: progress-indeterminate 1.5s ease-in-out infinite;
+}
+
+/* ─── Message avatar ring (brand glow around KnotLogo) ─────────── */
+.message-avatar-ring {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--brand) 10%, var(--bg-elevated));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--brand) 20%, transparent),
+    0 0 6px 0 var(--brand-glow);
+  flex-shrink: 0;
+}
+
+/* ─── Code block copy button (hover-to-show) ───────────────────── */
+.code-block-wrapper {
+  position: relative;
+}
+
+.code-block-copy {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--bg-elevated) 90%, transparent);
+  border: 1px solid var(--border);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity 0.15s ease,
+    color 0.15s ease,
+    background 0.15s ease;
+  z-index: 2;
+  backdrop-filter: blur(4px);
+}
+
+.code-block-wrapper:hover .code-block-copy {
+  opacity: 1;
+}
+
+.code-block-copy:hover {
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+}
+
+.code-block-copy.copied {
+  color: var(--color-additions, #22c55e);
+}
+
+/* ─── Message collapse fade (gradient overlay on long messages) ── */
+.message-collapse-fade {
+  position: relative;
+  max-height: 480px;
+  overflow: hidden;
+}
+
+.message-collapse-fade::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+  background: linear-gradient(to bottom, transparent, var(--bg-subtle));
+  pointer-events: none;
+}
+
+.message-collapse-fade.collapsed::after {
+  display: block;
+}
+
+.message-collapse-fade:not(.collapsed)::after {
+  display: none;
+}
+
+.message-collapse-fade:not(.collapsed) {
+  max-height: none;
+}
+
+/* ─── Logo breathing glow (connection-aware) ───────────────────── */
+@keyframes logo-breathe-connected {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 4px color-mix(in srgb, var(--success) 30%, transparent));
+    opacity: 0.85;
+  }
+  50% {
+    filter: drop-shadow(0 0 10px color-mix(in srgb, var(--success) 50%, transparent));
+    opacity: 1;
+  }
+}
+
+@keyframes logo-breathe-idle {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.logo-breathe-connected {
+  animation: logo-breathe-connected 3s ease-in-out infinite;
+}
+
+.logo-breathe-idle {
+  animation: logo-breathe-idle 4s ease-in-out infinite;
+}
+
+/* ─── Quick action cards (upgraded chips) ──────────────────────── */
+.quick-action-card {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.quick-action-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--brand) 10%, rgba(0, 0, 0, 0.12));
+  border-color: color-mix(in srgb, var(--brand) 30%, var(--border));
+}
+
+.quick-action-card:active {
+  transform: translateY(0);
+}
+
+/* ─── Context usage bar ────────────────────────────────────────── */
+.context-usage-bar {
+  height: 2px;
+  background: color-mix(in srgb, var(--text-disabled) 15%, transparent);
+  overflow: hidden;
+}
+
+.context-usage-bar-fill {
+  height: 100%;
+  background: var(--brand);
+  transition: width 0.5s ease-out;
+  border-radius: 1px;
+}
+
+/* ─── Stagger animation for paragraphs ─────────────────────────── */
+.stagger-paragraph > p,
+.stagger-paragraph > ul,
+.stagger-paragraph > ol,
+.stagger-paragraph > pre,
+.stagger-paragraph > blockquote,
+.stagger-paragraph > h1,
+.stagger-paragraph > h2,
+.stagger-paragraph > h3,
+.stagger-paragraph > h4 {
+  animation: fade-in-up 0.3s ease both;
+}
+
+.stagger-paragraph > *:nth-child(1) {
+  animation-delay: 0ms;
+}
+.stagger-paragraph > *:nth-child(2) {
+  animation-delay: 50ms;
+}
+.stagger-paragraph > *:nth-child(3) {
+  animation-delay: 100ms;
+}
+.stagger-paragraph > *:nth-child(4) {
+  animation-delay: 150ms;
+}
+.stagger-paragraph > *:nth-child(5) {
+  animation-delay: 200ms;
+}
+.stagger-paragraph > *:nth-child(6) {
+  animation-delay: 250ms;
+}
+.stagger-paragraph > *:nth-child(7) {
+  animation-delay: 300ms;
+}
+.stagger-paragraph > *:nth-child(8) {
+  animation-delay: 350ms;
+}
+
+/* ─── Thinking disclosure triangle ─────────────────────────────── */
+.thinking-disclosure summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.thinking-disclosure summary::-webkit-details-marker {
+  display: none;
+}
+
+.thinking-disclosure[open] summary .thinking-chevron {
+  transform: rotate(90deg);
+}
+
+.thinking-chevron {
+  transition: transform 0.2s ease;
+}
+
+/* ─── Diff apply flash ─────────────────────────────────────────── */
+@keyframes diff-apply-flash {
+  0% {
+    background: color-mix(in srgb, var(--color-additions) 25%, transparent);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+.diff-apply-flash {
+  animation: diff-apply-flash 0.8s ease-out;
+}
+
+/* ─── Hunk action buttons ──────────────────────────────────────── */
+.hunk-separator {
+  background: color-mix(in srgb, var(--brand) 6%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--brand) 15%, var(--border));
+  border-bottom: 1px solid color-mix(in srgb, var(--brand) 15%, var(--border));
+}
+
+/* ─── Reduced motion: disable all new animations ───────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .typing-wave span,
+  .input-focus-glow::before,
+  .streaming-progress-bar::after,
+  .logo-breathe-connected,
+  .logo-breathe-idle,
+  .stagger-paragraph > * {
+    animation: none !important;
+  }
+  .quick-action-card:hover {
+    transform: none;
+  }
+  .message-avatar-ring {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand) 20%, transparent);
+  }
+}

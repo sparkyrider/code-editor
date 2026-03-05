@@ -7,9 +7,9 @@ import { useEditor } from '@/context/editor-context'
 import { useView } from '@/context/view-context'
 import { useLocal } from '@/context/local-context'
 import { isTauri, tauriInvoke } from '@/lib/tauri'
-import { DeviceCarousel } from './device-carousel'
-import { AgentAnnotationOverlay } from './agent-annotations'
-import { ComponentIsolator } from './component-isolator'
+
+
+
 
 /* ── Script metadata ─────────────────────────────────────────── */
 

@@ -23,23 +23,6 @@ export const DEVICES: DeviceSpec[] = [
   { id: 'desktop-1080', label: '1080p', width: 1920, height: 1080, scale: 0.4, bezel: false, icon: 'lucide:monitor' },
 ]
 
-export interface AgentAnnotation {
-  id: string
-  selector: string
-  label: string
-  type: 'added' | 'modified' | 'removed'
-  filePath: string
-  line?: number
-  timestamp: number
-}
-
-export interface IsolatedComponent {
-  name: string
-  filePath: string
-  props: Record<string, unknown>
-  code?: string
-}
-
 export const ZOOM_MIN = 0.1
 export const ZOOM_MAX = 3
 export const ZOOM_STEP = 0.1
@@ -54,14 +37,7 @@ interface PreviewContextValue {
   setPip: (v: boolean) => void
   activeDevice: DeviceFrame
   setActiveDevice: (d: DeviceFrame) => void
-  carouselMode: boolean
-  setCarouselMode: (v: boolean) => void
-  annotations: AgentAnnotation[]
-  addAnnotation: (a: Omit<AgentAnnotation, 'id' | 'timestamp'>) => void
-  clearAnnotations: () => void
-  isolatedComponent: IsolatedComponent | null
-  isolateComponent: (comp: IsolatedComponent) => void
-  exitIsolation: () => void
+
   refreshKey: number
   refresh: () => void
   zoom: number
@@ -83,24 +59,14 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
   const [visible, setVisible] = useState(false)
   const [pip, setPip] = useState(false)
   const [activeDevice, setActiveDevice] = useState<DeviceFrame>('responsive')
-  const [carouselMode, setCarouselMode] = useState(false)
-  const [annotations, setAnnotations] = useState<AgentAnnotation[]>([])
-  const [isolatedComponent, setIsolatedComponent] = useState<IsolatedComponent | null>(null)
+
   const [refreshKey, setRefreshKey] = useState(0)
   const [zoom, setZoomRaw] = useState(1)
   const [panX, setPanX] = useState(0)
   const [panY, setPanY] = useState(0)
   const fitToScreenRef = useRef<(() => void) | null>(null)
 
-  const addAnnotation = useCallback((a: Omit<AgentAnnotation, 'id' | 'timestamp'>) => {
-    setAnnotations(prev => [...prev, { ...a, id: crypto.randomUUID(), timestamp: Date.now() }])
-  }, [])
-  const clearAnnotations = useCallback(() => setAnnotations([]), [])
-  const isolateComponent = useCallback((comp: IsolatedComponent) => {
-    setIsolatedComponent(comp)
-    setVisible(true)
-  }, [])
-  const exitIsolation = useCallback(() => setIsolatedComponent(null), [])
+
   const refresh = useCallback(() => setRefreshKey(k => k + 1), [])
 
   const setZoom = useCallback((z: number | ((prev: number) => number)) => {
@@ -145,15 +111,11 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<PreviewContextValue>(() => ({
     previewUrl, setPreviewUrl, visible, setVisible, pip, setPip,
-    activeDevice, setActiveDevice, carouselMode, setCarouselMode,
-    annotations, addAnnotation, clearAnnotations,
-    isolatedComponent, isolateComponent, exitIsolation,
+    activeDevice, setActiveDevice,
     refreshKey, refresh,
     zoom, setZoom, panX, panY, setPan, resetView, zoomIn, zoomOut, fitToScreen, setFitToScreenFn,
   }), [
-    previewUrl, visible, pip, activeDevice, carouselMode,
-    annotations, addAnnotation, clearAnnotations,
-    isolatedComponent, isolateComponent, exitIsolation,
+    previewUrl, visible, pip, activeDevice,
     refreshKey, refresh,
     zoom, setZoom, panX, panY, setPan, resetView, zoomIn, zoomOut, fitToScreen, setFitToScreenFn,
   ])

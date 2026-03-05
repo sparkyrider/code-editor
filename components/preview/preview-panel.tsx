@@ -81,9 +81,7 @@ export function PreviewPanel() {
   const {
     previewUrl, setPreviewUrl, visible, setVisible,
     pip, setPip, activeDevice, setActiveDevice,
-    carouselMode, setCarouselMode,
-    isolatedComponent, exitIsolation,
-    annotations, clearAnnotations,
+
     refreshKey, refresh,
     zoom, setZoom, panX, panY, setPan, resetView, zoomIn, zoomOut, fitToScreen, setFitToScreenFn,
   } = usePreview()
@@ -104,7 +102,7 @@ export function PreviewPanel() {
   const panStartRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 })
   const device = DEVICES.find(d => d.id === activeDevice) ?? DEVICES[0]
 
-  const showZoomBar = !carouselMode && !isolatedComponent && device.id !== 'responsive'
+  const showZoomBar = device.id !== 'responsive'
 
   // Single-device fit-to-screen
   const fitSingleDevice = useCallback(() => {
@@ -121,11 +119,11 @@ export function PreviewPanel() {
   }, [device, setZoom, setPan])
 
   useEffect(() => {
-    if (!carouselMode && device.id !== 'responsive') {
+    if (device.id !== 'responsive') {
       setFitToScreenFn(fitSingleDevice)
       return () => setFitToScreenFn(null)
     }
-  }, [carouselMode, device.id, fitSingleDevice, setFitToScreenFn])
+  }, [device.id, fitSingleDevice, setFitToScreenFn])
 
   // Wheel zoom for single-device mode
   const handleSingleWheel = useCallback((e: React.WheelEvent) => {
@@ -180,7 +178,7 @@ export function PreviewPanel() {
 
   // Keyboard shortcuts for single-device zoom
   useEffect(() => {
-    if (carouselMode || device.id === 'responsive') return
+    if (device.id === 'responsive') return
     const handler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
       if ((e.metaKey || e.ctrlKey) && (e.key === '=' || e.key === '+')) {
@@ -199,7 +197,7 @@ export function PreviewPanel() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [carouselMode, device.id, zoomIn, zoomOut, resetView, fitSingleDevice])
+  }, [device.id, zoomIn, zoomOut, resetView, fitSingleDevice])
 
   useEffect(() => { setUrlInput(previewUrl) }, [previewUrl])
 
@@ -252,7 +250,7 @@ export function PreviewPanel() {
   useEffect(() => { if (!visible) setVisible(true) }, [visible, setVisible])
 
   // Reset zoom/pan when switching devices or modes
-  useEffect(() => { resetView() }, [activeDevice, carouselMode]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { resetView() }, [activeDevice]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (pip) return null
 
@@ -292,7 +290,7 @@ export function PreviewPanel() {
               onClick={() => setUrlEditing(true)}
               className="w-full text-left px-2 py-0.5 text-[11px] font-mono rounded-md bg-[var(--bg)] border border-[var(--border)] text-[var(--text-tertiary)] hover:border-[var(--border-hover)] transition-colors cursor-text truncate"
             >
-              {isolatedComponent ? `⚛ ${isolatedComponent.name} — isolated` : previewUrl}
+              {previewUrl}
             </button>
           )}
         </div>
@@ -345,9 +343,9 @@ export function PreviewPanel() {
           {DEVICES.slice(0, 4).map(d => (
             <button
               key={d.id}
-              onClick={() => { setActiveDevice(d.id); setCarouselMode(false) }}
+              onClick={() => setActiveDevice(d.id)}
               className={`p-1 rounded transition-colors cursor-pointer ${
-                activeDevice === d.id && !carouselMode
+                activeDevice === d.id
                   ? 'bg-[color-mix(in_srgb,var(--brand)_15%,transparent)] text-[var(--brand)]'
                   : 'text-[var(--text-disabled)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]'
               }`}
@@ -356,47 +354,10 @@ export function PreviewPanel() {
               <Icon icon={d.icon} width={13} height={13} />
             </button>
           ))}
-          <button
-            onClick={() => setCarouselMode(!carouselMode)}
-            className={`p-1 rounded transition-colors cursor-pointer ${
-              carouselMode
-                ? 'bg-[color-mix(in_srgb,var(--brand)_15%,transparent)] text-[var(--brand)]'
-                : 'text-[var(--text-disabled)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]'
-            }`}
-            title="Device Carousel"
-          >
-            <Icon icon="lucide:layout-grid" width={13} height={13} />
-          </button>
         </div>
 
         {/* Actions */}
         <div className="flex items-center gap-0.5 border-l border-[var(--border)] pl-1 ml-1">
-          {/* Component Isolation */}
-          {isolatedComponent ? (
-            <button onClick={exitIsolation} className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-[color-mix(in_srgb,var(--brand)_15%,transparent)] text-[var(--brand)] cursor-pointer" title="Exit component isolation">
-              <Icon icon="lucide:minimize-2" width={12} height={12} />
-              <span className="text-[10px] font-medium">Exit</span>
-            </button>
-          ) : (
-            <button
-              onClick={() => window.dispatchEvent(new CustomEvent('preview-isolate-component'))}
-              className="p-1 rounded text-[var(--text-disabled)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] cursor-pointer"
-              title="Isolate component (⌘⇧I)"
-            >
-              <Icon icon="lucide:component" width={13} height={13} />
-            </button>
-          )}
-
-          {/* Annotations */}
-          {annotations.length > 0 && (
-            <button onClick={clearAnnotations} className="relative p-1 rounded text-[var(--color-ai)] hover:bg-[var(--color-ai-hover-bg)] cursor-pointer" title={`${annotations.length} agent changes`}>
-              <Icon icon="lucide:sparkles" width={13} height={13} />
-              <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-[var(--color-ai)] text-[7px] font-bold text-[var(--bg)] flex items-center justify-center">
-                {annotations.length}
-              </span>
-            </button>
-          )}
-
           {/* PiP */}
           <button onClick={() => setPip(true)} className="p-1 rounded text-[var(--text-disabled)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] cursor-pointer" title="Picture-in-Picture">
             <Icon icon="lucide:picture-in-picture-2" width={13} height={13} />
@@ -423,22 +384,7 @@ export function PreviewPanel() {
         </div>
       </div>
 
-      {/* ── Isolation banner ─────────────────────────────────── */}
-      {isolatedComponent && (
-        <div className="flex items-center gap-2 px-3 py-1.5 border-b border-[color-mix(in_srgb,var(--brand)_25%,transparent)] bg-[color-mix(in_srgb,var(--brand)_6%,transparent)] shrink-0">
-          <Icon icon="lucide:component" width={13} height={13} className="text-[var(--brand)] shrink-0" />
-          <span className="text-[11px] font-semibold text-[var(--brand)]">{isolatedComponent.name}</span>
-          <span className="text-[10px] font-mono text-[var(--text-disabled)] truncate">{isolatedComponent.filePath}</span>
-          <div className="flex-1" />
-          <button
-            onClick={exitIsolation}
-            className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-[color-mix(in_srgb,var(--brand)_12%,transparent)] text-[var(--brand)] hover:bg-[color-mix(in_srgb,var(--brand)_20%,transparent)] transition-colors cursor-pointer"
-          >
-            <Icon icon="lucide:arrow-left" width={10} height={10} />
-            Back to preview
-          </button>
-        </div>
-      )}
+
 
       {/* ── Preview Area ─────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-full min-h-0 relative overflow-hidden">
@@ -452,13 +398,8 @@ export function PreviewPanel() {
           </div>
         )}
 
-        {/* Component Isolation mode */}
-        {isolatedComponent ? (
-          <ComponentIsolator />
-        ) : carouselMode ? (
-          <DeviceCarousel />
-        ) : (
-          /* Single device preview */
+        {/* Preview */}
+        {(
           device.id === 'responsive' ? (
             <div className="w-full h-full flex items-center justify-center">
               {previewUrl ? (
@@ -531,10 +472,7 @@ export function PreviewPanel() {
           )
         )}
 
-        {/* Agent Annotations overlay */}
-        {annotations.length > 0 && !isolatedComponent && (
-          <AgentAnnotationOverlay iframeRef={iframeRef} />
-        )}
+
       </div>
 
       {/* Bottom zoom bar for single-device mode */}

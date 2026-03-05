@@ -1,5 +1,2 @@
 export { PreviewPanel } from './preview-panel'
-export { DeviceCarousel } from './device-carousel'
 export { PipWindow } from './pip-window'
-export { AgentAnnotationOverlay } from './agent-annotations'
-export { ComponentIsolator, ComponentIsolatorListener } from './component-isolator'

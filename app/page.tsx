@@ -39,7 +39,7 @@ const ShortcutsOverlay = dynamic(() => import('@/components/shortcuts-overlay').
 
 const TerminalPanel = dynamic(() => import('@/components/terminal-panel').then(m => ({ default: m.TerminalPanel })), { ssr: false })
 const PreviewPanel = dynamic(() => import('@/components/preview/preview-panel').then(m => ({ default: m.PreviewPanel })), { ssr: false })
-const ComponentIsolatorListener = dynamic(() => import('@/components/preview/component-isolator').then(m => ({ default: m.ComponentIsolatorListener })), { ssr: false })
+
 
 const PipWindow = dynamic(() => import('@/components/preview/pip-window').then(m => ({ default: m.PipWindow })), { ssr: false })
 const WidgetPipWindow = dynamic(() => import('@/components/plugins/widget-pip-window').then(m => ({ default: m.WidgetPipWindow })), { ssr: false })
@@ -994,7 +994,7 @@ export default function EditorLayout() {
       <YouTubePlugin />
       <PipWindow />
       <WidgetPipWindow />
-      {activeView === 'preview' && <ComponentIsolatorListener />}
+
       <PluginSlotRenderer slot="floating" />
 
       {/* Modal overlays */}

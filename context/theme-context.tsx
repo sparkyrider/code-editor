@@ -65,6 +65,15 @@ function resolveMode(mode: ThemeMode): ResolvedMode {
   return mode === 'system' ? getSystemPreference() : mode
 }
 
+const EXTRA_THEMES = new Set(['caffeine', 'claymorphism', 'vercel', 'vintage-paper'])
+let extraThemesLoaded = false
+
+function ensureExtraThemes(themeId: string) {
+  if (extraThemesLoaded || !EXTRA_THEMES.has(themeId)) return
+  extraThemesLoaded = true
+  import(/* webpackChunkName: "themes-extra" */ '@/app/themes-extra.css').catch(() => {})
+}
+
 function applyToDOM(themeId: string, resolved: ResolvedMode) {
   const el = document.documentElement
   el.setAttribute('data-theme', themeId)
@@ -73,6 +82,7 @@ function applyToDOM(themeId: string, resolved: ResolvedMode) {
   } else {
     el.classList.remove('dark')
   }
+  ensureExtraThemes(themeId)
 }
 
 function applyRadiusToDOM(base: number) {

@@ -17,7 +17,7 @@ import { useView } from '@/context/view-context'
 // ─── Panel Definitions ──────────────────────────────────
 // Add a new panel here → it automatically gets toggle, resize, persistence, presets
 
-export type PanelId = 'sidebar' | 'tree' | 'chat' | 'engine' | 'terminal' | 'plugins'
+export type PanelId = 'sidebar' | 'tree' | 'chat' | 'engine' | 'terminal' | 'plugins' | 'gitPanel'
 
 export type PanelAxis = 'horizontal' | 'vertical'
 
@@ -135,6 +135,15 @@ export const PANEL_DEFS: Record<PanelId, PanelDef> = {
     axis: 'horizontal',
     resizable: true,
   },
+  gitPanel: {
+    key: 'git-panel',
+    defaultVisible: true,
+    defaultSize: 300,
+    minSize: 220,
+    maxSize: 480,
+    axis: 'horizontal',
+    resizable: true,
+  },
 }
 
 const PANEL_IDS = Object.keys(PANEL_DEFS) as PanelId[]
@@ -177,10 +186,38 @@ const PRESETS: Record<
   LayoutPreset,
   Partial<Record<PanelId, boolean>> & { editorCollapsed?: boolean }
 > = {
-  focus: { tree: false, engine: false, chat: false, terminal: false, editorCollapsed: false },
-  review: { tree: true, engine: false, chat: true, terminal: false, editorCollapsed: false },
-  build: { tree: false, engine: true, chat: false, terminal: true, editorCollapsed: false },
-  default: { tree: false, engine: false, chat: true, terminal: false, editorCollapsed: false },
+  focus: {
+    tree: false,
+    engine: false,
+    chat: false,
+    terminal: false,
+    gitPanel: false,
+    editorCollapsed: false,
+  },
+  review: {
+    tree: true,
+    engine: false,
+    chat: true,
+    terminal: false,
+    gitPanel: true,
+    editorCollapsed: false,
+  },
+  build: {
+    tree: false,
+    engine: true,
+    chat: false,
+    terminal: true,
+    gitPanel: true,
+    editorCollapsed: false,
+  },
+  default: {
+    tree: false,
+    engine: false,
+    chat: true,
+    terminal: false,
+    gitPanel: true,
+    editorCollapsed: false,
+  },
 }
 
 // ─── Reducer ────────────────────────────────────────────
@@ -705,7 +742,8 @@ export function usePanelResize(panel: PanelId) {
 
       const onMove = (ev: MouseEvent) => {
         const currentPos = def.axis === 'horizontal' ? ev.clientX : ev.clientY
-        const invertDelta = panel === 'chat' || panel === 'terminal' || panel === 'plugins'
+        const invertDelta =
+          panel === 'chat' || panel === 'terminal' || panel === 'plugins' || panel === 'gitPanel'
         const delta = invertDelta ? startPos - currentPos : currentPos - startPos
         resize(panel, startSize + delta)
       }

@@ -31,6 +31,11 @@ import { emit, on } from '@/lib/events'
 import { KnotLogo } from '@/components/knot-logo'
 import type { AppMode } from '@/lib/mode-registry'
 
+const GitSidebarPanel = dynamic(
+  () => import('@/components/git-sidebar-panel').then((m) => ({ default: m.GitSidebarPanel })),
+  { ssr: false },
+)
+
 // Overlay modals — lazy loaded
 const QuickOpen = dynamic(
   () => import('@/components/quick-open').then((m) => ({ default: m.QuickOpen })),
@@ -411,10 +416,10 @@ export default function EditorLayout() {
         />
       )}
 
-      {/* Workspace Sidebar */}
-      {mode !== 'tui' && (mode !== 'chat' || layout.isVisible('sidebar')) && (
+      {/* Workspace Sidebar — always visible in chat mode, toggleable otherwise */}
+      {mode !== 'tui' && (
         <WorkspaceSidebar
-          collapsed={sidebarCollapsed}
+          collapsed={mode !== 'chat' && sidebarCollapsed}
           onToggle={() => layout.toggle('sidebar')}
           repoName={repo?.fullName || localRootPath?.split('/').pop()}
         />
@@ -487,21 +492,30 @@ export default function EditorLayout() {
             </div>
           )}
 
-          {/* Minimal header with brand when tabs are hidden */}
+          {/* Codex-style header with Open + Commit dropdowns when tabs are hidden */}
           {modeSpec.hideTabs && (
-            <div className="flex items-center gap-2.5 tauri-no-drag">
-              <KnotLogo size={22} className="text-[var(--brand)]" />
-              <span className="text-[14px] font-semibold text-[var(--text-primary)] tracking-[-0.01em]">
-                KnotCode
-              </span>
-              {localRootPath && (
-                <>
-                  <span className="text-[var(--text-disabled)]">&middot;</span>
-                  <span className="text-[12px] font-mono text-[var(--text-disabled)] truncate max-w-[200px]">
-                    {localRootPath.split('/').pop()}
-                  </span>
-                </>
-              )}
+            <div className="flex items-center gap-1.5 tauri-no-drag">
+              {/* Open dropdown */}
+              <button
+                onClick={() => emit('open-folder')}
+                className="codex-header-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium text-[var(--text-secondary)] hover:bg-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] hover:text-[var(--text-primary)] transition-all cursor-pointer"
+              >
+                <Icon icon="lucide:folder-open" width={14} height={14} />
+                Open
+                <Icon icon="lucide:chevron-down" width={10} height={10} className="opacity-50" />
+              </button>
+
+              <span className="text-[var(--text-disabled)] text-[11px]">&middot;</span>
+
+              {/* Commit dropdown */}
+              <button
+                onClick={() => setView('git')}
+                className="codex-header-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium text-[var(--text-secondary)] hover:bg-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] hover:text-[var(--text-primary)] transition-all cursor-pointer"
+              >
+                <Icon icon="lucide:git-commit-horizontal" width={14} height={14} />
+                Commit
+                <Icon icon="lucide:chevron-down" width={10} height={10} className="opacity-50" />
+              </button>
             </div>
           )}
 
@@ -528,6 +542,18 @@ export default function EditorLayout() {
               </button>
             ))}
           </div>
+
+          {/* Change count badges */}
+          {dirtyCount > 0 && (
+            <div className="tauri-no-drag flex items-center gap-1.5 mr-1">
+              <span className="codex-header-badge text-[10px] font-mono font-bold px-1.5 py-0.5 rounded text-[var(--color-additions,#22c55e)] bg-[color-mix(in_srgb,var(--color-additions,#22c55e)_10%,transparent)]">
+                +{dirtyCount}
+              </span>
+              <span className="codex-header-badge text-[10px] font-mono font-bold px-1.5 py-0.5 rounded text-[var(--color-deletions,#ef4444)] bg-[color-mix(in_srgb,var(--color-deletions,#ef4444)_10%,transparent)]">
+                -{dirtyCount}
+              </span>
+            </div>
+          )}
 
           {/* Settings */}
           <button
@@ -697,6 +723,9 @@ export default function EditorLayout() {
         {/* Status bar */}
         <StatusBar agentActive={agentActive} />
       </div>
+
+      {/* Git sidebar panel — Codex-style always-visible right panel */}
+      {mode !== 'tui' && layout.isVisible('gitPanel') && <GitSidebarPanel />}
 
       {/* Sidebar plugins (Spotify, etc.) */}
       <SidebarPluginSlot />

@@ -36,6 +36,7 @@ export const MODE_REGISTRY: Record<AppMode, ModeSpec> = {
       terminal: false,
       plugins: true,
       engine: false,
+      gitPanel: true,
     },
   },
   chat: {
@@ -47,12 +48,13 @@ export const MODE_REGISTRY: Record<AppMode, ModeSpec> = {
     hideTabs: true,
     accent: '#60a5fa',
     panelDefaults: {
-      sidebar: false,
+      sidebar: true,
       tree: false,
       chat: false,
       terminal: false,
-      plugins: true,
+      plugins: false,
       engine: false,
+      gitPanel: true,
     },
   },
   tui: {
@@ -71,6 +73,7 @@ export const MODE_REGISTRY: Record<AppMode, ModeSpec> = {
       terminal: false,
       plugins: true,
       engine: false,
+      gitPanel: false,
     },
   },
 }

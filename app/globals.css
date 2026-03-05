@@ -4757,3 +4757,127 @@ p {
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand) 20%, transparent);
   }
 }
+
+/* ─── Codex Layout: Sidebar ─────────────────────────────── */
+
+.codex-sidebar {
+  transition: width 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.codex-sidebar-new-thread:hover {
+  transform: translateY(-0.5px);
+}
+
+.codex-sidebar-thread {
+  border: 1px solid transparent;
+}
+.codex-sidebar-thread:hover {
+  border-color: var(--border);
+}
+
+/* ─── Codex Layout: Git Sidebar Panel ────────────────────── */
+
+.codex-git-sidebar {
+  position: relative;
+  background: var(--bg-elevated);
+  border-left: 1px solid var(--border);
+  border-radius: 0 12px 12px 0;
+  overflow: hidden;
+}
+
+.codex-git-tab {
+  border: 1px solid transparent;
+  transition: all 150ms;
+}
+.codex-git-tab:hover {
+  border-color: var(--border);
+}
+
+.codex-git-file {
+  border: 1px solid transparent;
+}
+.codex-git-file:hover {
+  border-color: var(--border);
+}
+
+.codex-git-dropdown {
+  animation: codex-dropdown-in 120ms ease-out;
+}
+
+@keyframes codex-dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.codex-git-badge {
+  letter-spacing: 0.02em;
+}
+
+.codex-git-action-btn:not(:disabled):hover {
+  transform: translateY(-0.5px);
+}
+
+.codex-git-bottom-bar {
+  background: color-mix(in srgb, var(--bg-elevated) 95%, transparent);
+}
+
+/* ─── Codex Layout: Header ───────────────────────────────── */
+
+.codex-header-btn {
+  border: 1px solid transparent;
+}
+.codex-header-btn:hover {
+  border-color: var(--border);
+}
+
+.codex-header-badge {
+  letter-spacing: 0.02em;
+}
+
+/* ─── Codex Layout: Home / Composer ──────────────────────── */
+
+.codex-workspace-dropdown {
+  font-weight: 500;
+}
+.codex-workspace-dropdown:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.codex-suggestion-card {
+  transition: all 200ms ease;
+}
+.codex-suggestion-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--text-primary) 6%, transparent);
+}
+
+.codex-composer {
+  transition:
+    border-color 200ms,
+    box-shadow 200ms;
+}
+.codex-composer:focus-within {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand) 15%, transparent);
+}
+
+.codex-pill {
+  transition: all 150ms;
+}
+
+.codex-send-btn {
+  transition: all 150ms;
+}
+
+/* Responsive: stack suggestion cards on narrow screens */
+@media (max-width: 640px) {
+  .codex-suggestion-grid {
+    grid-template-columns: 1fr;
+  }
+}

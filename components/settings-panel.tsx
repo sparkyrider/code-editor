@@ -127,6 +127,17 @@ export function SettingsPanel({ open, onClose, initialTab }: Props) {
     }
   }, [ghToken])
 
+  const handleClearLocalStorage = useCallback(() => {
+    const ok = window.confirm(
+      'Clear all local storage for KnotCode and reload now? This removes saved settings, recent files, chat history, and cached plugin data on this device.',
+    )
+    if (!ok) return
+    try {
+      localStorage.clear()
+    } catch {}
+    window.location.reload()
+  }, [])
+
   if (!open) return null
 
   const tabs: { id: SettingsTab; label: string; icon: string }[] = [
@@ -293,6 +304,24 @@ export function SettingsPanel({ open, onClose, initialTab }: Props) {
                   >
                     Start
                   </button>
+                </div>
+              </Section>
+
+              <Section title="Local Data">
+                <div className="space-y-2">
+                  <p className="text-[10px] text-[var(--text-tertiary)] leading-relaxed">
+                    Clear browser local storage for this app.
+                  </p>
+                  <button
+                    onClick={handleClearLocalStorage}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium border border-[color-mix(in_srgb,var(--error)_35%,var(--border))] text-[var(--error)] hover:bg-[color-mix(in_srgb,var(--error)_8%,transparent)] transition-colors cursor-pointer"
+                  >
+                    <Icon icon="lucide:trash-2" width={11} height={11} />
+                    Clear Local Storage
+                  </button>
+                  <p className="text-[9px] text-[var(--text-disabled)]">
+                    The app reloads after clearing. Desktop keychain tokens are not affected.
+                  </p>
                 </div>
               </Section>
 

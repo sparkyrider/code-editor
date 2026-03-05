@@ -10,6 +10,8 @@
     "desktop:build": "CI=true tauri build",
     "desktop:build:debug": "tauri build --debug",
     "desktop:release": "pnpm desktop:check && pnpm desktop:build",
+    "desktop:sign": "./scripts/sign-and-deploy.sh",
+    "desktop:sign:universal": "./scripts/sign-and-deploy.sh --universal",
     "desktop:doctor": "pkill -f \"next dev|tauri dev\" || true; rm -f .next/lock",
     "bdev": "pnpm desktop:build && pnpm desktop:dev",
     "dev": "pnpm desktop:dev",

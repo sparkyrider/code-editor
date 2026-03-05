@@ -65,8 +65,18 @@ pub fn create_terminal(
     cmd.cwd(cwd.unwrap_or(home));
 
     // Inherit common env vars
-    for key in &["HOME", "USER", "SHELL", "TERM", "LANG", "PATH", "EDITOR",
-                 "NVM_DIR", "CARGO_HOME", "RUSTUP_HOME"] {
+    for key in &[
+        "HOME",
+        "USER",
+        "SHELL",
+        "TERM",
+        "LANG",
+        "PATH",
+        "EDITOR",
+        "NVM_DIR",
+        "CARGO_HOME",
+        "RUSTUP_HOME",
+    ] {
         if let Ok(val) = std::env::var(key) {
             cmd.env(key, val);
         }
@@ -105,7 +115,11 @@ pub fn create_terminal(
             .ok()
             .and_then(|mut s| {
                 s.get_mut(&id).and_then(|session| {
-                    session.child.wait().ok().map(|status| status.exit_code() as i32)
+                    session
+                        .child
+                        .wait()
+                        .ok()
+                        .map(|status| status.exit_code() as i32)
                 })
             })
             .unwrap_or(0);
@@ -118,11 +132,14 @@ pub fn create_terminal(
         let _ = app_clone.emit(&exit_event_name, TerminalExit { id, code });
     });
 
-    state.sessions.lock().unwrap().insert(id, TerminalSession {
-        writer: Box::new(writer),
-        master: pair.master,
-        child,
-    });
+    state.sessions.lock().unwrap().insert(
+        id,
+        TerminalSession {
+            writer: Box::new(writer),
+            master: pair.master,
+            child,
+        },
+    );
 
     log::info!("Created terminal session {}", id);
     Ok(id)
@@ -136,7 +153,10 @@ pub fn write_terminal(
 ) -> Result<(), String> {
     let mut sessions = state.sessions.lock().unwrap();
     let session = sessions.get_mut(&id).ok_or("Terminal session not found")?;
-    session.writer.write_all(data.as_bytes()).map_err(|e| e.to_string())?;
+    session
+        .writer
+        .write_all(data.as_bytes())
+        .map_err(|e| e.to_string())?;
     session.writer.flush().map_err(|e| e.to_string())?;
     Ok(())
 }
@@ -150,20 +170,20 @@ pub fn resize_terminal(
 ) -> Result<(), String> {
     let sessions = state.sessions.lock().unwrap();
     let session = sessions.get(&id).ok_or("Terminal session not found")?;
-    session.master.resize(PtySize {
-        rows,
-        cols,
-        pixel_width: 0,
-        pixel_height: 0,
-    }).map_err(|e| e.to_string())?;
+    session
+        .master
+        .resize(PtySize {
+            rows,
+            cols,
+            pixel_width: 0,
+            pixel_height: 0,
+        })
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
-pub fn kill_terminal(
-    state: State<'_, TerminalState>,
-    id: u32,
-) -> Result<(), String> {
+pub fn kill_terminal(state: State<'_, TerminalState>, id: u32) -> Result<(), String> {
     let mut sessions = state.sessions.lock().unwrap();
     if sessions.remove(&id).is_some() {
         log::info!("Killed terminal session {}", id);
@@ -172,9 +192,7 @@ pub fn kill_terminal(
 }
 
 #[tauri::command]
-pub fn kill_all_terminals(
-    state: State<'_, TerminalState>,
-) -> Result<u32, String> {
+pub fn kill_all_terminals(state: State<'_, TerminalState>) -> Result<u32, String> {
     let mut sessions = state.sessions.lock().unwrap();
     let count = sessions.len() as u32;
     if count > 0 {

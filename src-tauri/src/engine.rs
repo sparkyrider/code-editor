@@ -43,22 +43,36 @@ pub fn engine_status() -> Result<EngineStatus, String> {
     }
 
     // Get version
-    let version = run_openclaw(&["--version"])
-        .ok()
-        .and_then(|(out, _, ok)| if ok { Some(out.trim().to_string()) } else { None });
+    let version = run_openclaw(&["--version"]).ok().and_then(|(out, _, ok)| {
+        if ok {
+            Some(out.trim().to_string())
+        } else {
+            None
+        }
+    });
 
     // Get gateway status
     let (stdout, stderr, success) = run_openclaw(&["gateway", "status"])?;
-    let raw = if success { stdout.clone() } else { format!("{}{}", stdout, stderr) };
+    let raw = if success {
+        stdout.clone()
+    } else {
+        format!("{}{}", stdout, stderr)
+    };
 
     // Parse running state — look for common indicators
     let combined = format!("{}{}", stdout.to_lowercase(), stderr.to_lowercase());
-    let running = combined.contains("running") || combined.contains("pid")
+    let running = combined.contains("running")
+        || combined.contains("pid")
         || (success && !combined.contains("not running") && !combined.contains("stopped"));
 
     // Try to extract PID
-    let pid = raw.split_whitespace()
-        .find_map(|word| word.trim_matches(|c: char| !c.is_ascii_digit()).parse::<u32>().ok())
+    let pid = raw
+        .split_whitespace()
+        .find_map(|word| {
+            word.trim_matches(|c: char| !c.is_ascii_digit())
+                .parse::<u32>()
+                .ok()
+        })
         .filter(|&p| p > 100); // Filter out small numbers that aren't PIDs
 
     Ok(EngineStatus {
@@ -100,7 +114,6 @@ pub fn engine_restart() -> Result<String, String> {
     }
 }
 
-
 #[derive(Clone, Serialize)]
 pub struct GatewayConfig {
     pub url: String,
@@ -120,15 +133,14 @@ pub fn engine_gateway_config() -> Result<GatewayConfig, String> {
     let content = std::fs::read_to_string(&config_path)
         .map_err(|e| format!("Failed to read config: {}", e))?;
 
-    let config: serde_json::Value = serde_json::from_str(&content)
-        .map_err(|e| format!("Failed to parse config: {}", e))?;
+    let config: serde_json::Value =
+        serde_json::from_str(&content).map_err(|e| format!("Failed to parse config: {}", e))?;
 
     // Extract port (default 18789) and password
-    let port = config.get("port")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(18789);
+    let port = config.get("port").and_then(|v| v.as_u64()).unwrap_or(18789);
 
-    let password = config.get("auth")
+    let password = config
+        .get("auth")
         .and_then(|a| a.get("password"))
         .and_then(|p| p.as_str())
         .unwrap_or("");

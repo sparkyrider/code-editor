@@ -30,11 +30,11 @@ const AgentPanel = dynamic(
 const PANEL_SPRING = { type: 'spring' as const, stiffness: 500, damping: 35 }
 
 const QUICK_ACTIONS = [
-  { icon: 'lucide:file-search', label: 'Open File', shortcut: '\u2318P', event: 'quick-open' },
+  { icon: 'lucide:file-search', label: 'File', shortcut: '\u2318P', event: 'quick-open' },
   { icon: 'lucide:folder', label: 'Browse', shortcut: '\u2318B', event: 'toggle-tree' },
   {
     icon: 'lucide:message-square',
-    label: 'New Chat',
+    label: 'Chat',
     shortcut: '\u2318L',
     event: 'open-side-chat',
   },

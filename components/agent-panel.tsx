@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Icon } from '@iconify/react'
 import { ModeSelector } from '@/components/mode-selector'
 import { ChatHome } from '@/components/chat-home'
+import { KnotLogo } from '@/components/knot-logo'
 import { ChatHeader } from '@/components/chat-header'
 import type { AgentMode } from '@/components/mode-selector'
 import { usePermissions } from '@/components/permissions-toggle'
@@ -1594,6 +1595,15 @@ export function AgentPanel() {
           onFileAttach={handleFileAttach}
         />
       )}
+
+      {/* Branded footer */}
+      <div className="shrink-0 flex items-center justify-center gap-1.5 px-3 py-1 border-t border-[var(--border)] bg-[var(--bg-elevated)]">
+        <KnotLogo size={10} className="opacity-40" />
+        <span className="text-[9px] text-[var(--text-disabled)] font-medium tracking-wide">
+          Knot Code
+        </span>
+        <span className="text-[8px] text-[var(--text-disabled)] opacity-50">v1.0.0</span>
+      </div>
     </div>
   )
 }

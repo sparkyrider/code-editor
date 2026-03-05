@@ -50,7 +50,7 @@ export function ChatHeader({
             />
           )}
           <span className="text-[13px] font-medium text-[var(--text-primary)] truncate">
-            {title || 'New Chat'}
+            {title || 'Chat'}
           </span>
           {repoName && (
             <>

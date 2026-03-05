@@ -51,6 +51,10 @@ const TerminalPanel = dynamic(
   () => import('@/components/terminal-panel').then((m) => ({ default: m.TerminalPanel })),
   { ssr: false },
 )
+const GatewayTerminalLazy = dynamic(
+  () => import('@/components/gateway-terminal').then((m) => ({ default: m.GatewayTerminal })),
+  { ssr: false },
+)
 const PipWindow = dynamic(
   () => import('@/components/preview/pip-window').then((m) => ({ default: m.PipWindow })),
   { ssr: false },
@@ -551,17 +555,10 @@ export default function EditorLayout() {
             transition={{ duration: 0.2, ease: 'easeOut' }}
             className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden"
           >
-            {/* TUI mode: terminal fills center */}
-            {modeSpec.terminalCenter && terminalVisible ? (
-              <div className="flex-1 flex min-h-0 min-w-0 overflow-hidden">
-                <TerminalPanel
-                  visible={true}
-                  height={9999}
-                  onHeightChange={() => {}}
-                  refreshOnOpenOrMode={true}
-                  refreshToken={terminalRefreshToken}
-                  startupCommand={terminalStartupCommand}
-                />
+            {/* TUI mode: gateway terminal fills center */}
+            {modeSpec.terminalCenter ? (
+              <div className="flex-1 flex min-h-0 min-w-0 overflow-hidden rounded-xl border border-[var(--border)]">
+                <GatewayTerminalLazy />
               </div>
             ) : (
               <ViewRouter />

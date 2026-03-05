@@ -96,6 +96,25 @@ function extractText(msg: Record<string, unknown> | undefined): string {
   return ''
 }
 
+function extractEventText(payload: Record<string, unknown> | undefined): string {
+  if (!payload) return ''
+  const fromMessage = extractText(payload.message as Record<string, unknown> | undefined)
+  if (fromMessage) return fromMessage
+  if (typeof payload.reply === 'string') return payload.reply
+  if (typeof payload.text === 'string') return payload.text
+  if (typeof payload.content === 'string') return payload.content
+  if (typeof payload.delta === 'string') return payload.delta
+  return ''
+}
+
+function mergeStreamingText(previous: string, incoming: string): string {
+  if (!previous) return incoming
+  // Some gateways stream cumulative buffers; others stream per-chunk deltas.
+  if (incoming.startsWith(previous)) return incoming
+  if (previous.endsWith(incoming)) return previous
+  return previous + incoming
+}
+
 function isNoReply(text: string | undefined): boolean {
   if (!text) return false
   return /^\s*(NO_REPLY|HEARTBEAT_OK)\s*$/i.test(text)
@@ -371,16 +390,20 @@ export function GatewayTerminal() {
       const state = p.state as string | undefined
 
       if (state === 'delta') {
-        const text = extractText(p.message as Record<string, unknown> | undefined)
+        const text = extractEventText(p)
         if (text) {
-          streamBuf.current = text
+          const merged = mergeStreamingText(streamBuf.current, text)
+          streamBuf.current = merged
           if (!streamId.current) {
             const id = uid()
             streamId.current = id
-            setEntries((prev) => [...prev, { id, type: 'streaming', text, timestamp: Date.now() }])
+            setEntries((prev) => [
+              ...prev,
+              { id, type: 'streaming', text: merged, timestamp: Date.now() },
+            ])
           } else {
             const id = streamId.current
-            setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, text } : e)))
+            setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, text: merged } : e)))
           }
         }
       } else if (state === 'tool_use' || state === 'tool_start') {
@@ -405,8 +428,7 @@ export function GatewayTerminal() {
           ])
         }
       } else if (state === 'final') {
-        const text =
-          extractText(p.message as Record<string, unknown> | undefined) || streamBuf.current
+        const text = extractEventText(p) || streamBuf.current
         if (streamId.current) {
           const id = streamId.current
           if (text && !isNoReply(text)) {
@@ -504,7 +526,7 @@ export function GatewayTerminal() {
 
       const status = resp?.status as string | undefined
       if (status === 'ok') {
-        const reply = resp?.reply as string | undefined
+        const reply = extractEventText(resp)
         if (reply && !isNoReply(reply)) {
           addEntry('response', reply)
           setSending(false)

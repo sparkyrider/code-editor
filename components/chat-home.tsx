@@ -209,33 +209,52 @@ export const ChatHome = memo(function ChatHome({ onSend, onSelectFolder, onClone
   }, [hasWorkspace, openFiles, local.localTree])
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center px-6 overflow-y-auto">
-      <div className="w-full max-w-[680px] py-5">
+    <div className="flex-1 flex flex-col items-center justify-start px-4 sm:px-6 pt-8 sm:pt-10 pb-8 overflow-y-auto">
+      <div className="w-full max-w-[700px]">
         {/* Logo + Heading */}
-        <div className="flex flex-col items-center mb-4">
+        <div className="flex flex-col items-center mb-5">
           <div className="mb-2.5 text-[var(--text-tertiary)]">
-            <KnotLogo size={32} className="animate-knot-idle" />
+            <KnotLogo size={30} />
           </div>
-          <h1 className="text-center text-[17px] font-semibold text-[var(--text-primary)] tracking-[-0.01em] leading-tight">
+          <h1 className="text-center text-[18px] font-semibold text-[var(--text-primary)] tracking-[-0.01em] leading-tight">
             {repoShort ? `What should we work on?` : `What do you want to build?`}
           </h1>
-          {hasWorkspace ? (
-            <button
-              onClick={onSelectFolder}
-              className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] text-[var(--text-disabled)] hover:text-[var(--text-tertiary)] transition-colors cursor-pointer"
+          <p className="mt-2 text-center text-[12px] leading-relaxed text-[var(--text-disabled)] max-w-[520px]">
+            {hasWorkspace
+              ? 'Move from idea to merged code with focused prompts, fast edits, and built-in review workflows.'
+              : 'Open a project or describe your idea to start coding with a context-aware agent.'}
+          </p>
+          <div className="mt-2.5 flex items-center justify-center gap-2.5 flex-wrap text-[11px] text-[var(--text-disabled)]">
+            {hasWorkspace ? (
+              <button
+                onClick={onSelectFolder}
+                className="inline-flex items-center gap-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+              >
+                <Icon icon="lucide:folder-git-2" width={11} height={11} />
+                {repoShort}
+              </button>
+            ) : (
+              <span className="text-[11px] text-[var(--text-disabled)]">
+                AI-powered code editor
+              </span>
+            )}
+            <span
+              className={`inline-flex items-center gap-1.5 ${
+                status === 'connected' ? 'text-[var(--success)]' : 'text-[var(--text-disabled)]'
+              }`}
             >
-              <Icon icon="lucide:folder-git-2" width={11} height={11} />
-              {repoShort}
-            </button>
-          ) : (
-            <p className="mt-1.5 text-[11px] text-[var(--text-disabled)]">AI-powered code editor</p>
-          )}
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${status === 'connected' ? 'bg-[var(--success)]' : 'bg-[var(--text-disabled)]'}`}
+              />
+              {status === 'connected' ? 'Gateway connected' : 'Gateway offline'}
+            </span>
+          </div>
         </div>
 
         {/* Composer card */}
         <div
           ref={cardRef}
-          className={`chat-input-card rounded-2xl border bg-[var(--bg-elevated)] overflow-hidden ${
+          className={`chat-input-card rounded-xl border bg-[color-mix(in_srgb,var(--bg-elevated)_92%,transparent)] overflow-hidden ${
             isFocused
               ? input.trim()
                 ? 'chat-input-card-typing border-[color-mix(in_srgb,var(--brand)_30%,var(--border))]'
@@ -243,6 +262,12 @@ export const ChatHome = memo(function ChatHome({ onSend, onSelectFolder, onClone
               : 'border-[var(--border)]'
           }`}
         >
+          <div className="px-4 pt-3 pb-0.5 flex items-center justify-between gap-2 text-[10px] text-[var(--text-disabled)]">
+            <span className="truncate">
+              {hasWorkspace ? `Context: ${repoShort}` : 'Tip: Press Tab to toggle mode'}
+            </span>
+            <span className="hidden sm:inline shrink-0">Shift+Enter adds a new line</span>
+          </div>
           <textarea
             ref={inputRef}
             value={input}
@@ -256,7 +281,7 @@ export const ChatHome = memo(function ChatHome({ onSend, onSelectFolder, onClone
             aria-label={
               repoShort ? `Ask anything about ${repoShort}` : 'Describe what you want to build'
             }
-            className="w-full bg-transparent px-4 pt-3 pb-1 text-[14px] leading-[1.6] text-[var(--text-primary)] placeholder:text-[var(--text-disabled)] outline-none resize-none min-h-[48px] max-h-[200px] overflow-y-auto"
+            className="w-full bg-transparent px-4 pt-2 pb-1 text-[14px] leading-[1.6] text-[var(--text-primary)] placeholder:text-[var(--text-disabled)] outline-none resize-none min-h-[52px] max-h-[200px] overflow-y-auto"
           />
 
           {/* Toolbar */}
@@ -287,56 +312,91 @@ export const ChatHome = memo(function ChatHome({ onSend, onSelectFolder, onClone
         </div>
 
         {/* Quick action chips */}
-        <div className="flex flex-wrap items-center justify-center gap-1.5 mt-2">
-          {suggestions.map((a, i) => (
-            <button
-              key={a.label}
-              onClick={() => {
-                setInput(a.prefix)
-                inputRef.current?.focus()
-              }}
-              aria-label={`${a.label}: ${a.prefix}`}
-              className="anime-chip chip-enter flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium bg-[color-mix(in_srgb,var(--brand)_8%,var(--bg-elevated))] text-[var(--text-secondary)] border border-[color-mix(in_srgb,var(--brand)_12%,var(--border))] hover:text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--brand)_14%,var(--bg-elevated))] hover:border-[color-mix(in_srgb,var(--brand)_30%,var(--border))] hover:scale-105 active:scale-95 transition-all cursor-pointer"
-              style={{ animationDelay: `${i * 0.08}s` }}
-            >
-              <Icon icon={a.icon} width={14} height={14} className="text-[var(--brand)]" />
-              {a.label}
-            </button>
-          ))}
+        <div className="mt-3">
+          <p className="text-center text-[10px] uppercase tracking-[0.08em] text-[var(--text-disabled)] font-medium">
+            Quick prompts
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-1.5 mt-1.5">
+            {suggestions.map((a, i) => (
+              <button
+                key={a.label}
+                onClick={() => {
+                  setInput(a.prefix)
+                  inputRef.current?.focus()
+                }}
+                aria-label={`${a.label}: ${a.prefix}`}
+                className="anime-chip chip-enter flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium bg-transparent text-[var(--text-secondary)] border border-[var(--border)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] hover:border-[var(--text-disabled)] active:scale-95 transition-all cursor-pointer"
+                style={{ animationDelay: `${i * 0.08}s` }}
+              >
+                <Icon
+                  icon={a.icon}
+                  width={14}
+                  height={14}
+                  className="text-[var(--text-tertiary)]"
+                />
+                {a.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Workspace actions — shown when no folder/repo is open */}
         {!hasWorkspace && (
-          <div className="mt-5 space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="flex-1 h-px bg-[var(--border)]" />
-              <span className="text-[10px] uppercase tracking-[0.08em] text-[var(--text-disabled)] font-medium">
-                Get started
-              </span>
-              <div className="flex-1 h-px bg-[var(--border)]" />
+          <div className="mt-6 border-t border-[var(--border)] pt-4 space-y-3">
+            <div>
+              <h2 className="text-[12px] font-semibold text-[var(--text-primary)]">
+                Set up your workspace
+              </h2>
+              <p className="text-[11px] text-[var(--text-disabled)] mt-1">
+                Open local files or clone a repository to unlock context-aware help.
+              </p>
             </div>
 
-            <div className="flex items-center justify-center gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <button
                 onClick={onSelectFolder}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] text-[13px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-disabled)] hover:bg-[var(--bg-subtle)] transition-all cursor-pointer"
+                className="group flex items-center gap-2.5 p-2.5 rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] text-left hover:text-[var(--text-primary)] hover:border-[var(--text-disabled)] hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer"
               >
-                <Icon icon="lucide:folder-open" width={15} height={15} />
-                Open Folder
+                <Icon
+                  icon="lucide:folder-open"
+                  width={14}
+                  height={14}
+                  className="text-[var(--text-tertiary)]"
+                />
+                <span className="min-w-0">
+                  <span className="block text-[12px] font-medium text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]">
+                    Open Folder
+                  </span>
+                  <span className="block text-[11px] text-[var(--text-disabled)]">
+                    Continue from a local project
+                  </span>
+                </span>
               </button>
               <button
                 onClick={onCloneRepo}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] text-[13px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-disabled)] hover:bg-[var(--bg-subtle)] transition-all cursor-pointer"
+                className="group flex items-center gap-2.5 p-2.5 rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] text-left hover:text-[var(--text-primary)] hover:border-[var(--text-disabled)] hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer"
               >
-                <Icon icon="lucide:git-branch" width={15} height={15} />
-                Clone Repository
+                <Icon
+                  icon="lucide:git-branch"
+                  width={14}
+                  height={14}
+                  className="text-[var(--text-tertiary)]"
+                />
+                <span className="min-w-0">
+                  <span className="block text-[12px] font-medium text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]">
+                    Clone Repository
+                  </span>
+                  <span className="block text-[11px] text-[var(--text-disabled)]">
+                    Pull from GitHub and start coding
+                  </span>
+                </span>
               </button>
             </div>
 
             {/* Recent folders */}
             {recentFolders.length > 0 && (
-              <div className="mt-3">
-                <p className="text-[10px] uppercase tracking-[0.08em] text-[var(--text-disabled)] font-medium mb-2 text-center">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.08em] text-[var(--text-disabled)] font-medium mb-2">
                   Recent
                 </p>
                 <div className="flex flex-col gap-0.5">
@@ -371,7 +431,7 @@ export const ChatHome = memo(function ChatHome({ onSend, onSelectFolder, onClone
             )}
 
             {/* GitHub Token — collapsed by default */}
-            <div className="mt-4">
+            <div>
               <button
                 onClick={() => setGhSectionOpen((v) => !v)}
                 className="w-full flex items-center gap-3 cursor-pointer group"

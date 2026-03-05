@@ -47,7 +47,7 @@ interface Props {
 
 export const ChatHome = memo(function ChatHome({ onSend, onSelectFolder, onCloneRepo }: Props) {
   const [input, setInput] = useState('')
-  const [agentMode, setAgentMode] = useState<AgentMode>('code')
+  const [agentMode, setAgentMode] = useState<AgentMode>('agent')
   const [isFocused, setIsFocused] = useState(false)
   const [showTokenInput, setShowTokenInput] = useState(false)
   const [tokenDraft, setTokenDraft] = useState('')
@@ -104,7 +104,7 @@ export const ChatHome = memo(function ChatHome({ onSend, onSelectFolder, onClone
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); handleSubmit() }
     if (e.key === 'Tab' && !input.trim()) {
       e.preventDefault()
-      setAgentMode(m => m === 'chat' ? 'code' : 'chat')
+      setAgentMode(m => m === 'ask' ? 'agent' : 'ask')
     }
   }, [handleSubmit, input])
 

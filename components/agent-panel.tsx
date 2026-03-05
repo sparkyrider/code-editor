@@ -168,7 +168,7 @@ export function AgentPanel() {
   const [modelMenuOpen, setModelMenuOpen] = useState(false)
   const [modelMenuPos, setModelMenuPos] = useState<{ left: number; bottom: number } | null>(null)
   const modelBtnRef = useRef<HTMLButtonElement>(null)
-  const [agentMode, setAgentMode] = useState<AgentMode>('code')
+  const [agentMode, setAgentMode] = useState<AgentMode>('agent')
   const [planSteps, setPlanSteps] = useState<PlanStep[]>([])
   const [contextTokens, setContextTokens] = useState(0)
   const inlineDiffRef = useRef<InlineDiffResult | null>(null)
@@ -188,10 +188,13 @@ export function AgentPanel() {
   const sessionInitRef = useRef(false)
   const sentKeysRef = useRef(new Set<string>())
   const handledKeysRef = useRef(new Set<string>())
+  const lastFinalRef = useRef<{ content: string; ts: number } | null>(null)
+  const sendingRef = useRef(false)
   const sessionKeyRef = useRef(sessionKey)
   const [streamBuffer, setStreamBuffer] = useState('')
 
   useEffect(() => { sessionKeyRef.current = sessionKey }, [sessionKey])
+  useEffect(() => { sendingRef.current = sending }, [sending])
 
   // Build flat file list for @ mentions
   const allFilePaths = useMemo(() => {
@@ -290,7 +293,8 @@ export function AgentPanel() {
 
       // Match by idempotency key or session key fallback (use ref for current session)
       const matchesIdem = !!(idempotencyKey && sentKeysRef.current.has(idempotencyKey))
-      const matchesSession = !idempotencyKey && eventSessionKey === sessionKeyRef.current
+      // Session-key fallback: only match if we're actively streaming (prevents stale replay duplicates)
+      const matchesSession = !idempotencyKey && eventSessionKey === sessionKeyRef.current && sendingRef.current
       if (typeof window !== 'undefined' && state) {
         console.debug('[knot-code] chat event:', { state, idempotencyKey, eventSessionKey, matchesIdem, matchesSession, sentKeys: [...sentKeysRef.current] })
       }
@@ -374,6 +378,14 @@ export function AgentPanel() {
         setStreamBuffer(prev => {
           const text = finalText || prev || ''
           if (text && !/^NO_REPLY$/i.test(text.trim())) {
+            // Dedupe: skip if identical content arrived within 8s
+            const now = Date.now()
+            const last = lastFinalRef.current
+            if (last && last.content === text && now - last.ts < 8000) {
+              return ''
+            }
+            lastFinalRef.current = { content: text, ts: now }
+
             const editProposals = parseEditProposals(text)
             // Feed edit proposals to streaming diff engine
             if (editProposals.length > 0) {
@@ -796,7 +808,11 @@ export function AgentPanel() {
       for (const img of imageAttachments) {
         attachCtx += `\n\n[Attached screenshot: ${img.name}]`
       }
-      const modePrefix = agentMode === 'chat' ? '[Mode: Chat — discuss, plan, and answer questions. Do not make code changes unless explicitly asked.]\n' : '[Mode: Code — make direct code changes and edits]\n'
+      const modePrefix = agentMode === 'ask'
+        ? '[Mode: Ask — discuss and answer questions. Do not make code changes unless explicitly asked.]\n'
+        : agentMode === 'plan'
+        ? '[Mode: Plan — outline a step-by-step plan before making changes. Present the plan to the user for approval before executing.]\n'
+        : '[Mode: Agent — make direct code changes and edits autonomously.]\n'
       const fullMessage = modePrefix + (context || '') + attachCtx + '\n\n' + text
       setContextAttachments([])
       setImageAttachments([])
@@ -1319,7 +1335,7 @@ export function AgentPanel() {
                     {isAssistant && parsePlanSteps(msg.content).length >= 3 && (
                       <PlanView
                         steps={parsePlanSteps(msg.content)}
-                        interactive={agentMode === 'chat'}
+                        interactive={agentMode === 'ask'}
                         onApprove={() => {
                           setInput('Continue with the plan')
                           sendMessage()

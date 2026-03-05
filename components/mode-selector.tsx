@@ -3,11 +3,12 @@
 import { useRef, useLayoutEffect, useEffect, useState, useCallback } from 'react'
 import { Icon } from '@iconify/react'
 
-export type AgentMode = 'chat' | 'code'
+export type AgentMode = 'ask' | 'agent' | 'plan'
 
 const MODES: Array<{ id: AgentMode; label: string; icon: string; desc: string }> = [
-  { id: 'chat', label: 'Chat', icon: 'lucide:message-square', desc: 'Discuss, plan, and ask questions' },
-  { id: 'code', label: 'Code', icon: 'lucide:code-2', desc: 'Direct code changes and edits' },
+  { id: 'ask', label: 'Ask', icon: 'lucide:message-square', desc: 'Discuss and answer questions — no code changes' },
+  { id: 'agent', label: 'Agent', icon: 'lucide:zap', desc: 'Autonomous code changes and edits' },
+  { id: 'plan', label: 'Plan', icon: 'lucide:list-checks', desc: 'Outline steps first, then execute with approval' },
 ]
 
 interface Props {

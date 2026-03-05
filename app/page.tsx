@@ -425,8 +425,8 @@ export default function EditorLayout() {
       if (meta && e.shiftKey && e.key === 'f') { e.preventDefault(); setGlobalSearchVisible(v => !v) }
       // ⌘\\ — Toggle sidebar
       if (meta && e.key === '\\') { e.preventDefault(); layout.toggle('sidebar') }
-      // ⌘J / ⌘` — Toggle terminal (desktop only)
-      if (meta && (e.key === 'j' || e.key === '`') && !e.shiftKey && isTauriDesktop) { e.preventDefault(); layout.toggle('terminal') }
+      // ⌘J / ⌘` — Toggle terminal
+      if (meta && (e.key === 'j' || e.key === '`') && !e.shiftKey) { e.preventDefault(); layout.toggle('terminal') }
       // ⌘L — Open side chat panel and focus input
       if (meta && e.key === 'l' && !e.shiftKey) { e.preventDefault(); if (activeViewRef.current !== 'editor') setView('editor'); window.dispatchEvent(new CustomEvent('open-side-chat')); requestAnimationFrame(() => window.dispatchEvent(new CustomEvent('focus-agent-input'))) }
       // ⌘⌥1-4 — Focus key regions (explorer/editor/chat/terminal)
@@ -436,7 +436,7 @@ export default function EditorLayout() {
         if (e.key === '1') { layout.show('tree'); requestAnimationFrame(() => window.dispatchEvent(new CustomEvent('focus-tree'))) }
         if (e.key === '2') { requestAnimationFrame(() => window.dispatchEvent(new CustomEvent('focus-editor'))) }
         if (e.key === '3') { layout.show('chat'); requestAnimationFrame(() => window.dispatchEvent(new CustomEvent('focus-agent-input'))) }
-        if (e.key === '4' && isTauriDesktop) { layout.show('terminal'); requestAnimationFrame(() => window.dispatchEvent(new CustomEvent('focus-terminal'))) }
+        if (e.key === '4') { layout.show('terminal'); requestAnimationFrame(() => window.dispatchEvent(new CustomEvent('focus-terminal'))) }
       }
       // Esc — Close overlays
       if (e.key === 'Escape') {
@@ -968,6 +968,18 @@ export default function EditorLayout() {
           </div>
           <div className="flex items-center gap-3">
             <PluginSlotRenderer slot="status-bar-right" />
+            {/* Terminal toggle */}
+            <button
+              onClick={() => layout.toggle('terminal')}
+              className={`flex items-center gap-1 px-1 py-0.5 rounded transition-colors cursor-pointer ${
+                terminalVisible
+                  ? 'text-[var(--brand)]'
+                  : 'text-[var(--text-disabled)] hover:text-[var(--text-secondary)]'
+              }`}
+              title={`${terminalVisible ? 'Hide' : 'Show'} Terminal (⌘J)`}
+            >
+              <Icon icon="lucide:terminal" width={11} height={11} />
+            </button>
             {/* Connection status */}
             <span className="flex items-center gap-1" title={status === 'connected' ? 'Gateway connected' : status === 'connecting' ? 'Connecting...' : 'Disconnected'}>
               <span className={`w-[5px] h-[5px] rounded-full ${

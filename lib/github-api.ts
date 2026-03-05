@@ -533,6 +533,7 @@ export async function fetchPRChecks(
   const res = await ghFetch(
     `https://api.github.com/repos/${repoFullName}/commits/${headSha}/check-runs?per_page=100`
   )
+  if (res.status === 403) return []
   if (!res.ok) throw new Error(`Failed to fetch checks: ${res.status}`)
   const data = (await res.json()) as { check_runs: CheckRun[] }
   return data.check_runs
@@ -618,7 +619,7 @@ export async function requestDeviceCode(clientId: string): Promise<{
   const res = await fetch('https://github.com/login/device/code', {
     method: 'POST',
     headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-    body: JSON.stringify({ client_id: clientId, scope: 'repo read:user' }),
+    body: JSON.stringify({ client_id: clientId, scope: 'repo read:user checks:read' }),
   })
   return res.json()
 }

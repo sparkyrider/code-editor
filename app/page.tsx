@@ -863,6 +863,7 @@ export default function EditorLayout() {
                 document.addEventListener('mouseup', onUp)
               }}
             />
+            {!terminalFloating && (
             <div className="shrink-0 border-t border-[var(--border)]" style={{ height: terminalHeight }}>
               <TerminalPanel
                 visible={terminalVisible && !terminalFloating}
@@ -872,6 +873,7 @@ export default function EditorLayout() {
                 onToggleFloating={() => layout.setFloating('terminal', !terminalFloating)}
               />
             </div>
+            )}
           </motion.div>
         ) : !modeSpec.terminalCenter ? (
           <AnimatePresence initial={false}>

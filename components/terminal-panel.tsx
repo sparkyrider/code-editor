@@ -15,23 +15,16 @@ interface TerminalPanelProps {
   onToggleFloating?: () => void
 }
 
-// Common file extensions used to identify file paths in terminal output
 const FILE_EXT_PATTERN = '(?:tsx?|jsx?|mjs|cjs|json|md|mdx|css|scss|html|xml|yaml|yml|py|rs|go|rb|sh|bash|zsh|sql|graphql|toml|lock|txt|cfg|ini|env|svg|vue|svelte|astro|prisma|mdc)'
 
-// Matches patterns like:
-//   ./path/to/file.ts
-//   path/to/file.ts:42
-//   path/to/file.ts:42:10
-//   /absolute/path/file.ts
-//   ./src/components/Foo.tsx(10,5)   (TS-style)
 const FILE_PATH_REGEX = new RegExp(
-  `(?:^|\\s|\\(|'|"|=)` +                  // preceded by whitespace, quote, paren, etc.
-  `(` +                                      // capture group 1: full path with line/col
-    `\\.{0,2}/[\\w./@-]+\\.${FILE_EXT_PATTERN}` +  // relative or absolute path
-    `(?::(\\d+)(?::(\\d+))?)?` +             // optional :line and :col
+  `(?:^|\\s|\\(|'|"|=)` +
+  `(` +
+    `\\.{0,2}/[\\w./@-]+\\.${FILE_EXT_PATTERN}` +
+    `(?::(\\d+)(?::(\\d+))?)?` +
     `|` +
-    `[\\w./@-]+\\.${FILE_EXT_PATTERN}` +     // bare file (no leading ./)
-    `(?::(\\d+)(?::(\\d+))?)?` +             // optional :line and :col
+    `[\\w./@-]+\\.${FILE_EXT_PATTERN}` +
+    `(?::(\\d+)(?::(\\d+))?)?` +
   `)`,
   'g'
 )
@@ -43,11 +36,8 @@ function findFileLinksInLine(lineText: string): Array<{ text: string; startCol: 
   while ((match = regex.exec(lineText)) !== null) {
     const fullMatch = match[1]
     if (!fullMatch) continue
-    // Extract just the file path (without :line:col)
     const pathOnly = fullMatch.replace(/:\d+(?::\d+)?$/, '')
-    // Skip things that look like URLs (http://, https://, etc.)
     if (/^https?:\/\//i.test(pathOnly)) continue
-    // Skip if it looks like a version number (e.g. 1.2.3)
     if (/^\d+\.\d+\.\d+/.test(pathOnly)) continue
 
     const lineNum = match[2] ? parseInt(match[2], 10) : (match[4] ? parseInt(match[4], 10) : undefined)
@@ -94,6 +84,109 @@ function buildXtermTheme() {
   }
 }
 
+// ─── Module-level singleton session state ──────────────────────────────────
+// Survives React remounts and HMR — only one PTY session exists at a time.
+
+interface SessionState {
+  terminalId: number | null
+  creating: boolean
+  lastKilledAt: number
+  exitUnlisten: (() => void) | null
+  outputUnlisten: (() => void) | null
+  xterm: any | null
+  fit: any | null
+  manualClose: boolean
+}
+
+const session: SessionState = {
+  terminalId: null,
+  creating: false,
+  lastKilledAt: 0,
+  exitUnlisten: null,
+  outputUnlisten: null,
+  xterm: null,
+  fit: null,
+  manualClose: false,
+}
+
+// Prevent HMR from double-creating: if the module reloads but the old session
+// is still alive in the Tauri backend, we keep the id.
+if (typeof window !== 'undefined') {
+  const prev = (window as any).__terminalSession as SessionState | undefined
+  if (prev?.terminalId != null) {
+    session.terminalId = prev.terminalId
+    session.exitUnlisten = prev.exitUnlisten
+    session.outputUnlisten = prev.outputUnlisten
+    session.manualClose = prev.manualClose
+  }
+  ;(window as any).__terminalSession = session
+}
+
+const CREATE_DEBOUNCE_MS = 400
+
+// Clean up orphaned backend sessions on page unload
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    tauriInvoke('kill_all_terminals').catch(() => {})
+  })
+}
+
+async function ensureSession(cwd?: string | null, listeners?: {
+  onOutput: (data: string) => void
+  onExit: () => void
+}): Promise<number | null> {
+  if (session.terminalId != null) return session.terminalId
+  if (session.creating) return null
+  if (Date.now() - session.lastKilledAt < CREATE_DEBOUNCE_MS) return null
+
+  session.creating = true
+  session.manualClose = false
+  try {
+    const id = await tauriInvoke<number>('create_terminal', { cols: 80, rows: 24, cwd: cwd ?? undefined })
+    if (id == null) {
+      session.creating = false
+      return null
+    }
+    session.terminalId = id
+
+    session.exitUnlisten?.()
+    session.exitUnlisten = await tauriListen<{ id: number; code: number }>(`terminal-exit-${id}`, (payload) => {
+      if (session.terminalId === payload.id) {
+        session.xterm?.write('\r\n\x1b[90m[Process exited]\x1b[0m\r\n')
+        setTimeout(() => {
+          session.terminalId = null
+          listeners?.onExit()
+        }, 800)
+      }
+    })
+
+    session.outputUnlisten?.()
+    session.outputUnlisten = await tauriListen<{ data: string }>(`terminal-output-${id}`, (payload) => {
+      listeners?.onOutput(payload.data)
+    })
+
+    session.creating = false
+    return id
+  } catch {
+    session.creating = false
+    return null
+  }
+}
+
+async function killSession() {
+  session.lastKilledAt = Date.now()
+  const id = session.terminalId
+  session.terminalId = null
+  session.creating = false
+  session.exitUnlisten?.()
+  session.exitUnlisten = null
+  session.outputUnlisten?.()
+  session.outputUnlisten = null
+  if (id != null) {
+    await tauriInvoke('kill_terminal', { id }).catch(() => {})
+  }
+}
+
 // ─── Single Terminal Pane ──────────────────────────────────────────────────
 
 interface TerminalPaneProps {
@@ -120,91 +213,81 @@ function TerminalPane({
   onFileOpen,
   hideHeader,
 }: TerminalPaneProps) {
-  const [terminalId, setTerminalId] = useState<number | null>(null)
+  const [activeId, setActiveId] = useState<number | null>(session.terminalId)
   const [terminalError, setTerminalError] = useState<string | null>(null)
-  const manualCloseAll = useRef(false)
   const termRef = useRef<HTMLDivElement>(null)
-  const xtermRef = useRef<any>(null)
-  const fitRef = useRef<any>(null)
-  const terminalIdRef = useRef<number | null>(null)
   const onFileOpenRef = useRef(onFileOpen)
-  const exitUnlistenRef = useRef<null | (() => void)>(null)
 
-  useEffect(() => { terminalIdRef.current = terminalId }, [terminalId])
   useEffect(() => { onFileOpenRef.current = onFileOpen }, [onFileOpen])
 
   // Keyboard-first: allow global shortcuts to focus the active terminal.
   useEffect(() => {
     const handler = () => {
       if (!visible) return
-      try { xtermRef.current?.focus?.() } catch {}
+      try { session.xterm?.focus?.() } catch {}
     }
     window.addEventListener('focus-terminal', handler)
     return () => window.removeEventListener('focus-terminal', handler)
   }, [visible])
 
-  // Kill PTY session and dispose xterm on unmount
+  // On unmount, detach xterm from DOM but do NOT kill the PTY session.
+  // The session lives in module-level state and persists across remounts.
   useEffect(() => {
     return () => {
-      if (terminalIdRef.current != null) {
-        tauriInvoke('kill_terminal', { id: terminalIdRef.current }).catch(() => {})
-      }
-      exitUnlistenRef.current?.()
-      exitUnlistenRef.current = null
-      if (xtermRef.current) {
-        xtermRef.current.dispose()
-        xtermRef.current = null
+      if (session.xterm) {
+        // Detach from current DOM container without disposing
+        try { session.xterm.element?.remove() } catch {}
       }
     }
   }, [])
 
+  const listeners = useCallback(() => ({
+    onOutput: (data: string) => { session.xterm?.write(data) },
+    onExit: () => { setActiveId(null) },
+  }), [])
+
   const createTerminal = useCallback(async (initialCommand?: string) => {
     if (!isDesktop) return
-    // Single-terminal mode: focus existing session instead of creating more
-    if (terminalIdRef.current != null) {
-      try { xtermRef.current?.focus?.() } catch {}
+    if (session.terminalId != null) {
+      try { session.xterm?.focus?.() } catch {}
       if (initialCommand) {
-        await tauriInvoke('write_terminal', { id: terminalIdRef.current, data: initialCommand + '\n' }).catch(() => {})
+        await tauriInvoke('write_terminal', { id: session.terminalId, data: initialCommand + '\n' }).catch(() => {})
       }
       return
     }
 
-    manualCloseAll.current = false
-    try {
-      setTerminalError(null)
-      const id = await tauriInvoke<number>('create_terminal', { cols: 80, rows: 24, cwd: cwd ?? undefined })
-      if (id == null) {
+    setTerminalError(null)
+    const id = await ensureSession(cwd, listeners())
+    if (id == null) {
+      if (!session.creating) {
         setTerminalError('Terminal is unavailable outside the desktop runtime.')
-        return
       }
-      setTerminalId(id)
-
-      // Listen for terminal exit so it auto-clears
-      exitUnlistenRef.current?.()
-      exitUnlistenRef.current = await tauriListen<{ id: number; code: number }>(`terminal-exit-${id}`, (payload) => {
-        if (terminalIdRef.current === payload.id) {
-          xtermRef.current?.write('\r\n\x1b[90m[Process exited]\x1b[0m\r\n')
-          setTimeout(() => {
-            setTerminalId(null)
-            terminalIdRef.current = null
-          }, 800)
-        }
-      })
-
-      if (initialCommand) {
-        setTimeout(async () => {
-          await tauriInvoke('write_terminal', { id, data: initialCommand + '\n' })
-        }, 600)
-      }
-    } catch (err) {
-      setTerminalError(err instanceof Error ? err.message : 'Failed to create terminal session')
+      return
     }
-  }, [isDesktop, cwd])
+    setActiveId(id)
 
-  // Initialize xterm (once per pane mount)
+    if (initialCommand) {
+      setTimeout(async () => {
+        await tauriInvoke('write_terminal', { id, data: initialCommand + '\n' })
+      }, 600)
+    }
+  }, [isDesktop, cwd, listeners])
+
+  // Initialize xterm (once per pane mount), re-use if it already exists
   useEffect(() => {
-    if (!visible || !termRef.current || xtermRef.current) return
+    if (!visible || !termRef.current) return
     let cancelled = false
+
+    // If xterm already exists (HMR / remount), re-attach it to the new DOM node
+    if (session.xterm) {
+      const el = session.xterm.element
+      if (el && termRef.current && !termRef.current.contains(el)) {
+        termRef.current.appendChild(el)
+        session.fit?.fit()
+      }
+      return
+    }
+
     ;(async () => {
       const { Terminal } = await import('@xterm/xterm')
       const { FitAddon } = await import('@xterm/addon-fit')
@@ -229,15 +312,14 @@ function TerminalPane({
       term.loadAddon(fit)
       term.open(termRef.current!)
       fit.fit()
-      xtermRef.current = term
-      fitRef.current = fit
+      session.xterm = term
+      session.fit = fit
       term.onData(async (data: string) => {
-        if (terminalIdRef.current != null) {
-          await tauriInvoke('write_terminal', { id: terminalIdRef.current, data })
+        if (session.terminalId != null) {
+          await tauriInvoke('write_terminal', { id: session.terminalId, data })
         }
       })
 
-      // Register file path link provider for Cmd+Click / Ctrl+Click navigation
       term.registerLinkProvider({
         provideLinks(bufferLineNumber: number, callback: (links: any[] | undefined) => void) {
           const line = term.buffer.active.getLine(bufferLineNumber - 1)
@@ -267,11 +349,16 @@ function TerminalPane({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible])
 
-  // Auto-create first terminal when pane becomes ready (skip if user closed all)
+  // Auto-create first terminal when pane becomes ready (skip if user manually closed)
   useEffect(() => {
-    if (!visible || !isDesktop || terminalId != null || manualCloseAll.current) return
-    void createTerminal()
-  }, [visible, isDesktop, terminalId, createTerminal])
+    if (!visible || !isDesktop || activeId != null || session.manualClose) return
+
+    // Debounce: wait for HMR churn to settle
+    const timer = setTimeout(() => {
+      void createTerminal()
+    }, session.lastKilledAt > 0 ? CREATE_DEBOUNCE_MS : 0)
+    return () => clearTimeout(timer)
+  }, [visible, isDesktop, activeId, createTerminal])
 
   // Listen for script run requests from the preview panel
   useEffect(() => {
@@ -285,23 +372,9 @@ function TerminalPane({
     return () => window.removeEventListener('run-script-in-terminal', handler)
   }, [isDesktop, createTerminal])
 
-  // Subscribe to PTY output for the single terminal
-  useEffect(() => {
-    if (terminalId == null || !xtermRef.current) return
-    let unlisten: (() => void) | null = null
-    ;(async () => {
-      unlisten = await tauriListen<{ data: string }>(`terminal-output-${terminalId}`, (payload) => {
-        xtermRef.current?.write(payload.data)
-      })
-    })()
-    xtermRef.current.clear()
-    xtermRef.current.focus()
-    return () => { unlisten?.() }
-  }, [terminalId])
-
   // Reapply xterm theme when mode/theme changes
   useEffect(() => {
-    const term = xtermRef.current
+    const term = session.xterm
     if (!term) return
     const id = requestAnimationFrame(() => { term.options.theme = buildXtermTheme() })
     return () => cancelAnimationFrame(id)
@@ -309,30 +382,25 @@ function TerminalPane({
 
   // Fit terminal on size or active tab change
   useEffect(() => {
-    if (!visible || !fitRef.current) return
+    if (!visible || !session.fit) return
     const fit = () => {
-      fitRef.current?.fit()
-      if (terminalId != null && xtermRef.current) {
-        const { cols, rows } = xtermRef.current
-        tauriInvoke('resize_terminal', { id: terminalId, cols, rows })
+      session.fit?.fit()
+      if (session.terminalId != null && session.xterm) {
+        const { cols, rows } = session.xterm
+        tauriInvoke('resize_terminal', { id: session.terminalId, cols, rows })
       }
     }
     fit()
     const obs = new ResizeObserver(fit)
     if (termRef.current) obs.observe(termRef.current)
     return () => obs.disconnect()
-  }, [visible, height, terminalId])
+  }, [visible, height, activeId])
 
   const resetTerminal = useCallback(async () => {
-    manualCloseAll.current = true
-    if (terminalIdRef.current != null) {
-      await tauriInvoke('kill_terminal', { id: terminalIdRef.current }).catch(() => {})
-    }
-    exitUnlistenRef.current?.()
-    exitUnlistenRef.current = null
-    setTerminalId(null)
-    terminalIdRef.current = null
-    xtermRef.current?.clear()
+    session.manualClose = true
+    await killSession()
+    setActiveId(null)
+    session.xterm?.clear()
   }, [])
 
   return (
@@ -346,9 +414,9 @@ function TerminalPane({
 
         <div className="flex-1" />
 
-        {terminalId != null && (
+        {activeId != null && (
           <button
-            onClick={async () => { await resetTerminal(); manualCloseAll.current = false; void createTerminal() }}
+            onClick={async () => { await resetTerminal(); session.manualClose = false; void createTerminal() }}
             className="ml-1 p-1 rounded hover:bg-[color-mix(in_srgb,var(--color-deletions)_15%,transparent)] text-[var(--text-secondary)] hover:text-[var(--color-deletions)] transition-colors shrink-0"
             title="Restart terminal"
           >

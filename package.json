@@ -14,7 +14,23 @@
     "bdev": "pnpm desktop:build && pnpm desktop:dev",
     "dev": "pnpm desktop:dev",
     "build": "pnpm desktop:build",
-    "check": "pnpm desktop:check"
+    "check": "pnpm desktop:check",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,css}": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "@iconify/react": "^6.0.2",
@@ -45,7 +61,20 @@
     "typescript": "^5.9.3"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@tauri-apps/cli": "^2.10.0",
-    "monaco-editor": "^0.55.1"
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@vitest/coverage-v8": "^4.0.18",
+    "eslint": "^10.0.2",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "husky": "^9.1.7",
+    "jsdom": "^28.1.0",
+    "lint-staged": "^16.3.2",
+    "monaco-editor": "^0.55.1",
+    "prettier": "^3.8.1",
+    "typescript-eslint": "^8.56.1",
+    "vitest": "^4.0.18"
   }
 }

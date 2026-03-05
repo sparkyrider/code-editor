@@ -170,3 +170,16 @@ pub fn kill_terminal(
     }
     Ok(())
 }
+
+#[tauri::command]
+pub fn kill_all_terminals(
+    state: State<'_, TerminalState>,
+) -> Result<u32, String> {
+    let mut sessions = state.sessions.lock().unwrap();
+    let count = sessions.len() as u32;
+    if count > 0 {
+        sessions.clear();
+        log::info!("Killed all {} terminal session(s)", count);
+    }
+    Ok(count)
+}

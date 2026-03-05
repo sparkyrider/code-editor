@@ -182,6 +182,7 @@ pub fn run() {
             terminal::write_terminal,
             terminal::resize_terminal,
             terminal::kill_terminal,
+            terminal::kill_all_terminals,
             // Engine commands
             engine::engine_status,
             engine::engine_start,

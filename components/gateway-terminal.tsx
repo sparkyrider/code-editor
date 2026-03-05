@@ -409,6 +409,14 @@ export function GatewayTerminal() {
       const p = payload as Record<string, unknown>
       const state = p.state as string | undefined
 
+      // Only process events for the terminal's session (main)
+      const eventSessionKey = (p.sessionKey ??
+        p.session_key ??
+        (typeof p.session === 'object' && p.session !== null
+          ? (p.session as Record<string, unknown>).key
+          : undefined)) as string | undefined
+      if (eventSessionKey && eventSessionKey !== 'main') return
+
       if (state === 'delta') {
         const text = extractEventText(p)
         if (text) {

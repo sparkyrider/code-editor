@@ -6,7 +6,9 @@ If you discover a security vulnerability in KnotCode, please report it responsib
 
 **Do not open a public issue.**
 
-Instead, email **security@openknot.ai** or use [GitHub's private vulnerability reporting](https://github.com/OpenKnots/code-editor/security/advisories/new).
+Instead, DM [**@BunsDev**](https://x.com/BunsDev) or use [GitHub's private vulnerability reporting](https://github.com/OpenKnots/code-editor/security/advisories/new).
+
+<!-- Instead, email **security@openknot.ai** or use [GitHub's private vulnerability reporting](https://github.com/OpenKnots/code-editor/security/advisories/new). -->
 
 We will acknowledge your report within 48 hours and aim to release a fix within 7 days for critical issues.
 

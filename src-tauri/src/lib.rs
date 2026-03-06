@@ -12,17 +12,9 @@ const LOCALHOST_PORT: u16 = 3080;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let mut ctx = tauri::generate_context!();
-
-    // Rewrite the frontend URL so Tauri treats localhost as the app origin.
-    // This enables IPC on the HTTP origin (needed for YouTube embeds + Spotify PKCE)
-    // while keeping assets embedded in the binary via the localhost plugin.
-    let localhost_url: url::Url = format!("http://127.0.0.1:{}", LOCALHOST_PORT)
-        .parse()
-        .unwrap();
-    ctx.config_mut().build.frontend_dist =
-        Some(tauri::utils::config::FrontendDist::Url(localhost_url));
-
+    // Load frontend from embedded assets via tauri:// protocol (always works).
+    // The localhost plugin also serves assets on 127.0.0.1:3080 for
+    // YouTube embeds and Spotify PKCE which need an HTTP origin.
     tauri::Builder::default()
         .plugin(
             tauri_plugin_localhost::Builder::new(LOCALHOST_PORT)
@@ -192,31 +184,6 @@ pub fn run() {
                     .ok(); // Don't panic if vibrancy fails
             }
 
-            // ── Wait for localhost server + reload ──────────────
-            // The localhost plugin starts its HTTP server in a spawned thread.
-            // If the webview loads before the server is ready, we get a blank page.
-            // Poll until the server responds, then reload the webview.
-            {
-                let window = app.get_webview_window("main").unwrap();
-                std::thread::spawn(move || {
-                    use std::net::TcpStream;
-                    let addr = format!("127.0.0.1:{}", LOCALHOST_PORT);
-                    for _ in 0..50 {
-                        if TcpStream::connect_timeout(
-                            &addr.parse().unwrap(),
-                            std::time::Duration::from_millis(50),
-                        ).is_ok() {
-                            // Server is ready — reload to ensure content loads
-                            let reload_url: url::Url =
-                                format!("http://{}/", addr).parse().unwrap();
-                            let _ = window.navigate(reload_url);
-                            return;
-                        }
-                        std::thread::sleep(std::time::Duration::from_millis(100));
-                    }
-                });
-            }
-
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -261,6 +228,6 @@ pub fn run() {
             local_fs::local_secret_get,
             local_fs::local_secret_delete,
         ])
-        .run(ctx)
+        .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -115,7 +115,35 @@ export async function startSpotifyLogin(): Promise<void> {
 
   const authUrl = `https://accounts.spotify.com/authorize?${params}`
 
-  window.location.href = authUrl
+  // If we're on tauri:// origin, navigate to localhost first so localStorage
+  // (PKCE verifier) is accessible when Spotify redirects back to 127.0.0.1:3080
+  if (window.location.origin.startsWith('tauri://')) {
+    // Store verifier + auth URL in a query param so localhost page can continue
+    const localhostUrl = new URL('http://127.0.0.1:3080/')
+    localhostUrl.searchParams.set('spotify_auth', authUrl)
+    localhostUrl.searchParams.set('spotify_verifier', verifier)
+    window.location.href = localhostUrl.toString()
+  } else {
+    window.location.href = authUrl
+  }
+}
+
+/**
+ * Handle the tauri:// → localhost handoff for Spotify auth.
+ * When the app loads on http://127.0.0.1:3080 with spotify_auth params,
+ * store the verifier in localStorage and redirect to Spotify.
+ */
+export function handleSpotifyAuthHandoff(): boolean {
+  const params = new URLSearchParams(window.location.search)
+  const authUrl = params.get('spotify_auth')
+  const verifier = params.get('spotify_verifier')
+  if (authUrl && verifier) {
+    localStorage.setItem(VERIFIER_KEY, verifier)
+    // Clean up URL then redirect to Spotify
+    window.location.href = authUrl
+    return true
+  }
+  return false
 }
 
 /**

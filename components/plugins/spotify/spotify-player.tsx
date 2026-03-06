@@ -11,6 +11,7 @@ import {
   startSpotifyLogin,
   clearSpotifyAuth,
   handleSpotifyCallback,
+  handleSpotifyAuthHandoff,
 } from '@/lib/spotify-auth'
 
 declare global {
@@ -94,6 +95,8 @@ export function SpotifyPlayer() {
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
+    // Handle tauri:// → localhost handoff (redirects to Spotify if params present)
+    if (handleSpotifyAuthHandoff()) return
     handleSpotifyCallback()
       .catch((err) => setError(err instanceof Error ? err.message : 'Auth failed'))
       .finally(() => setAuthenticated(isSpotifyAuthenticated()))

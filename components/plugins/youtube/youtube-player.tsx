@@ -52,14 +52,17 @@ function parseYouTubeUrl(input: string): PlaylistInfo | null {
 }
 
 function buildEmbedUrl(info: PlaylistInfo): string {
+  // Use youtube-nocookie.com to avoid Error 153 with non-HTTP origins (tauri://)
   const base =
     info.type === 'playlist'
-      ? `https://www.youtube.com/embed/videoseries?list=${info.id}`
-      : `https://www.youtube.com/embed/${info.id}`
+      ? `https://www.youtube-nocookie.com/embed/videoseries?list=${info.id}`
+      : `https://www.youtube-nocookie.com/embed/${info.id}`
   const url = new URL(base)
   url.searchParams.set('enablejsapi', '1')
   url.searchParams.set('playsinline', '1')
   url.searchParams.set('rel', '0')
+  // Set origin to the localhost server for postMessage API
+  url.searchParams.set('origin', `http://127.0.0.1:3080`)
   return url.toString()
 }
 

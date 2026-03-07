@@ -123,6 +123,7 @@ export default function EditorLayout() {
   const layout = useLayout()
   const visibleViews = modeSpec.visibleViews
   const isMobile = layout.isAtMost('lte768')
+  const [keyboardOffset, setKeyboardOffset] = useState(0)
   const sidebarCollapsed = !layout.isVisible('sidebar')
   const terminalVisible = layout.isVisible('terminal')
   const terminalHeight = layout.getSize('terminal')
@@ -140,7 +141,7 @@ export default function EditorLayout() {
     () => repo?.fullName?.split('/').pop() ?? localRootPath?.split('/').pop() ?? 'KnotCode',
     [repo?.fullName, localRootPath],
   )
-  const showMobileBottomTabs = isMobile && !modeSpec.terminalCenter
+  const showMobileBottomTabs = isMobile && !modeSpec.terminalCenter && keyboardOffset === 0
   const showMobileSidebarButton = isMobile && mode !== 'tui' && !usePrismShell
   const mobileTerminalOffset = showMobileBottomTabs
     ? 'calc(env(safe-area-inset-bottom) + 5.75rem)'
@@ -195,6 +196,19 @@ export default function EditorLayout() {
       setMobileSidebarOpen(false)
     }
   }, [isMobile, mode, usePrismShell])
+
+  // ─── iOS keyboard: shrink layout when virtual keyboard opens ───
+  useEffect(() => {
+    if (!isMobile) return
+    const vv = window.visualViewport
+    if (!vv) return
+    const onResize = () => {
+      const offset = window.innerHeight - vv.height
+      setKeyboardOffset(offset > 50 ? offset : 0) // only respond to real keyboard
+    }
+    vv.addEventListener('resize', onResize)
+    return () => vv.removeEventListener('resize', onResize)
+  }, [isMobile])
 
   // ─── Onboarding ────────────────────────────────────────
   useEffect(() => {
@@ -448,6 +462,7 @@ export default function EditorLayout() {
       className={`app-shell flex h-full w-full overflow-hidden bg-[var(--bg)] text-[var(--text-primary)] ${
         isMobile ? 'gap-0 p-0' : 'gap-1.5 p-1.5'
       }`}
+      style={keyboardOffset > 0 ? { height: `calc(100% - ${keyboardOffset}px)` } : undefined}
     >
       {/* Tauri drag region */}
       {isTauriDesktop && (
@@ -880,7 +895,7 @@ export default function EditorLayout() {
                     type="button"
                     onClick={() => setView(v)}
                     whileTap={{ scale: 0.97 }}
-                    className={`flex min-w-0 flex-col items-center gap-1 rounded-[20px] px-2 py-2 text-[10px] font-medium transition ${
+                    className={`flex min-w-0 flex-col items-center gap-1 rounded-[20px] px-2 py-2.5 text-[10px] font-medium transition ${
                       isActive
                         ? 'bg-[color-mix(in_srgb,var(--brand)_12%,transparent)] text-[var(--text-primary)] shadow-[var(--shadow-xs)]'
                         : 'text-[var(--text-secondary)] hover:bg-[color-mix(in_srgb,var(--text-primary)_5%,transparent)] hover:text-[var(--text-primary)]'

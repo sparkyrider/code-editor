@@ -531,7 +531,7 @@ export function ChatInputBar({
               onPaste={onImagePaste}
               placeholder={currentPlaceholder}
               rows={1}
-              className="w-full resize-none bg-transparent px-3 py-2 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-disabled)] outline-none"
+              className="w-full resize-none bg-transparent px-3 py-2 text-[14px] sm:text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-disabled)] outline-none"
             />
 
             {/* Bottom toolbar row */}
@@ -539,17 +539,27 @@ export function ChatInputBar({
               <div className="flex items-center gap-0.5">
                 <button
                   onClick={onFileAttach}
-                  className="p-1 rounded-md text-[var(--text-disabled)] hover:text-[var(--text-tertiary)] transition-colors cursor-pointer"
+                  className="p-2 sm:p-1 rounded-md text-[var(--text-disabled)] hover:text-[var(--text-tertiary)] transition-colors cursor-pointer"
                   title="Attach file"
                 >
-                  <Icon icon="lucide:paperclip" width={14} height={14} />
+                  <Icon
+                    icon="lucide:paperclip"
+                    width={16}
+                    height={16}
+                    className="sm:w-[14px] sm:h-[14px]"
+                  />
                 </button>
                 <button
                   onClick={onImageAttach}
-                  className="p-1 rounded-md text-[var(--text-disabled)] hover:text-[var(--text-tertiary)] transition-colors cursor-pointer"
+                  className="p-2 sm:p-1 rounded-md text-[var(--text-disabled)] hover:text-[var(--text-tertiary)] transition-colors cursor-pointer"
                   title="Attach image"
                 >
-                  <Icon icon="lucide:image-plus" width={14} height={14} />
+                  <Icon
+                    icon="lucide:image-plus"
+                    width={16}
+                    height={16}
+                    className="sm:w-[14px] sm:h-[14px]"
+                  />
                 </button>
                 <span className="text-[10px] text-[var(--text-disabled)] ml-1">
                   <kbd className="px-1 py-px rounded border border-[var(--border)] text-[9px] font-mono">

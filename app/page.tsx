@@ -505,35 +505,21 @@ export default function EditorLayout() {
             className="shrink-0 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-elevated)_94%,black)] px-3 pb-3"
             style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)' }}
           >
-            <div className="flex items-start gap-2">
-              {showMobileSidebarButton ? (
-                <button
-                  type="button"
-                  onClick={() => setMobileSidebarOpen(true)}
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_92%,transparent)] text-[var(--text-secondary)] transition hover:bg-[color-mix(in_srgb,var(--text-primary)_5%,transparent)] hover:text-[var(--text-primary)]"
-                  title="Open workspace"
-                >
-                  <Icon icon="lucide:panel-left-open" width={18} height={18} />
-                </button>
-              ) : (
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_92%,transparent)] text-[var(--brand)]">
-                  <Icon icon={activeViewMeta.icon} width={18} height={18} />
-                </div>
-              )}
-
-              <div className="min-w-0 flex-1 pt-0.5">
-                <div className="truncate text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--text-disabled)]">
-                  {workspaceLabel}
-                </div>
-                <div className="mt-1 flex items-center gap-2">
-                  <span className="truncate text-[15px] font-semibold text-[var(--text-primary)]">
-                    {activeViewMeta.label}
+            <div className="flex items-center gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[15px] font-semibold text-[var(--text-primary)] tracking-tight">
+                    Knot Code
                   </span>
-                  {dirtyCount > 0 && (
-                    <span className="rounded-full bg-[color-mix(in_srgb,var(--brand)_12%,transparent)] px-2 py-0.5 text-[10px] font-semibold text-[var(--brand)]">
-                      {dirtyCount} dirty
-                    </span>
-                  )}
+                  <span
+                    className={`h-2 w-2 rounded-full ${
+                      status === 'connected'
+                        ? 'bg-emerald-400'
+                        : status === 'connecting'
+                          ? 'bg-amber-400 animate-pulse'
+                          : 'bg-[var(--text-disabled)]'
+                    }`}
+                  />
                 </div>
               </div>
 

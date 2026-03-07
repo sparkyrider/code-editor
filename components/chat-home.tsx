@@ -203,22 +203,26 @@ export const ChatHome = memo(function ChatHome({
             <KnotLogo size={40} color="var(--brand)" />
           </div>
 
-          <h1 className="text-center text-[32px] font-semibold tracking-[-0.04em] leading-none text-[var(--text-primary)]">
-            Let&apos;s build
+          <h1 className="text-center text-[28px] sm:text-[32px] font-semibold tracking-[-0.04em] leading-none text-[var(--text-primary)]">
+            Let&apos;s weave
           </h1>
 
-          {/* Workspace dropdown */}
+          {/* Workspace dropdown — hidden on mobile */}
           <button
             onClick={onSelectFolder}
-            className="codex-workspace-dropdown mt-2.5 inline-flex items-center gap-1.5 text-[14px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+            className="codex-workspace-dropdown mt-2.5 hidden sm:inline-flex items-center gap-1.5 text-[14px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
           >
             {repoShort ?? 'Select workspace'}
             <Icon icon="lucide:chevron-down" width={14} height={14} className="opacity-50" />
           </button>
+          {/* Subtle tagline on mobile */}
+          <p className="mt-2 text-[13px] text-[var(--text-disabled)] sm:hidden">
+            Your AI-powered code companion
+          </p>
         </div>
 
-        {/* "Explore more" link */}
-        <div className="flex justify-end mb-2">
+        {/* "Explore more" link — desktop only */}
+        <div className="hidden sm:flex justify-end mb-2">
           <button
             onClick={() => emit('open-folder')}
             className="text-[12px] text-[var(--text-disabled)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
@@ -227,8 +231,8 @@ export const ChatHome = memo(function ChatHome({
           </button>
         </div>
 
-        {/* Suggestion cards — 1-up mobile, 3-up desktop */}
-        <div className="codex-suggestion-grid grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 mb-4 sm:mb-5">
+        {/* Suggestion cards — hidden on mobile, 3-up desktop */}
+        <div className="codex-suggestion-grid hidden sm:grid grid-cols-3 gap-3 mb-5">
           {suggestions.map((card, i) => (
             <button
               key={i}
@@ -323,12 +327,12 @@ export const ChatHome = memo(function ChatHome({
                 {/* Mode selector */}
                 <ModeSelector mode={agentMode} onChange={setAgentMode} size="sm" />
 
-                {/* Divider */}
-                <div className="w-px h-4 bg-[var(--border)]" />
+                {/* Divider — desktop only */}
+                <div className="hidden sm:block w-px h-4 bg-[var(--border)]" />
 
-                {/* Gateway status */}
+                {/* Gateway status — desktop only */}
                 <span
-                  className={`codex-pill inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium border cursor-default ${
+                  className={`codex-pill hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium border cursor-default ${
                     status === 'connected'
                       ? 'text-[var(--text-secondary)] border-[var(--border)] bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)]'
                       : 'text-[var(--text-disabled)] border-[var(--border)] bg-[color-mix(in_srgb,var(--text-primary)_3%,transparent)]'
@@ -338,12 +342,14 @@ export const ChatHome = memo(function ChatHome({
                   {status === 'connected' ? 'Local' : 'Offline'}
                 </span>
 
-                {/* Permissions */}
-                <PermissionsToggle size="sm" />
+                {/* Permissions — desktop only */}
+                <span className="hidden sm:inline-flex">
+                  <PermissionsToggle size="sm" />
+                </span>
 
-                {/* Branch pill */}
+                {/* Branch pill — desktop only */}
                 {branchName && (
-                  <span className="codex-pill inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium text-[var(--text-secondary)] border border-[var(--border)] bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)] cursor-default">
+                  <span className="codex-pill hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium text-[var(--text-secondary)] border border-[var(--border)] bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)] cursor-default">
                     <Icon icon="lucide:git-branch" width={12} height={12} />
                     {branchName}
                   </span>
@@ -370,9 +376,9 @@ export const ChatHome = memo(function ChatHome({
           </div>
         </div>
 
-        {/* Workspace setup (no workspace) */}
+        {/* Workspace setup (no workspace) — desktop only */}
         {!hasWorkspace && (
-          <div className="mt-6 sm:mt-8 space-y-3 sm:space-y-4">
+          <div className="mt-6 sm:mt-8 space-y-3 sm:space-y-4 hidden sm:block">
             <div className="h-px bg-[var(--border)]" />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <button
@@ -421,8 +427,8 @@ export const ChatHome = memo(function ChatHome({
           </div>
         )}
 
-        {/* Footer */}
-        <div className="mt-6 sm:mt-8 flex justify-center">
+        {/* Footer — desktop only */}
+        <div className="mt-6 sm:mt-8 hidden sm:flex justify-center">
           <span className="text-[10px] font-mono tracking-[0.08em] text-[var(--text-disabled)] opacity-40 uppercase">
             KnotCode
           </span>

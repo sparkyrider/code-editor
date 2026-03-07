@@ -541,7 +541,7 @@ export default function EditorLayout() {
                 <button
                   type="button"
                   onClick={() => layout.toggle('terminal')}
-                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border transition ${
+                  className={`hidden sm:flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border transition ${
                     terminalVisible
                       ? 'border-[color-mix(in_srgb,var(--brand)_36%,var(--border))] bg-[color-mix(in_srgb,var(--brand)_10%,transparent)] text-[var(--brand)]'
                       : 'border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_92%,transparent)] text-[var(--text-secondary)] hover:bg-[color-mix(in_srgb,var(--text-primary)_5%,transparent)] hover:text-[var(--text-primary)]'
@@ -585,18 +585,6 @@ export default function EditorLayout() {
                 </span>
               </div>
 
-              <div className="shell-mode-switcher shrink-0">
-                {MODE_BUTTONS.map((m, index) => (
-                  <button
-                    key={m.id}
-                    onClick={() => setMode(m.id)}
-                    className={`shell-mode-button ${mode === m.id ? 'shell-mode-button--active' : ''}`}
-                    title={`${m.label} mode (⌘⇧${index + 1})`}
-                  >
-                    <Icon icon={m.icon} width={15} height={15} />
-                  </button>
-                ))}
-              </div>
             </div>
           </div>
         ) : (

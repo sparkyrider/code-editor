@@ -689,8 +689,8 @@ export function GitView() {
 
   return (
     <div className="flex flex-1 min-h-0 overflow-hidden">
-      {/* Left panel — source control */}
-      <div className="w-[300px] flex flex-col border-r border-[var(--border)] bg-[var(--bg)] shrink-0">
+      {/* Left panel — source control (full-width on mobile) */}
+      <div className="w-full sm:w-[300px] flex flex-col border-r border-[var(--border)] bg-[var(--bg)] shrink-0">
         {/* Header */}
         <div className="flex items-center gap-2 h-[34px] px-3 border-b border-[var(--border)] shrink-0">
           <button
@@ -1564,8 +1564,8 @@ export function GitView() {
         )}
       </div>
 
-      {/* Right panel — diff viewer */}
-      <div className="flex-1 flex flex-col bg-[var(--bg-elevated)] overflow-hidden">
+      {/* Right panel — diff viewer (hidden on mobile, shown when file selected) */}
+      <div className="hidden sm:flex flex-1 flex-col bg-[var(--bg-elevated)] overflow-hidden">
         {tab === 'changes' && activeDiff ? (
           <>
             <DiffHeader path={activeDiff.path} lines={activeDiff.lines} />

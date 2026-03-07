@@ -29,6 +29,7 @@ type CommandId =
   | 'view-preview'
   | 'view-git'
   | 'view-workshop'
+  | 'view-skills'
   | 'view-settings'
   | 'open-onboarding'
   | 'open-new-window'
@@ -228,6 +229,14 @@ const COMMANDS: CommandItem[] = [
     icon: 'lucide:bot',
     group: 'navigate',
   },
+  {
+    id: 'view-skills',
+    label: 'Go to Skills',
+    hint: 'Open the skills library',
+    keywords: ['skills', 'library', 'catalog', 'marketplace'],
+    icon: 'lucide:sparkles',
+    group: 'navigate',
+  },
 
   {
     id: 'open-new-window',
@@ -348,6 +357,7 @@ const VIEW_CONTEXT_COMMANDS: Partial<Record<ViewId, CommandId[]>> = {
   ],
   git: ['git-commit', 'toggle-git-panel', 'git-push', 'git-pull', 'git-stash', 'toggle-terminal'],
   workshop: ['view-workshop', 'open-new-window', 'view-editor', 'view-git'],
+  skills: ['view-skills', 'view-workshop', 'open-new-window', 'view-editor'],
 
   preview: ['preview-refresh', 'view-editor'],
 }

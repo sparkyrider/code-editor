@@ -1,9 +1,61 @@
-import type { SkillCatalogItem, SkillDiscoverySuggestion } from '@/lib/skills/types'
+import type {
+  SkillCatalogItem,
+  SkillDiscoverySuggestion,
+  SkillPresentationLane,
+  SkillPresentationMeta,
+} from '@/lib/skills/types'
 
 const OBRA_REPO_URL = 'https://github.com/obra/superpowers'
 const OBRA_PAGE_URL = 'https://skills.sh/obra/superpowers'
 const VERCEL_SKILLS_REPO_URL = 'https://github.com/vercel-labs/skills'
 const VERCEL_SKILLS_PAGE_URL = 'https://skills.sh/vercel-labs/skills'
+
+const SKILL_PRESENTATION_LANES: Partial<Record<string, SkillPresentationLane>> = {
+  brainstorming: 'popular',
+  'systematic-debugging': 'popular',
+  'writing-plans': 'popular',
+  'test-driven-development': 'popular',
+  'executing-plans': 'trending',
+  'requesting-code-review': 'trending',
+  'using-superpowers': 'recent',
+  'subagent-driven-development': 'trending',
+  'receiving-code-review': 'recent',
+  'verification-before-completion': 'popular',
+  'using-git-worktrees': 'recent',
+  'writing-skills': 'trending',
+  'dispatching-parallel-agents': 'trending',
+  'finishing-a-development-branch': 'recent',
+  'find-skills': 'popular',
+}
+
+const SKILL_UPDATED_LABELS: Partial<Record<string, string>> = {
+  brainstorming: 'Updated for early scoping sessions',
+  'systematic-debugging': 'Refined for evidence-first debugging',
+  'writing-plans': 'Tuned for plan-mode workflows',
+  'test-driven-development': 'Fresh test-first guidance',
+  'executing-plans': 'Expanded for multi-step delivery',
+  'requesting-code-review': 'Sharper review handoff copy',
+  'using-superpowers': 'Updated workflow selection guidance',
+  'subagent-driven-development': 'Parallel delegation patterns refreshed',
+  'receiving-code-review': 'Review triage patterns tightened',
+  'verification-before-completion': 'Release-readiness checks clarified',
+  'using-git-worktrees': 'Isolation workflow updated',
+  'writing-skills': 'Skill-authoring rubric refined',
+  'dispatching-parallel-agents': 'Agent split heuristics refreshed',
+  'finishing-a-development-branch': 'Branch wrap-up flow polished',
+  'find-skills': 'Discovery prompts refreshed',
+}
+
+const SOURCE_CREATORS = {
+  'obra/superpowers': {
+    name: 'Obra',
+    handle: '@obra',
+  },
+  'vercel-labs/skills': {
+    name: 'Vercel Labs',
+    handle: '@vercel-labs',
+  },
+} as const
 
 function buildRepoInstallCommand(repoUrl: string, skillSlug: string): string {
   return `pnpm dlx skills add ${repoUrl} --skill ${skillSlug} -g -y`
@@ -216,6 +268,17 @@ export const SKILL_DISCOVERY_SUGGESTIONS: SkillDiscoverySuggestion[] = [
 
 export function getSkillDisplayIcon(skill: SkillCatalogItem): string {
   return skill.sourceId === 'vercel-labs/skills' ? 'simple-icons:vercel' : skill.icon
+}
+
+export function getSkillPresentationMeta(skill: SkillCatalogItem): SkillPresentationMeta {
+  const creator = SOURCE_CREATORS[skill.sourceId]
+  return {
+    lane: SKILL_PRESENTATION_LANES[skill.id] ?? 'popular',
+    creatorName: creator.name,
+    creatorHandle: creator.handle,
+    updatedLabel: SKILL_UPDATED_LABELS[skill.id] ?? 'Curated reusable workflow',
+    collectionLabel: skill.useCases[0] ?? 'Reusable workflow',
+  }
 }
 
 export function getSkillById(skillId: string): SkillCatalogItem | undefined {

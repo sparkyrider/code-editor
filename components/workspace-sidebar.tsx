@@ -245,7 +245,7 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
                 Workshop
               </button>
               <button
-                onClick={() => setView('workshop')}
+                onClick={() => setView('skills')}
                 className="codex-sidebar-nav-item flex items-center gap-2.5 px-3.5 py-2 rounded-lg text-[13px] text-[var(--text-secondary)] hover:bg-[color-mix(in_srgb,var(--text-primary)_5%,transparent)] hover:text-[var(--text-primary)] transition-all cursor-pointer w-full"
               >
                 <Icon

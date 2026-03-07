@@ -90,6 +90,7 @@ const VIEW_ICONS: Record<string, { icon: string; label: string }> = {
   diff: { icon: 'lucide:git-compare', label: 'Diff' },
   git: { icon: 'lucide:git-branch', label: 'Git' },
   workshop: { icon: 'lucide:bot', label: 'Workshop' },
+  skills: { icon: 'lucide:sparkles', label: 'Skills' },
   prism: { icon: 'lucide:file-text', label: 'Prism' },
   settings: { icon: 'lucide:settings', label: 'Settings' },
 }
@@ -1053,6 +1054,9 @@ export default function EditorLayout() {
               break
             case 'view-workshop':
               setView('workshop')
+              break
+            case 'view-skills':
+              setView('skills')
               break
             case 'find-files':
               setQuickOpenVisible(true)

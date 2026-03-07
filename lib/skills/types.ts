@@ -4,6 +4,16 @@ export type SkillProviderId = 'gateway' | 'openai' | 'anthropic' | 'generic'
 
 export type SkillActionKind = 'find' | 'install' | 'check' | 'update' | 'use'
 
+export type SkillPresentationLane = 'popular' | 'trending' | 'recent'
+
+export interface SkillPresentationMeta {
+  lane: SkillPresentationLane
+  creatorName: string
+  creatorHandle: string
+  updatedLabel: string
+  collectionLabel: string
+}
+
 export interface SkillCatalogItem {
   id: string
   slug: string

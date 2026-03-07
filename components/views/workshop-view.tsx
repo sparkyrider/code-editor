@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '@iconify/react'
 import { ErrorBoundary } from '@/components/error-boundary'
+import { useView } from '@/context/view-context'
 import { WorkshopEvaluationLab } from '@/components/workshop/eval-lab'
 import { ModuleCanvas } from '@/components/workshop/module-canvas'
 import { PythonAgentLab } from '@/components/workshop/python-agent-lab'
@@ -30,7 +31,11 @@ import {
 } from '@/lib/agent-workshop/types'
 import { PERSONA_PRESETS } from '@/lib/agent-personas'
 import { PLAYGROUND_SCENARIOS } from '@/lib/playground/data'
-import { getSkillDisplayIcon, SKILLS_CATALOG } from '@/lib/skills/catalog'
+import {
+  getSkillDisplayIcon,
+  getSkillPresentationMeta,
+  SKILLS_CATALOG,
+} from '@/lib/skills/catalog'
 import { mergeRuntimeState, SKILLS_RUNTIME_STORAGE_KEY } from '@/lib/skills/workflow'
 import type { SkillsRuntimeMap } from '@/lib/skills/types'
 
@@ -169,6 +174,7 @@ function SelectionChip({
 }
 
 export function WorkshopView() {
+  const { setView } = useView()
   const [documentState, setDocumentState] = useState(loadStoredWorkshopDocument)
   const [activeStage, setActiveStage] = useState<WorkshopStageId>('identity')
   const [skillQuery, setSkillQuery] = useState('')
@@ -589,8 +595,8 @@ export function WorkshopView() {
                 title="Skills"
                 description="Equip workflows that change how the agent approaches problems before it ever answers."
               >
-                <div className="grid gap-3 lg:grid-cols-[0.8fr_1.2fr]">
-                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-4">
+                <div className="grid gap-4 lg:grid-cols-[0.76fr_1.24fr]">
+                  <div className="rounded-[26px] border border-[var(--border)] bg-[linear-gradient(180deg,color-mix(in_srgb,var(--bg)_94%,transparent),color-mix(in_srgb,var(--bg-elevated)_94%,transparent))] p-4 shadow-[var(--shadow-xs)]">
                     <div className="mb-3 text-xs font-medium uppercase tracking-wide text-[var(--text-disabled)]">
                       Bundles
                     </div>
@@ -600,10 +606,15 @@ export function WorkshopView() {
                           key={bundle.id}
                           type="button"
                           onClick={() => applySkillBundle(bundle.skillIds)}
-                          className="rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)] p-4 text-left transition hover:border-[var(--brand)] hover:bg-[color-mix(in_srgb,var(--brand)_6%,var(--bg-elevated))]"
+                          className="rounded-2xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-elevated)_92%,transparent)] p-4 text-left transition hover:border-[var(--brand)] hover:bg-[color-mix(in_srgb,var(--brand)_6%,var(--bg-elevated))]"
                         >
-                          <div className="text-sm font-semibold text-[var(--text-primary)]">
-                            {bundle.label}
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="text-sm font-semibold text-[var(--text-primary)]">
+                              {bundle.label}
+                            </div>
+                            <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.16em] text-[var(--text-disabled)]">
+                              {bundle.skillIds.length} skills
+                            </span>
                           </div>
                           <p className="mt-1 text-xs leading-5 text-[var(--text-tertiary)]">
                             {bundle.description}
@@ -614,29 +625,41 @@ export function WorkshopView() {
                   </div>
 
                   <div>
-                    <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <div className="text-xs font-medium uppercase tracking-wide text-[var(--text-disabled)]">
-                          Catalog
+                    <div className="mb-4 rounded-[26px] border border-[var(--border)] bg-[linear-gradient(180deg,color-mix(in_srgb,var(--bg-elevated)_96%,transparent),color-mix(in_srgb,var(--bg)_96%,transparent))] p-4 shadow-[var(--shadow-xs)]">
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                        <div>
+                          <div className="text-xs font-medium uppercase tracking-[0.16em] text-[var(--text-disabled)]">
+                            Catalog
+                          </div>
+                          <div className="mt-1 text-sm text-[var(--text-secondary)]">
+                            {primaryBlueprint.skillIds.length} workflows equipped
+                          </div>
                         </div>
-                        <div className="mt-1 text-sm text-[var(--text-secondary)]">
-                          {primaryBlueprint.skillIds.length} workflows equipped
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setView('skills')}
+                            className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_86%,transparent)] px-3 py-2 text-[11px] font-semibold text-[var(--text-secondary)] transition hover:border-[var(--brand)] hover:text-[var(--text-primary)]"
+                          >
+                            <Icon icon="lucide:sparkles" width={12} height={12} />
+                            Open Library
+                          </button>
+                          <div className="relative sm:w-72">
+                            <Icon
+                              icon="lucide:search"
+                              width={14}
+                              height={14}
+                              className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-disabled)]"
+                            />
+                            <input
+                              type="text"
+                              value={skillQuery}
+                              onChange={(event) => setSkillQuery(event.target.value)}
+                              className="w-full rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_86%,transparent)] py-3 pl-10 pr-4 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--brand)]"
+                              placeholder="Search skills"
+                            />
+                          </div>
                         </div>
-                      </div>
-                      <div className="relative sm:w-72">
-                        <Icon
-                          icon="lucide:search"
-                          width={14}
-                          height={14}
-                          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-disabled)]"
-                        />
-                        <input
-                          type="text"
-                          value={skillQuery}
-                          onChange={(event) => setSkillQuery(event.target.value)}
-                          className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] py-2.5 pl-9 pr-3 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--brand)]"
-                          placeholder="Search skills"
-                        />
                       </div>
                     </div>
 
@@ -644,58 +667,96 @@ export function WorkshopView() {
                       {filteredSkills.map((skill) => {
                         const active = primaryBlueprint.skillIds.includes(skill.id)
                         const runtime = runtimeState[skill.id]
+                        const meta = getSkillPresentationMeta(skill)
+                        const creatorInitial = meta.creatorName.slice(0, 1).toUpperCase()
                         return (
                           <button
                             key={skill.id}
                             type="button"
                             onClick={() => toggleSkill(skill.id)}
-                            className={`rounded-2xl border px-4 py-4 text-left transition ${
+                            className={`rounded-[24px] border px-4 py-4 text-left transition ${
                               active
-                                ? 'border-[var(--brand)] bg-[color-mix(in_srgb,var(--brand)_10%,transparent)]'
-                                : 'border-[var(--border)] bg-[var(--bg)] hover:border-[var(--brand)]/60'
+                                ? 'border-[var(--brand)] bg-[linear-gradient(180deg,color-mix(in_srgb,var(--brand)_10%,transparent),color-mix(in_srgb,var(--bg)_96%,transparent))] shadow-[0_0_0_1px_color-mix(in_srgb,var(--brand)_18%,transparent)]'
+                                : 'border-[var(--border)] bg-[linear-gradient(180deg,color-mix(in_srgb,var(--bg-elevated)_94%,transparent),color-mix(in_srgb,var(--bg)_94%,transparent))] hover:border-[var(--brand)]/60 hover:-translate-y-0.5'
                             }`}
                             aria-pressed={active}
                           >
-                            <div className="flex items-start gap-3">
-                              <div
-                                className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${
-                                  active
-                                    ? 'bg-[color-mix(in_srgb,var(--brand)_16%,transparent)] text-[var(--brand)]'
-                                    : 'bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] text-[var(--text-secondary)]'
-                                }`}
-                              >
-                                <Icon
-                                  icon={
-                                    active ? 'lucide:check-circle-2' : getSkillDisplayIcon(skill)
-                                  }
-                                  width={18}
-                                  height={18}
-                                />
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <div className="text-sm font-semibold text-[var(--text-primary)]">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex min-w-0 items-start gap-3">
+                                <div
+                                  className={`mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
+                                    active
+                                      ? 'bg-[color-mix(in_srgb,var(--brand)_16%,transparent)] text-[var(--brand)]'
+                                      : 'bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] text-[var(--text-secondary)]'
+                                  }`}
+                                >
+                                  <Icon
+                                    icon={
+                                      active ? 'lucide:check-circle-2' : getSkillDisplayIcon(skill)
+                                    }
+                                    width={18}
+                                    height={18}
+                                  />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="rounded-full border border-[color-mix(in_srgb,var(--brand)_24%,var(--border))] bg-[color-mix(in_srgb,var(--brand)_8%,transparent)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-secondary)]">
+                                      {meta.lane}
+                                    </span>
+                                    {runtime?.synced ? (
+                                      <span className="rounded-full border border-[color-mix(in_srgb,var(--color-additions,#22c55e)_30%,var(--border))] bg-[color-mix(in_srgb,var(--color-additions,#22c55e)_10%,transparent)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--color-additions,#22c55e)]">
+                                        Installed
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                  <div className="mt-3 text-sm font-semibold text-[var(--text-primary)]">
                                     {skill.title}
                                   </div>
-                                  {runtime?.synced ? (
-                                    <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--color-additions,#22c55e)]">
-                                      Installed
-                                    </span>
-                                  ) : null}
                                 </div>
-                                <p className="mt-1 text-xs leading-5 text-[var(--text-tertiary)]">
-                                  {skill.shortDescription}
-                                </p>
-                                <div className="mt-2 flex flex-wrap gap-1.5">
-                                  {skill.tags.slice(0, 3).map((tag) => (
-                                    <span
-                                      key={tag}
-                                      className="rounded-full bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--text-disabled)]"
-                                    >
-                                      {tag}
-                                    </span>
-                                  ))}
+                              </div>
+                              <span
+                                className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${
+                                  active
+                                    ? 'border-[color-mix(in_srgb,var(--brand)_28%,var(--border))] bg-[color-mix(in_srgb,var(--brand)_8%,transparent)] text-[var(--brand)]'
+                                    : 'border-[var(--border)] text-[var(--text-disabled)]'
+                                }`}
+                              >
+                                {active ? 'Equipped' : 'Available'}
+                              </span>
+                            </div>
+
+                            <p className="mt-4 text-xs leading-5 text-[var(--text-tertiary)]">
+                              {skill.shortDescription}
+                            </p>
+
+                            <div className="mt-3 flex flex-wrap gap-1.5">
+                              {skill.tags.slice(0, 3).map((tag) => (
+                                <span
+                                  key={tag}
+                                  className="rounded-full bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--text-disabled)]"
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+
+                            <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_84%,transparent)] px-3 py-2.5">
+                              <div className="flex items-center gap-2">
+                                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--brand)_16%,transparent)] text-[10px] font-semibold text-[var(--brand)]">
+                                  {creatorInitial}
                                 </div>
+                                <div className="min-w-0">
+                                  <div className="truncate text-[11px] font-medium text-[var(--text-primary)]">
+                                    {meta.creatorName}
+                                  </div>
+                                  <div className="truncate text-[10px] text-[var(--text-tertiary)]">
+                                    {meta.collectionLabel}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="text-right text-[10px] text-[var(--text-disabled)]">
+                                <div>{skill.sourceLabel}</div>
+                                <div>{runtime?.synced ? 'Ready locally' : 'Cloud ready'}</div>
                               </div>
                             </div>
                           </button>

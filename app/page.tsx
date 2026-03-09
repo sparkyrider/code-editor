@@ -278,14 +278,14 @@ export default function EditorLayout() {
       const file = files.find((f) => f.path === path)
       if (!file || !file.dirty) return
 
-      if (localMode && localWriteFile) {
+      if (localMode && localWriteFile && localRootPath) {
         try {
           await localWriteFile(path, file.content)
           markClean(path)
+          return
         } catch (err) {
           console.error('Failed to save file:', path, err)
         }
-        return
       }
 
       if (repo) {
@@ -302,7 +302,7 @@ export default function EditorLayout() {
         }
       }
     },
-    [files, localMode, localWriteFile, markClean, repo],
+    [files, localMode, localRootPath, localWriteFile, markClean, repo],
   )
 
   // ─── Keyboard shortcuts ────────────────────────────────
@@ -368,7 +368,7 @@ export default function EditorLayout() {
       const fileKind = detectFileKind(path)
       const isBinary = fileKind !== 'text'
 
-      if (localMode && localReadFile) {
+      if (localMode && localReadFile && localRootPath) {
         try {
           if (isBinary && localReadFileBase64) {
             const base64 = await localReadFileBase64(path)
@@ -380,10 +380,10 @@ export default function EditorLayout() {
             openFile(path, content, '')
           }
           revealEditorFromChat()
+          return
         } catch (err) {
           console.error('Failed to read local file:', path, err)
         }
-        return
       }
 
       if (repo) {
@@ -411,6 +411,7 @@ export default function EditorLayout() {
     activeView,
     layout,
     localMode,
+    localRootPath,
     localReadFile,
     localReadFileBase64,
   ])

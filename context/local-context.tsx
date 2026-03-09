@@ -1,7 +1,16 @@
 'use client'
 
-import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
-import { isTauri, tauriInvoke } from '@/lib/tauri'
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  type ReactNode,
+} from 'react'
+import { isTauri, isIOSTauri, tauriInvoke } from '@/lib/tauri'
 
 interface FileEntry {
   path: string
@@ -80,7 +89,7 @@ const MAX_RECENT = 5
 function saveRecentFolder(path: string) {
   try {
     const recent: string[] = JSON.parse(localStorage.getItem(STORAGE_RECENT) || '[]')
-    const updated = [path, ...recent.filter(p => p !== path)].slice(0, MAX_RECENT)
+    const updated = [path, ...recent.filter((p) => p !== path)].slice(0, MAX_RECENT)
     localStorage.setItem(STORAGE_RECENT, JSON.stringify(updated))
   } catch {}
 }
@@ -88,14 +97,21 @@ function saveRecentFolder(path: string) {
 export function getRecentFolders(): string[] {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_RECENT) || '[]')
-  } catch { return [] }
+  } catch {
+    return []
+  }
 }
 
 // ─── Web File System Access API helpers ─────────────────────────
 
-async function webReadTree(dirHandle: FileSystemDirectoryHandle, prefix = ''): Promise<FileEntry[]> {
+async function webReadTree(
+  dirHandle: FileSystemDirectoryHandle,
+  prefix = '',
+): Promise<FileEntry[]> {
   const entries: FileEntry[] = []
-  for await (const [name, handle] of dirHandle as unknown as AsyncIterable<[string, FileSystemHandle]>) {
+  for await (const [name, handle] of dirHandle as unknown as AsyncIterable<
+    [string, FileSystemHandle]
+  >) {
     if (name.startsWith('.') || name === 'node_modules') continue
     const path = prefix ? `${prefix}/${name}` : name
     if (handle.kind === 'directory') {
@@ -148,23 +164,26 @@ export function LocalProvider({ children }: { children: ReactNode }) {
   const [branches, setBranches] = useState<string[]>([])
   const [desktop, setDesktop] = useState(false)
   const [remoteRepo, setRemoteRepo] = useState<string | null>(null)
-  const [aheadBehind, setAheadBehind] = useState<{ ahead: number; behind: number }>({ ahead: 0, behind: 0 })
+  const [aheadBehind, setAheadBehind] = useState<{ ahead: number; behind: number }>({
+    ahead: 0,
+    behind: 0,
+  })
 
   const webDirHandleRef = useRef<FileSystemDirectoryHandle | null>(null)
 
   useEffect(() => {
-    const isDesktop = isTauri()
-    setDesktop(isDesktop)
+    const hasTauriFS = isTauri() && !isIOSTauri()
+    setDesktop(hasTauriFS)
     setLocalMode(true)
 
-    if (isDesktop) {
+    if (hasTauriFS) {
       const recent = getRecentFolders()
       if (recent.length > 0) {
         setRootPathState(recent[0])
         loadTreeTauri(recent[0])
       }
     }
-  }, [])  // eslint-disable-line react-hooks/exhaustive-deps
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Tauri tree loader ──
   const loadTreeTauri = useCallback(async (root: string) => {
@@ -181,7 +200,10 @@ export function LocalProvider({ children }: { children: ReactNode }) {
         setRemoteRepo(remote ?? null)
 
         if (git.branch) {
-          const ab = await tauriInvoke<[number, number]>('local_git_ahead_behind', { root, branch: git.branch })
+          const ab = await tauriInvoke<[number, number]>('local_git_ahead_behind', {
+            root,
+            branch: git.branch,
+          })
           if (ab) setAheadBehind({ ahead: ab[0], behind: ab[1] })
           else setAheadBehind({ ahead: 0, behind: 0 })
         }
@@ -201,14 +223,17 @@ export function LocalProvider({ children }: { children: ReactNode }) {
   }, [])
 
   // ── setRootPath (Tauri-only: set path by string) ──
-  const setRootPath = useCallback((path: string) => {
-    if (!desktop) return
-    setRootPathState(path)
-    setLocalMode(true)
-    saveRecentFolder(path)
-    localStorage.setItem('code-editor:source-mode', 'local')
-    loadTreeTauri(path)
-  }, [desktop, loadTreeTauri])
+  const setRootPath = useCallback(
+    (path: string) => {
+      if (!desktop) return
+      setRootPathState(path)
+      setLocalMode(true)
+      saveRecentFolder(path)
+      localStorage.setItem('code-editor:source-mode', 'local')
+      loadTreeTauri(path)
+    },
+    [desktop, loadTreeTauri],
+  )
 
   // ── openFolder ──
   const openFolder = useCallback(async () => {
@@ -223,7 +248,9 @@ export function LocalProvider({ children }: { children: ReactNode }) {
 
     if (typeof window !== 'undefined' && 'showDirectoryPicker' in window) {
       try {
-        const handle = await (window as unknown as { showDirectoryPicker: () => Promise<FileSystemDirectoryHandle> }).showDirectoryPicker()
+        const handle = await (
+          window as unknown as { showDirectoryPicker: () => Promise<FileSystemDirectoryHandle> }
+        ).showDirectoryPicker()
         webDirHandleRef.current = handle
         setRootPathState(handle.name)
         setLocalMode(true)
@@ -247,72 +274,87 @@ export function LocalProvider({ children }: { children: ReactNode }) {
     webDirHandleRef.current = null
   }, [])
 
-  const readFile = useCallback(async (path: string): Promise<string> => {
-    if (desktop) {
-      if (!rootPath) throw new Error('No root path')
-      const content = await tauriInvoke<string>('local_read_file', { root: rootPath, path })
-      return content ?? ''
-    }
+  const readFile = useCallback(
+    async (path: string): Promise<string> => {
+      if (desktop) {
+        if (!rootPath) throw new Error('No root path')
+        const content = await tauriInvoke<string>('local_read_file', { root: rootPath, path })
+        return content ?? ''
+      }
 
-    const handle = webDirHandleRef.current
-    if (!handle) throw new Error('No folder open')
-    const fileHandle = await webResolveFile(handle, path)
-    const file = await fileHandle.getFile()
-    return await file.text()
-  }, [desktop, rootPath])
+      const handle = webDirHandleRef.current
+      if (!handle) throw new Error('No folder open')
+      const fileHandle = await webResolveFile(handle, path)
+      const file = await fileHandle.getFile()
+      return await file.text()
+    },
+    [desktop, rootPath],
+  )
 
-  const readFileBase64 = useCallback(async (path: string): Promise<string> => {
-    if (desktop) {
-      if (!rootPath) throw new Error('No root path')
-      const content = await tauriInvoke<string>('local_read_file_base64', { root: rootPath, path })
-      return content ?? ''
-    }
+  const readFileBase64 = useCallback(
+    async (path: string): Promise<string> => {
+      if (desktop) {
+        if (!rootPath) throw new Error('No root path')
+        const content = await tauriInvoke<string>('local_read_file_base64', {
+          root: rootPath,
+          path,
+        })
+        return content ?? ''
+      }
 
-    const handle = webDirHandleRef.current
-    if (!handle) throw new Error('No folder open')
-    const fileHandle = await webResolveFile(handle, path)
-    const file = await fileHandle.getFile()
-    const buf = await file.arrayBuffer()
-    const bytes = new Uint8Array(buf)
-    const CHUNK = 8192
-    const chunks: string[] = []
-    for (let i = 0; i < bytes.length; i += CHUNK) {
-      chunks.push(String.fromCharCode(...bytes.subarray(i, i + CHUNK)))
-    }
-    return btoa(chunks.join(''))
-  }, [desktop, rootPath])
+      const handle = webDirHandleRef.current
+      if (!handle) throw new Error('No folder open')
+      const fileHandle = await webResolveFile(handle, path)
+      const file = await fileHandle.getFile()
+      const buf = await file.arrayBuffer()
+      const bytes = new Uint8Array(buf)
+      const CHUNK = 8192
+      const chunks: string[] = []
+      for (let i = 0; i < bytes.length; i += CHUNK) {
+        chunks.push(String.fromCharCode(...bytes.subarray(i, i + CHUNK)))
+      }
+      return btoa(chunks.join(''))
+    },
+    [desktop, rootPath],
+  )
 
-  const writeFile = useCallback(async (path: string, content: string) => {
-    if (desktop) {
-      if (!rootPath) throw new Error('No root path')
-      await tauriInvoke('local_write_file', { root: rootPath, path, content })
-      return
-    }
+  const writeFile = useCallback(
+    async (path: string, content: string) => {
+      if (desktop) {
+        if (!rootPath) throw new Error('No root path')
+        await tauriInvoke('local_write_file', { root: rootPath, path, content })
+        return
+      }
 
-    const handle = webDirHandleRef.current
-    if (!handle) throw new Error('No folder open')
-    const fileHandle = await webResolveOrCreateFile(handle, path)
-    const writable = await fileHandle.createWritable()
-    await writable.write(content)
-    await writable.close()
-  }, [desktop, rootPath])
+      const handle = webDirHandleRef.current
+      if (!handle) throw new Error('No folder open')
+      const fileHandle = await webResolveOrCreateFile(handle, path)
+      const writable = await fileHandle.createWritable()
+      await writable.write(content)
+      await writable.close()
+    },
+    [desktop, rootPath],
+  )
 
-  const deletePath = useCallback(async (path: string) => {
-    if (desktop) {
-      if (!rootPath) throw new Error('No root path')
-      await tauriInvoke('local_delete_path', { root: rootPath, path })
-      return
-    }
+  const deletePath = useCallback(
+    async (path: string) => {
+      if (desktop) {
+        if (!rootPath) throw new Error('No root path')
+        await tauriInvoke('local_delete_path', { root: rootPath, path })
+        return
+      }
 
-    const handle = webDirHandleRef.current
-    if (!handle) throw new Error('No folder open')
-    const parts = path.split('/')
-    let current: FileSystemDirectoryHandle = handle
-    for (let i = 0; i < parts.length - 1; i++) {
-      current = await current.getDirectoryHandle(parts[i])
-    }
-    await current.removeEntry(parts[parts.length - 1], { recursive: true })
-  }, [desktop, rootPath])
+      const handle = webDirHandleRef.current
+      if (!handle) throw new Error('No folder open')
+      const parts = path.split('/')
+      let current: FileSystemDirectoryHandle = handle
+      for (let i = 0; i < parts.length - 1; i++) {
+        current = await current.getDirectoryHandle(parts[i])
+      }
+      await current.removeEntry(parts[parts.length - 1], { recursive: true })
+    },
+    [desktop, rootPath],
+  )
 
   const refresh = useCallback(async () => {
     if (desktop && rootPath) {
@@ -323,72 +365,106 @@ export function LocalProvider({ children }: { children: ReactNode }) {
     if (handle) await loadTreeWeb(handle)
   }, [desktop, rootPath, loadTreeTauri, loadTreeWeb])
 
-  const switchBranch = useCallback(async (branch: string) => {
-    if (!rootPath) return
-    const result = await tauriInvoke<string>('local_git_checkout', { root: rootPath, branch })
-    if (result !== null) {
-      await loadTreeTauri(rootPath)
-    }
-  }, [rootPath, loadTreeTauri])
+  const switchBranch = useCallback(
+    async (branch: string) => {
+      if (!rootPath) return
+      const result = await tauriInvoke<string>('local_git_checkout', { root: rootPath, branch })
+      if (result !== null) {
+        await loadTreeTauri(rootPath)
+      }
+    },
+    [rootPath, loadTreeTauri],
+  )
 
-  const commitFiles = useCallback(async (message: string, paths: string[]): Promise<string> => {
-    if (!desktop || !rootPath) throw new Error('Git commit requires the desktop app')
-    const result = await tauriInvoke<string>('local_git_commit', { root: rootPath, message, paths })
-    await refresh()
-    return result ?? 'Committed'
-  }, [desktop, rootPath, refresh])
+  const commitFiles = useCallback(
+    async (message: string, paths: string[]): Promise<string> => {
+      if (!desktop || !rootPath) throw new Error('Git commit requires the desktop app')
+      const result = await tauriInvoke<string>('local_git_commit', {
+        root: rootPath,
+        message,
+        paths,
+      })
+      await refresh()
+      return result ?? 'Committed'
+    },
+    [desktop, rootPath, refresh],
+  )
 
-  const getDiff = useCallback(async (path: string, staged?: boolean): Promise<string> => {
-    if (!desktop || !rootPath) return ''
-    const diff = await tauriInvoke<string>('local_git_diff', { root: rootPath, path, staged: staged ?? false })
-    return diff ?? ''
-  }, [desktop, rootPath])
+  const getDiff = useCallback(
+    async (path: string, staged?: boolean): Promise<string> => {
+      if (!desktop || !rootPath) return ''
+      const diff = await tauriInvoke<string>('local_git_diff', {
+        root: rootPath,
+        path,
+        staged: staged ?? false,
+      })
+      return diff ?? ''
+    },
+    [desktop, rootPath],
+  )
 
-  const stageFiles = useCallback(async (paths: string[]) => {
-    if (!desktop || !rootPath) throw new Error('Stage requires the desktop app')
-    await tauriInvoke<string>('local_git_add', { root: rootPath, paths })
-    await refresh()
-  }, [desktop, rootPath, refresh])
+  const stageFiles = useCallback(
+    async (paths: string[]) => {
+      if (!desktop || !rootPath) throw new Error('Stage requires the desktop app')
+      await tauriInvoke<string>('local_git_add', { root: rootPath, paths })
+      await refresh()
+    },
+    [desktop, rootPath, refresh],
+  )
 
-  const unstageFiles = useCallback(async (paths: string[]) => {
-    if (!desktop || !rootPath) throw new Error('Unstage requires the desktop app')
-    await tauriInvoke<string>('local_git_unstage', { root: rootPath, paths })
-    await refresh()
-  }, [desktop, rootPath, refresh])
+  const unstageFiles = useCallback(
+    async (paths: string[]) => {
+      if (!desktop || !rootPath) throw new Error('Unstage requires the desktop app')
+      await tauriInvoke<string>('local_git_unstage', { root: rootPath, paths })
+      await refresh()
+    },
+    [desktop, rootPath, refresh],
+  )
 
-  const gitSave = useCallback(async (message: string): Promise<string> => {
-    if (!rootPath) throw new Error('No root path')
-    const result = await tauriInvoke<string>('local_git_save', { root: rootPath, message }) ?? 'Saved'
-    await refresh()
-    return result
-  }, [rootPath, refresh])
+  const gitSave = useCallback(
+    async (message: string): Promise<string> => {
+      if (!rootPath) throw new Error('No root path')
+      const result =
+        (await tauriInvoke<string>('local_git_save', { root: rootPath, message })) ?? 'Saved'
+      await refresh()
+      return result
+    },
+    [rootPath, refresh],
+  )
 
   const gitSync = useCallback(async (): Promise<string> => {
     if (!rootPath) throw new Error('No root path')
-    const result = await tauriInvoke<string>('local_git_sync', { root: rootPath }) ?? 'Synced'
+    const result = (await tauriInvoke<string>('local_git_sync', { root: rootPath })) ?? 'Synced'
     await refresh()
     return result
   }, [rootPath, refresh])
 
   const gitCleanBranches = useCallback(async (): Promise<string> => {
     if (!rootPath) throw new Error('No root path')
-    const result = await tauriInvoke<string>('local_git_clean_branches', { root: rootPath }) ?? 'Cleaned'
+    const result =
+      (await tauriInvoke<string>('local_git_clean_branches', { root: rootPath })) ?? 'Cleaned'
     return result
   }, [rootPath])
 
-  const discardChanges = useCallback(async (paths: string[]) => {
-    if (!rootPath) throw new Error('No root path')
-    // git checkout -- <paths> (discard unstaged changes)
-    await tauriInvoke<string>('local_git_discard', { root: rootPath, paths })
-    await refresh()
-  }, [rootPath, refresh])
+  const discardChanges = useCallback(
+    async (paths: string[]) => {
+      if (!rootPath) throw new Error('No root path')
+      // git checkout -- <paths> (discard unstaged changes)
+      await tauriInvoke<string>('local_git_discard', { root: rootPath, paths })
+      await refresh()
+    },
+    [rootPath, refresh],
+  )
 
-  const discardStagedChanges = useCallback(async (paths: string[]) => {
-    if (!rootPath) throw new Error('No root path')
-    // git reset HEAD <paths> then git checkout -- <paths> (undo staged + working changes)
-    await tauriInvoke<string>('local_git_discard_staged', { root: rootPath, paths })
-    await refresh()
-  }, [rootPath, refresh])
+  const discardStagedChanges = useCallback(
+    async (paths: string[]) => {
+      if (!rootPath) throw new Error('No root path')
+      // git reset HEAD <paths> then git checkout -- <paths> (undo staged + working changes)
+      await tauriInvoke<string>('local_git_discard_staged', { root: rootPath, paths })
+      await refresh()
+    },
+    [rootPath, refresh],
+  )
 
   const undoLastCommit = useCallback(async () => {
     if (!desktop || !rootPath) throw new Error('Undo commit requires the desktop app')
@@ -398,60 +474,136 @@ export function LocalProvider({ children }: { children: ReactNode }) {
 
   const hasUpstream = useCallback(async (): Promise<boolean> => {
     if (!desktop || !rootPath || !gitInfo?.branch) return false
-    const result = await tauriInvoke<boolean>('local_git_has_upstream', { root: rootPath, branch: gitInfo.branch })
+    const result = await tauriInvoke<boolean>('local_git_has_upstream', {
+      root: rootPath,
+      branch: gitInfo.branch,
+    })
     return result ?? false
   }, [desktop, rootPath, gitInfo])
 
-  const push = useCallback(async (branch?: string): Promise<string> => {
-    if (!desktop || !rootPath) throw new Error('Push requires the desktop app')
-    const br = branch || gitInfo?.branch
-    if (!br) throw new Error('No branch to push')
-    const upstream = await hasUpstream()
-    const result = await tauriInvoke<string>('local_git_push', { root: rootPath, branch: br, setUpstream: !upstream })
-    await refresh()
-    return result ?? 'Pushed'
-  }, [desktop, rootPath, gitInfo, hasUpstream, refresh])
+  const push = useCallback(
+    async (branch?: string): Promise<string> => {
+      if (!desktop || !rootPath) throw new Error('Push requires the desktop app')
+      const br = branch || gitInfo?.branch
+      if (!br) throw new Error('No branch to push')
+      const upstream = await hasUpstream()
+      const result = await tauriInvoke<string>('local_git_push', {
+        root: rootPath,
+        branch: br,
+        setUpstream: !upstream,
+      })
+      await refresh()
+      return result ?? 'Pushed'
+    },
+    [desktop, rootPath, gitInfo, hasUpstream, refresh],
+  )
 
-  const pull = useCallback(async (branch?: string): Promise<string> => {
-    if (!desktop || !rootPath) throw new Error('Pull requires the desktop app')
-    const br = branch || gitInfo?.branch
-    if (!br) throw new Error('No branch to pull')
-    const result = await tauriInvoke<string>('local_git_pull', { root: rootPath, branch: br })
-    await refresh()
-    return result ?? `Pulled ${br}`
-  }, [desktop, rootPath, gitInfo, refresh])
+  const pull = useCallback(
+    async (branch?: string): Promise<string> => {
+      if (!desktop || !rootPath) throw new Error('Pull requires the desktop app')
+      const br = branch || gitInfo?.branch
+      if (!br) throw new Error('No branch to pull')
+      const result = await tauriInvoke<string>('local_git_pull', { root: rootPath, branch: br })
+      await refresh()
+      return result ?? `Pulled ${br}`
+    },
+    [desktop, rootPath, gitInfo, refresh],
+  )
 
-  const gitLog = useCallback(async (count = 20): Promise<GitLogEntry[]> => {
-    if (!desktop || !rootPath) return []
-    const entries = await tauriInvoke<GitLogEntry[]>('local_git_log', { root: rootPath, count })
-    return entries ?? []
-  }, [desktop, rootPath])
+  const gitLog = useCallback(
+    async (count = 20): Promise<GitLogEntry[]> => {
+      if (!desktop || !rootPath) return []
+      const entries = await tauriInvoke<GitLogEntry[]>('local_git_log', { root: rootPath, count })
+      return entries ?? []
+    },
+    [desktop, rootPath],
+  )
 
   const refreshAheadBehind = useCallback(async () => {
     if (!desktop || !rootPath || !gitInfo?.branch) return
-    const ab = await tauriInvoke<[number, number]>('local_git_ahead_behind', { root: rootPath, branch: gitInfo.branch })
+    const ab = await tauriInvoke<[number, number]>('local_git_ahead_behind', {
+      root: rootPath,
+      branch: gitInfo.branch,
+    })
     if (ab) setAheadBehind({ ahead: ab[0], behind: ab[1] })
     else setAheadBehind({ ahead: 0, behind: 0 })
   }, [desktop, rootPath, gitInfo])
 
   const isWebFS = !desktop && localMode
 
-  const value = useMemo<LocalContextValue>(() => ({
-    localMode, rootPath, localTree, gitInfo, branches,
-    available: true, isWebFS, remoteRepo, aheadBehind,
-    openFolder, setRootPath, exitLocalMode,
-    readFile, readFileBase64, writeFile, deletePath, refresh, commitFiles, getDiff,
-    stageFiles, unstageFiles, undoLastCommit, discardChanges, discardStagedChanges, gitSave, gitSync, gitCleanBranches, switchBranch, push, pull, gitLog, refreshAheadBehind, hasUpstream,
-  }), [localMode, rootPath, localTree, gitInfo, branches, isWebFS, remoteRepo, aheadBehind,
-    openFolder, setRootPath, exitLocalMode,
-    readFile, readFileBase64, writeFile, deletePath, refresh, commitFiles, getDiff,
-    stageFiles, unstageFiles, undoLastCommit, discardChanges, discardStagedChanges, gitSave, gitSync, gitCleanBranches, switchBranch, push, pull, gitLog, refreshAheadBehind, hasUpstream])
-
-  return (
-    <LocalContext.Provider value={value}>
-      {children}
-    </LocalContext.Provider>
+  const value = useMemo<LocalContextValue>(
+    () => ({
+      localMode,
+      rootPath,
+      localTree,
+      gitInfo,
+      branches,
+      available: true,
+      isWebFS,
+      remoteRepo,
+      aheadBehind,
+      openFolder,
+      setRootPath,
+      exitLocalMode,
+      readFile,
+      readFileBase64,
+      writeFile,
+      deletePath,
+      refresh,
+      commitFiles,
+      getDiff,
+      stageFiles,
+      unstageFiles,
+      undoLastCommit,
+      discardChanges,
+      discardStagedChanges,
+      gitSave,
+      gitSync,
+      gitCleanBranches,
+      switchBranch,
+      push,
+      pull,
+      gitLog,
+      refreshAheadBehind,
+      hasUpstream,
+    }),
+    [
+      localMode,
+      rootPath,
+      localTree,
+      gitInfo,
+      branches,
+      isWebFS,
+      remoteRepo,
+      aheadBehind,
+      openFolder,
+      setRootPath,
+      exitLocalMode,
+      readFile,
+      readFileBase64,
+      writeFile,
+      deletePath,
+      refresh,
+      commitFiles,
+      getDiff,
+      stageFiles,
+      unstageFiles,
+      undoLastCommit,
+      discardChanges,
+      discardStagedChanges,
+      gitSave,
+      gitSync,
+      gitCleanBranches,
+      switchBranch,
+      push,
+      pull,
+      gitLog,
+      refreshAheadBehind,
+      hasUpstream,
+    ],
   )
+
+  return <LocalContext.Provider value={value}>{children}</LocalContext.Provider>
 }
 
 export function useLocal() {

@@ -12,6 +12,15 @@ export function isTauri(): boolean {
   return Boolean(w.__TAURI_INTERNALS__ || w.__TAURI__)
 }
 
+export function isIOSTauri(): boolean {
+  if (!isTauri()) return false
+  const ua = navigator.userAgent || ''
+  return (
+    /iPad|iPhone|iPod/.test(ua) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  )
+}
+
 /** Call a Tauri command. Returns null if not in Tauri. */
 export async function tauriInvoke<T>(
   cmd: string,

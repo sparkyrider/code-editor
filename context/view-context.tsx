@@ -17,21 +17,11 @@ export type ViewId =
   | 'preview'
   | 'diff'
   | 'git'
-  | 'workshop'
   | 'skills'
   | 'settings'
   | 'terminal'
 
-const VIEW_ORDER: ViewId[] = [
-  'chat',
-  'editor',
-  'preview',
-  'git',
-  'workshop',
-  'skills',
-  'settings',
-  'terminal',
-]
+const VIEW_ORDER: ViewId[] = ['chat', 'editor', 'preview', 'git', 'skills', 'settings', 'terminal']
 
 interface ViewState {
   activeView: ViewId

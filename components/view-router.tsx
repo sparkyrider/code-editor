@@ -12,10 +12,6 @@ const EditorView = dynamic(
 const GitView = dynamic(() => import('@/components/views/git-view').then((m) => m.GitView), {
   ssr: false,
 })
-const WorkshopView = dynamic(
-  () => import('@/components/views/workshop-view').then((m) => m.WorkshopView),
-  { ssr: false },
-)
 const SkillsView = dynamic(
   () => import('@/components/views/skills-view').then((m) => m.SkillsView),
   { ssr: false },
@@ -41,7 +37,6 @@ const VIEW_ICONS: Record<string, { label: string }> = {
   editor: { label: 'Editor' },
   preview: { label: 'Preview' },
   git: { label: 'Git' },
-  workshop: { label: 'Workshop' },
   skills: { label: 'Skills' },
   settings: { label: 'Settings' },
   terminal: { label: 'Terminal' },
@@ -84,7 +79,6 @@ export function ViewRouter() {
             {activeView === 'editor' && <EditorView />}
             {activeView === 'preview' && <PreviewPanel />}
             {activeView === 'git' && <GitView />}
-            {activeView === 'workshop' && <WorkshopView />}
             {activeView === 'skills' && <SkillsView />}
             {activeView === 'settings' && (
               <div className="flex-1 flex items-center justify-center">

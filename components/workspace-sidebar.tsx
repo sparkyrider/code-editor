@@ -233,18 +233,6 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
             {/* Nav items */}
             <div className="mt-3 space-y-0.5">
               <button
-                onClick={() => setView('workshop')}
-                className="codex-sidebar-nav-item flex items-center gap-2.5 px-3.5 py-2 rounded-lg text-[13px] text-[var(--text-secondary)] hover:bg-[color-mix(in_srgb,var(--text-primary)_5%,transparent)] hover:text-[var(--text-primary)] transition-all cursor-pointer w-full"
-              >
-                <Icon
-                  icon="lucide:bot"
-                  width={15}
-                  height={15}
-                  className="text-[var(--text-tertiary)]"
-                />
-                Workshop
-              </button>
-              <button
                 onClick={() => setView('skills')}
                 className="codex-sidebar-nav-item flex items-center gap-2.5 px-3.5 py-2 rounded-lg text-[13px] text-[var(--text-secondary)] hover:bg-[color-mix(in_srgb,var(--text-primary)_5%,transparent)] hover:text-[var(--text-primary)] transition-all cursor-pointer w-full"
               >
@@ -257,7 +245,7 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
                 Automations
               </button>
               <button
-                onClick={() => setView('workshop')}
+                onClick={() => setView('skills')}
                 className="codex-sidebar-nav-item flex items-center gap-2.5 px-3.5 py-2 rounded-lg text-[13px] text-[var(--text-secondary)] hover:bg-[color-mix(in_srgb,var(--text-primary)_5%,transparent)] hover:text-[var(--text-primary)] transition-all cursor-pointer w-full"
               >
                 <Icon

@@ -88,7 +88,6 @@ const VIEW_ICONS: Record<string, { icon: string; label: string }> = {
   preview: { icon: 'lucide:eye', label: 'Preview' },
   diff: { icon: 'lucide:git-compare', label: 'Diff' },
   git: { icon: 'lucide:git-branch', label: 'Git' },
-  workshop: { icon: 'lucide:bot', label: 'Workshop' },
   skills: { icon: 'lucide:sparkles', label: 'Skills' },
   settings: { icon: 'lucide:settings', label: 'Settings' },
   terminal: { icon: 'lucide:terminal', label: 'Terminal' },
@@ -134,7 +133,7 @@ export default function EditorLayout() {
   const terminalStartupCommand = useCenteredTerminal ? 'openclaw tui' : undefined
   const mobileViewTabs = useMemo(() => {
     // On mobile, curate tabs to useful views + always include settings
-    const mobile = visibleViews.filter((v) => !['preview', 'diff', 'workshop'].includes(v))
+    const mobile = visibleViews.filter((v) => !['preview', 'diff'].includes(v))
     if (!mobile.includes('terminal')) mobile.push('terminal')
     return mobile.slice(0, 5)
   }, [visibleViews])
@@ -148,8 +147,7 @@ export default function EditorLayout() {
   )
   const showMobileBottomTabs = isMobile && !modeSpec.terminalCenter && keyboardOffset === 0
   const showMobileSidebarButton = isMobile && mode !== 'tui'
-  const showWorkflowEditorTabs =
-    !isMobile && !modeSpec.terminalCenter && activeView === 'workshop' && files.length > 0
+  const showWorkflowEditorTabs = false
   const mobileTerminalOffset = showMobileBottomTabs
     ? 'calc(env(safe-area-inset-bottom) + 5.75rem)'
     : 'calc(env(safe-area-inset-bottom) + 0.5rem)'
@@ -1034,9 +1032,6 @@ export default function EditorLayout() {
               break
             case 'view-settings':
               setView('settings')
-              break
-            case 'view-workshop':
-              setView('workshop')
               break
             case 'view-skills':
               setView('skills')

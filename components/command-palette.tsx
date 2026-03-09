@@ -28,7 +28,6 @@ type CommandId =
   | 'view-editor'
   | 'view-preview'
   | 'view-git'
-  | 'view-workshop'
   | 'view-skills'
   | 'view-settings'
   | 'open-onboarding'
@@ -222,14 +221,6 @@ const COMMANDS: CommandItem[] = [
     group: 'navigate',
   },
   {
-    id: 'view-workshop',
-    label: 'Go to Workshop',
-    hint: 'Open the unified agent workshop',
-    keywords: ['workshop', 'agents', 'skills', 'automation', 'playground'],
-    icon: 'lucide:bot',
-    group: 'navigate',
-  },
-  {
     id: 'view-skills',
     label: 'Go to Skills',
     hint: 'Open the skills library',
@@ -356,8 +347,7 @@ const VIEW_CONTEXT_COMMANDS: Partial<Record<ViewId, CommandId[]>> = {
     'toggle-terminal',
   ],
   git: ['git-commit', 'toggle-git-panel', 'git-push', 'git-pull', 'git-stash', 'toggle-terminal'],
-  workshop: ['view-workshop', 'open-new-window', 'view-editor', 'view-git'],
-  skills: ['view-skills', 'view-workshop', 'open-new-window', 'view-editor'],
+  skills: ['view-skills', 'open-new-window', 'view-editor'],
 
   preview: ['preview-refresh', 'view-editor'],
 }

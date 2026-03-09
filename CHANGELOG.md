@@ -1,5 +1,32 @@
 # Changelog
 
+## [1.5.0] — 2026-03-08
+
+### Added
+
+- **GitHub project selector** — Connect to any GitHub repo from mobile chat home (`owner/repo` or full URL)
+- **Settings tab on mobile** — Full settings panel accessible from bottom tab bar
+- **Native-style tab bar** — Slim iOS-native tab bar with bare icons, labels, and haptic feedback (5ms vibration)
+
+### Changed
+
+- **Mobile tabs curated** — Chat, Editor, Git, Workshop, Settings (dropped desktop-only views: Skills, Prism, Preview, Diff)
+- **44px touch targets** — Tab bar buttons meet iOS HIG minimum with `touch-manipulation` CSS
+- **Hidden model picker on mobile** — Mode selector (Ask/Agent/Plan) stays, model name hidden to save space
+- **Cleaner connect form** — Icon-prefixed inputs (globe + lock), focus rings, always-visible form
+- **Mobile header polish** — Dynamic workspace name, smaller connection dot, reduced padding
+- **Hidden chat header on mobile** — Saves 40px vertical space; session info available elsewhere
+- **"Let's weave" branding** — Aligns with Knot Code identity (weaving/knots metaphor)
+- **Minimal composer on mobile** — No branch pill, permissions toggle, or gateway status in toolbar
+
+### Removed
+
+- Suggestion cards on mobile (too cluttered on small screens)
+- Open Folder / Clone Repo buttons on mobile (replaced by GitHub project selector)
+- Mode switcher in mobile header (redundant with bottom tab bar)
+- "Gateway active" status text row (colored dot is sufficient)
+- KnotCode footer on mobile
+
 ## [1.4.0] — 2026-03-07
 
 ### Added

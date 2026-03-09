@@ -594,10 +594,10 @@ export function ChatInputBar({
           </div>
         </div>
 
-        {/* Bottom bar — mode + model */}
+        {/* Bottom bar — mode + model (model hidden on mobile) */}
         <div className="flex items-center justify-between mt-1">
           <ModeSelector mode={agentMode} onChange={setAgentMode} />
-          <div className="flex items-center gap-2">
+          <div className="hidden sm:flex items-center gap-2">
             {modelInfo.current && (
               <div className="relative">
                 <button

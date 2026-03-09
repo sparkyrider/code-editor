@@ -833,11 +833,11 @@ export default function EditorLayout() {
 
         {showMobileBottomTabs && (
           <div
-            className="shrink-0 border-t border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-elevated)_94%,black)] px-2 pt-2"
-            style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' }}
+            className="shrink-0 border-t border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-elevated)_96%,black)]"
+            style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.25rem)' }}
           >
             <div
-              className="grid gap-1.5"
+              className="grid"
               style={{
                 gridTemplateColumns: `repeat(${mobileViewTabs.length}, minmax(0, 1fr))`,
               }}
@@ -848,25 +848,22 @@ export default function EditorLayout() {
                   <motion.button
                     key={v}
                     type="button"
-                    onClick={() => setView(v)}
-                    whileTap={{ scale: 0.97 }}
-                    className={`flex min-w-0 flex-col items-center gap-1 rounded-[20px] px-2 py-2.5 text-[10px] font-medium transition ${
+                    onClick={() => {
+                      setView(v)
+                      if ('vibrate' in navigator) navigator.vibrate(5)
+                    }}
+                    whileTap={{ scale: 0.92 }}
+                    className={`relative flex min-w-0 flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors ${
                       isActive
-                        ? 'bg-[color-mix(in_srgb,var(--brand)_12%,transparent)] text-[var(--text-primary)] shadow-[var(--shadow-xs)]'
-                        : 'text-[var(--text-secondary)] hover:bg-[color-mix(in_srgb,var(--text-primary)_5%,transparent)] hover:text-[var(--text-primary)]'
+                        ? 'text-[var(--brand)]'
+                        : 'text-[var(--text-disabled)]'
                     } ${flashedTab === v ? 'animate-badge-pop' : ''}`}
                     title={VIEW_ICONS[v].label}
                   >
-                    <span
-                      className={`relative flex h-10 w-10 items-center justify-center rounded-2xl border ${
-                        isActive
-                          ? 'border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] bg-[color-mix(in_srgb,var(--brand)_10%,transparent)] text-[var(--brand)]'
-                          : 'border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_92%,transparent)] text-[var(--text-secondary)]'
-                      }`}
-                    >
-                      <Icon icon={VIEW_ICONS[v].icon} width={18} height={18} />
+                    <span className="relative">
+                      <Icon icon={VIEW_ICONS[v].icon} width={20} height={20} />
                       {v === 'git' && dirtyCount > 0 && (
-                        <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full bg-[var(--brand)] px-1 text-center text-[9px] font-bold leading-[18px] text-[var(--brand-contrast)]">
+                        <span className="absolute -right-2 -top-1 min-w-[14px] rounded-full bg-[var(--brand)] px-0.5 text-center text-[8px] font-bold leading-[14px] text-[var(--brand-contrast)]">
                           {dirtyCount > 9 ? '9+' : dirtyCount}
                         </span>
                       )}

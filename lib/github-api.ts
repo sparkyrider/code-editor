@@ -94,8 +94,18 @@ export interface DeviceCodeResponse {
   interval: number
 }
 
+/** Use Tauri HTTP plugin (bypasses CORS) when available, otherwise browser fetch */
+async function nativeFetch(url: string, init: RequestInit): Promise<Response> {
+  try {
+    const { fetch: tauriFetch } = await import('@tauri-apps/plugin-http')
+    return await tauriFetch(url, init)
+  } catch {
+    return fetch(url, init)
+  }
+}
+
 export async function startDeviceFlow(): Promise<DeviceCodeResponse> {
-  const res = await fetch('https://github.com/login/device/code', {
+  const res = await nativeFetch('https://github.com/login/device/code', {
     method: 'POST',
     headers: {
       Accept: 'application/json',
@@ -119,7 +129,7 @@ export async function pollDeviceFlow(
   for (let i = 0; i < 60; i++) {
     if (signal?.aborted) throw new Error('Cancelled')
     await delay(interval * 1000)
-    const res = await fetch('https://github.com/login/oauth/access_token', {
+    const res = await nativeFetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
       headers: {
         Accept: 'application/json',

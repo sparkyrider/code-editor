@@ -28,6 +28,7 @@ tauri-plugin-dialog = "2.6.0"
 tauri-plugin-clipboard-manager = "2.3.2"
 tauri-plugin-localhost = "2"
 objc2 = "0.6.4"
+tauri-plugin-http = "2.5.7"
 
 # Desktop-only dependencies
 [target.'cfg(not(target_os = "ios"))'.dependencies]

@@ -20,6 +20,21 @@
     "clipboard-manager:default",
     "clipboard-manager:allow-write-text",
     "clipboard-manager:allow-write-html",
-    "clipboard-manager:allow-read-text"
+    "clipboard-manager:allow-read-text",
+    "http:default",
+    {
+      "identifier": "http:allow-fetch",
+      "allow": [
+        { "url": "https://github.com/**" },
+        { "url": "https://api.github.com/**" }
+      ]
+    },
+    {
+      "identifier": "http:allow-fetch-send",
+      "allow": [
+        { "url": "https://github.com/**" },
+        { "url": "https://api.github.com/**" }
+      ]
+    }
   ]
 }

@@ -55,6 +55,21 @@
     "clipboard-manager:allow-write-html",
     "clipboard-manager:allow-write-image",
     "clipboard-manager:allow-read-text",
-    "clipboard-manager:allow-read-image"
+    "clipboard-manager:allow-read-image",
+    "http:default",
+    {
+      "identifier": "http:allow-fetch",
+      "allow": [
+        { "url": "https://github.com/**" },
+        { "url": "https://api.github.com/**" }
+      ]
+    },
+    {
+      "identifier": "http:allow-fetch-send",
+      "allow": [
+        { "url": "https://github.com/**" },
+        { "url": "https://api.github.com/**" }
+      ]
+    }
   ]
 }

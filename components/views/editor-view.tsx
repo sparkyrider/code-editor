@@ -189,7 +189,7 @@ export function EditorView() {
             <Icon icon="lucide:chevron-right" width={14} height={14} />
           </button>
         )}
-        {!treeVisible && isMobile && (
+        {!treeVisible && isMobile && hasFiles && (
           <button
             onClick={() => layout.show('tree')}
             className="absolute left-2 top-2 z-30 h-9 w-9 flex items-center justify-center rounded-xl bg-[var(--bg-elevated)] border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] cursor-pointer"
@@ -199,13 +199,20 @@ export function EditorView() {
           </button>
         )}
 
-        <MainEditorPane
-          hasFiles={hasFiles}
-          isDesktop={isDesktop}
-          isNarrow={isNarrow}
-          branchName={branchName}
-          onBrowse={() => layout.show('tree')}
-        />
+        {/* Mobile: show file explorer full-width when no files are open */}
+        {isMobile && !hasFiles ? (
+          <div className="flex-1 overflow-y-auto">
+            <FileExplorer />
+          </div>
+        ) : (
+          <MainEditorPane
+            hasFiles={hasFiles}
+            isDesktop={isDesktop}
+            isNarrow={isNarrow}
+            branchName={branchName}
+            onBrowse={() => layout.show('tree')}
+          />
+        )}
       </div>
 
       {chatPanelVisible && !isMobile && !chatFloating && (

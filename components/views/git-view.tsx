@@ -1016,7 +1016,7 @@ export function GitView() {
                       )}
                       {/* Inline action buttons — visible on hover */}
                       <div className="hidden group-hover:flex items-center gap-0.5 shrink-0">
-                        {isLocalMode && entry.source === 'git' && (
+                        {!staged && isLocalMode && entry.source === 'git' && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation()

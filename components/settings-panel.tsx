@@ -8,7 +8,11 @@ import { SessionPresence } from './session-presence'
 import { CaffeinateToggle } from './caffeinate-toggle'
 import { useGateway } from '@/context/gateway-context'
 import { useGitHubAuth } from '@/context/github-auth-context'
-import { fetchAuthenticatedUser, type GitHubUser } from '@/lib/github-api'
+import { fetchAuthenticatedUser, startDeviceFlow, pollDeviceFlow, fetchUserRepos, type GitHubUser, type Repo } from '@/lib/github-api'
+import {
+  getFavorites, addFavorite, removeFavorite, isFavorite,
+  getRecents, addRecent, type SavedRepo,
+} from '@/lib/github-repos-store'
 import { THEME_PRESETS, useTheme, type ThemeMode, type ThemePreset } from '@/context/theme-context'
 
 type SettingsTab = 'connect' | 'general'
@@ -52,14 +56,79 @@ export function SettingsPanel({
   const [ghUser, setGhUser] = useState<GitHubUser | null>(null)
   const [patInput, setPatInput] = useState('')
   const [showPatField, setShowPatField] = useState(false)
+  const [deviceFlow, setDeviceFlow] = useState<{ userCode: string; verificationUri: string } | null>(null)
+  const [authLoading, setAuthLoading] = useState(false)
+  const [authError, setAuthError] = useState<string | null>(null)
+  const deviceFlowAbort = useRef<AbortController | null>(null)
+  const [favorites, setFavorites] = useState<SavedRepo[]>([])
+  const [recents, setRecents] = useState<SavedRepo[]>([])
+  const [userRepos, setUserRepos] = useState<Repo[]>([])
+  const [loadingRepos, setLoadingRepos] = useState(false)
+  const [repoSearch, setRepoSearch] = useState('')
 
   // Fetch GitHub user on token change
   const ghTokenRef = useRef(ghToken)
   if (ghTokenRef.current !== ghToken) {
     ghTokenRef.current = ghToken
-    if (ghToken) fetchAuthenticatedUser().then(u => setGhUser(u))
-    else setGhUser(null)
+    if (ghToken) {
+      fetchAuthenticatedUser().then(u => setGhUser(u))
+      setLoadingRepos(true)
+      fetchUserRepos().then(r => { setUserRepos(r); setLoadingRepos(false) }).catch(() => setLoadingRepos(false))
+    } else {
+      setGhUser(null)
+      setUserRepos([])
+    }
   }
+
+  // Load favorites + recents on mount
+  const loadedRef = useRef(false)
+  if (!loadedRef.current) {
+    loadedRef.current = true
+    setFavorites(getFavorites())
+    setRecents(getRecents())
+  }
+
+  const startGitHubSignIn = useCallback(async () => {
+    setAuthLoading(true)
+    setAuthError(null)
+    try {
+      const flow = await startDeviceFlow()
+      setDeviceFlow({ userCode: flow.user_code, verificationUri: flow.verification_uri })
+      deviceFlowAbort.current = new AbortController()
+      const token = await pollDeviceFlow(flow.device_code, flow.interval, deviceFlowAbort.current.signal)
+      setManualToken(token)
+      setDeviceFlow(null)
+    } catch (err) {
+      if ((err as Error).message !== 'Cancelled') {
+        setAuthError(err instanceof Error ? err.message : 'Sign-in failed')
+      }
+      setDeviceFlow(null)
+    } finally {
+      setAuthLoading(false)
+    }
+  }, [setManualToken])
+
+  const toggleFavorite = useCallback((repo: Repo | SavedRepo) => {
+    const fn = 'fullName' in repo ? repo.fullName : ('full_name' in repo ? (repo as Repo).full_name : '')
+    const saved: SavedRepo = {
+      fullName: fn,
+      name: 'name' in repo ? repo.name : fn.split('/').pop() ?? '',
+      owner: 'owner' in repo && typeof repo.owner === 'object' ? (repo.owner as { login: string }).login : fn.split('/')[0] ?? '',
+      defaultBranch: 'defaultBranch' in repo ? (repo as SavedRepo).defaultBranch : ('default_branch' in repo ? (repo as Repo).default_branch : 'main'),
+      addedAt: Date.now(),
+    }
+    if (isFavorite(fn)) {
+      setFavorites(removeFavorite(fn))
+    } else {
+      setFavorites(addFavorite(saved))
+    }
+  }, [])
+
+  const filteredRepos = useMemo(() => {
+    if (!repoSearch.trim()) return userRepos.slice(0, 20)
+    const q = repoSearch.toLowerCase()
+    return userRepos.filter(r => r.full_name.toLowerCase().includes(q)).slice(0, 20)
+  }, [userRepos, repoSearch])
 
   const themeGroups = useMemo(() => groupThemes(), [])
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768
@@ -350,13 +419,14 @@ export function SettingsPanel({
                         <div>
                           <h3 className="text-sm font-medium text-[var(--text-primary)]">GitHub</h3>
                           <p className="text-[11px] text-[var(--text-secondary)]">
-                            Connect your account to browse repos.
+                            {ghAuth ? 'Manage your account and repositories.' : 'Sign in to browse and favorite repos.'}
                           </p>
                         </div>
                       </div>
 
-                      {ghAuth && ghUser ? (
-                        <div className="space-y-3">
+                      {/* Signed in — profile */}
+                      {ghAuth && ghUser && (
+                        <div className="flex items-center justify-between mb-4 pb-3 border-b border-[var(--border)]">
                           <div className="flex items-center gap-2.5">
                             {ghUser.avatar_url && (
                               <img src={ghUser.avatar_url} alt="" className="w-8 h-8 rounded-full border border-[var(--border)]" />
@@ -367,32 +437,34 @@ export function SettingsPanel({
                             </div>
                           </div>
                           <button
-                            onClick={() => { clearToken(); setGhUser(null) }}
-                            className="text-[12px] text-[var(--color-deletions)] hover:underline cursor-pointer"
+                            onClick={() => { clearToken(); setGhUser(null); setUserRepos([]) }}
+                            className="text-[11px] text-[var(--text-disabled)] hover:text-[var(--color-deletions)] cursor-pointer"
                           >
                             Sign out
                           </button>
                         </div>
-                      ) : ghAuth ? (
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-green-500" />
-                          <span className="text-[12px] text-[var(--text-secondary)]">Connected</span>
-                          <button
-                            onClick={() => { clearToken(); setGhUser(null) }}
-                            className="ml-auto text-[12px] text-[var(--color-deletions)] hover:underline cursor-pointer"
-                          >
-                            Sign out
-                          </button>
-                        </div>
-                      ) : (
+                      )}
+
+                      {/* Not signed in — auth options */}
+                      {!ghAuth && !deviceFlow && (
                         <div className="space-y-3">
+                          {/* Device Flow */}
+                          <button
+                            onClick={startGitHubSignIn}
+                            disabled={authLoading}
+                            className="w-full flex items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_92%,transparent)] px-3 py-2.5 text-[13px] font-medium text-[var(--text-primary)] transition hover:border-[var(--text-disabled)] cursor-pointer disabled:opacity-50"
+                          >
+                            <Icon icon="lucide:github" width={16} />
+                            {authLoading ? 'Signing in…' : 'Sign in with GitHub'}
+                          </button>
+
+                          {/* PAT */}
                           {!showPatField ? (
                             <button
                               onClick={() => setShowPatField(true)}
-                              className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_92%,transparent)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition hover:border-[var(--border-hover)] hover:bg-[color-mix(in_srgb,var(--text-primary)_5%,transparent)] cursor-pointer"
+                              className="w-full text-center text-[11px] text-[var(--text-disabled)] hover:text-[var(--text-secondary)] cursor-pointer"
                             >
-                              <Icon icon="lucide:key-round" width={14} />
-                              Add Personal Access Token
+                              or use a personal access token
                             </button>
                           ) : (
                             <div className="space-y-2">
@@ -404,41 +476,93 @@ export function SettingsPanel({
                                     value={patInput}
                                     onChange={(e) => setPatInput(e.target.value)}
                                     onKeyDown={(e) => {
-                                      if (e.key === 'Enter' && patInput.trim()) {
-                                        setManualToken(patInput.trim())
-                                        setPatInput('')
-                                        setShowPatField(false)
-                                      }
+                                      if (e.key === 'Enter' && patInput.trim()) { setManualToken(patInput.trim()); setPatInput(''); setShowPatField(false) }
                                       if (e.key === 'Escape') { setShowPatField(false); setPatInput('') }
                                     }}
                                     placeholder="ghp_xxxx..."
-                                    autoCapitalize="off"
-                                    autoCorrect="off"
-                                    spellCheck={false}
+                                    autoCapitalize="off" autoCorrect="off" spellCheck={false}
                                     className="w-full pl-8 pr-3 py-2 rounded-lg border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_80%,transparent)] text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-disabled)] outline-none focus:border-[var(--brand)] transition-colors"
                                   />
                                 </div>
                                 <button
-                                  onClick={() => {
-                                    if (patInput.trim()) {
-                                      setManualToken(patInput.trim())
-                                      setPatInput('')
-                                      setShowPatField(false)
-                                    }
-                                  }}
+                                  onClick={() => { if (patInput.trim()) { setManualToken(patInput.trim()); setPatInput(''); setShowPatField(false) } }}
                                   disabled={!patInput.trim()}
-                                  className="shrink-0 px-3 py-2 rounded-lg text-[12px] font-medium transition-all cursor-pointer disabled:opacity-40 disabled:cursor-default bg-[var(--brand)] text-[var(--brand-contrast,#fff)]"
+                                  className="shrink-0 px-3 py-2 rounded-lg text-[12px] font-medium cursor-pointer disabled:opacity-40 bg-[var(--brand)] text-[var(--brand-contrast,#fff)]"
                                 >
                                   Save
                                 </button>
                               </div>
-                              <p className="text-[10px] text-[var(--text-disabled)] leading-relaxed">
-                                Create at{' '}
-                                <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer" className="text-[var(--brand)] underline">
-                                  github.com/settings/tokens
-                                </a>
-                                {' '}with <span className="font-mono">repo</span> scope.
+                              <p className="text-[10px] text-[var(--text-disabled)]">
+                                Create at <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer" className="text-[var(--brand)] underline">github.com/settings/tokens</a> with <span className="font-mono">repo</span> scope.
                               </p>
+                            </div>
+                          )}
+                          {authError && <p className="text-[11px] text-[var(--color-deletions)]">{authError}</p>}
+                        </div>
+                      )}
+
+                      {/* Device flow code */}
+                      {deviceFlow && (
+                        <div className="text-center space-y-2 py-2">
+                          <p className="text-[11px] text-[var(--text-disabled)]">
+                            Enter this code at <a href={deviceFlow.verificationUri} target="_blank" rel="noopener noreferrer" className="text-[var(--brand)] underline">github.com/login/device</a>
+                          </p>
+                          <p className="text-[22px] font-mono font-bold tracking-[0.15em] text-[var(--text-primary)]">{deviceFlow.userCode}</p>
+                          <button onClick={() => { deviceFlowAbort.current?.abort(); setDeviceFlow(null); setAuthLoading(false) }} className="text-[11px] text-[var(--text-disabled)] hover:text-[var(--text-secondary)] cursor-pointer">Cancel</button>
+                        </div>
+                      )}
+
+                      {/* Favorites */}
+                      {ghAuth && favorites.length > 0 && (
+                        <div className="mb-3">
+                          <p className="text-[10px] uppercase tracking-wider text-[var(--text-disabled)] font-medium mb-2">Favorites</p>
+                          <div className="space-y-1">
+                            {favorites.map(r => (
+                              <div key={r.fullName} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)] group">
+                                <Icon icon="lucide:star" width={12} className="text-amber-400 shrink-0" />
+                                <span className="text-[12px] text-[var(--text-primary)] flex-1 truncate">{r.fullName}</span>
+                                <button onClick={() => toggleFavorite(r)} className="opacity-0 group-hover:opacity-100 text-[var(--text-disabled)] hover:text-[var(--color-deletions)] cursor-pointer" title="Remove">
+                                  <Icon icon="lucide:x" width={12} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Your repos */}
+                      {ghAuth && (
+                        <div>
+                          <p className="text-[10px] uppercase tracking-wider text-[var(--text-disabled)] font-medium mb-2">Your Repositories</p>
+                          <div className="relative mb-2">
+                            <Icon icon="lucide:search" width={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-disabled)]" />
+                            <input
+                              type="text"
+                              value={repoSearch}
+                              onChange={e => setRepoSearch(e.target.value)}
+                              placeholder="Search repos…"
+                              autoCapitalize="off" autoCorrect="off" spellCheck={false}
+                              className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_80%,transparent)] text-[12px] text-[var(--text-primary)] placeholder:text-[var(--text-disabled)] outline-none focus:border-[var(--brand)] transition-colors"
+                            />
+                          </div>
+                          {loadingRepos ? (
+                            <p className="text-[11px] text-[var(--text-disabled)] py-2 text-center">Loading repos…</p>
+                          ) : (
+                            <div className="space-y-0.5 max-h-[240px] overflow-y-auto">
+                              {filteredRepos.map(r => {
+                                const fav = isFavorite(r.full_name)
+                                return (
+                                  <div key={r.full_name} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)] group">
+                                    <button onClick={() => toggleFavorite(r)} className="shrink-0 cursor-pointer" title={fav ? 'Unfavorite' : 'Favorite'}>
+                                      <Icon icon={fav ? 'lucide:star' : 'lucide:star'} width={13} className={fav ? 'text-amber-400' : 'text-[var(--text-disabled)] opacity-40 group-hover:opacity-100'} />
+                                    </button>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-[12px] text-[var(--text-primary)] truncate">{r.full_name}</p>
+                                      <p className="text-[10px] text-[var(--text-disabled)]">{r.private ? '🔒 Private' : '🌐 Public'} · {r.default_branch}</p>
+                                    </div>
+                                  </div>
+                                )
+                              })}
                             </div>
                           )}
                         </div>

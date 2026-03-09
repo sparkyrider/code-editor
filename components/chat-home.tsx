@@ -15,13 +15,8 @@ import { useEditor } from '@/context/editor-context'
 import { emit } from '@/lib/events'
 import { getRecentFolders } from '@/context/local-context'
 import { getAgentConfig } from '@/lib/agent-session'
-import {
-  fetchRepoByName,
-  fetchAuthenticatedUser,
-  startDeviceFlow,
-  pollDeviceFlow,
-  type GitHubUser,
-} from '@/lib/github-api'
+import { fetchRepoByName, fetchAuthenticatedUser, type GitHubUser } from '@/lib/github-api'
+import { getFavorites, getRecents, addRecent, type SavedRepo } from '@/lib/github-repos-store'
 
 const STATIC_SUGGESTIONS = [
   {
@@ -99,7 +94,7 @@ export const ChatHome = memo(function ChatHome({
   const local = useLocal()
   const { status } = useGateway()
   const { files: openFiles } = useEditor()
-  const { token: ghToken, setManualToken, authenticated: ghAuthenticated } = useGitHubAuth()
+  const { token: ghToken, authenticated: ghAuthenticated } = useGitHubAuth()
 
   const repoShort = useMemo(
     () => repo?.fullName?.split('/').pop() ?? local.rootPath?.split('/').pop() ?? null,
@@ -115,69 +110,22 @@ export const ChatHome = memo(function ChatHome({
   const [repoError, setRepoError] = useState<string | null>(null)
   const repoInputRef = useRef<HTMLInputElement>(null)
   const [ghUser, setGhUser] = useState<GitHubUser | null>(null)
-  const [deviceFlow, setDeviceFlow] = useState<{
-    userCode: string
-    verificationUri: string
-  } | null>(null)
-  const [authLoading, setAuthLoading] = useState(false)
-  const [showPatInput, setShowPatInput] = useState(false)
-  const [patInput, setPatInput] = useState('')
-  const patInputRef = useRef<HTMLInputElement>(null)
-  const deviceFlowAbort = useRef<AbortController | null>(null)
+  const [savedFavorites, setSavedFavorites] = useState<SavedRepo[]>([])
+  const [savedRecents, setSavedRecents] = useState<SavedRepo[]>([])
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768
 
   // Fetch GitHub user when token is available
   useEffect(() => {
-    if (!ghToken) {
-      setGhUser(null)
-      return
-    }
+    if (!ghToken) { setGhUser(null); return }
     fetchAuthenticatedUser().then((u) => setGhUser(u))
   }, [ghToken])
 
-  // GitHub Device Flow sign-in
-  const startGitHubSignIn = useCallback(async () => {
-    setAuthLoading(true)
-    setRepoError(null)
-    try {
-      const flow = await startDeviceFlow()
-      setDeviceFlow({ userCode: flow.user_code, verificationUri: flow.verification_uri })
-      deviceFlowAbort.current = new AbortController()
-      const token = await pollDeviceFlow(
-        flow.device_code,
-        flow.interval,
-        deviceFlowAbort.current.signal,
-      )
-      setManualToken(token)
-      setDeviceFlow(null)
-    } catch (err) {
-      if ((err as Error).message !== 'Cancelled') {
-        setRepoError(err instanceof Error ? err.message : 'Sign-in failed')
-      }
-      setDeviceFlow(null)
-    } finally {
-      setAuthLoading(false)
-    }
-  }, [setManualToken])
-
-  const cancelGitHubSignIn = useCallback(() => {
-    deviceFlowAbort.current?.abort()
-    setDeviceFlow(null)
-    setAuthLoading(false)
-  }, [])
-
-  const handlePatSubmit = useCallback(() => {
-    const t = patInput.trim()
-    if (!t) return
-    setManualToken(t)
-    setPatInput('')
-    setShowPatInput(false)
-  }, [patInput, setManualToken])
-
+  // Load favorites + recents
   useEffect(() => {
-    if (showPatInput) setTimeout(() => patInputRef.current?.focus(), 100)
-  }, [showPatInput])
+    setSavedFavorites(getFavorites())
+    setSavedRecents(getRecents())
+  }, [ghToken])
 
   const handleRepoConnect = useCallback(async () => {
     const val = repoInput
@@ -200,6 +148,13 @@ export const ChatHome = memo(function ChatHome({
         fullName: ghRepo.full_name,
       }
       setRepo(info)
+      setSavedRecents(addRecent({
+        fullName: ghRepo.full_name,
+        name: ghRepo.name,
+        owner: ghRepo.owner.login,
+        defaultBranch: ghRepo.default_branch,
+        addedAt: Date.now(),
+      }))
       setShowRepoInput(false)
       setRepoInput('')
     } catch (err) {
@@ -208,6 +163,17 @@ export const ChatHome = memo(function ChatHome({
       setRepoLoading(false)
     }
   }, [repoInput, setRepo])
+
+  const selectSavedRepo = useCallback((saved: SavedRepo) => {
+    const info: RepoInfo = {
+      owner: saved.owner,
+      repo: saved.name,
+      branch: saved.defaultBranch,
+      fullName: saved.fullName,
+    }
+    setRepo(info)
+    setSavedRecents(addRecent(saved))
+  }, [setRepo])
 
   useEffect(() => {
     if (showRepoInput) {
@@ -334,119 +300,69 @@ export const ChatHome = memo(function ChatHome({
           {/* Mobile project selector */}
           {isMobile && (
             <div className="mt-3 flex flex-col items-center gap-2 w-full max-w-[320px]">
-              {/* GitHub user badge */}
-              {ghAuthenticated && ghUser && (
-                <span className="inline-flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)]">
-                  {ghUser.avatar_url && (
-                    <img src={ghUser.avatar_url} alt="" className="w-4 h-4 rounded-full" />
-                  )}
-                  {ghUser.login}
-                </span>
-              )}
-
-              {/* Sign in with GitHub — when no token */}
-              {!ghAuthenticated && !deviceFlow && !showPatInput && (
-                <div className="flex flex-col items-center gap-2">
-                  <button
-                    onClick={startGitHubSignIn}
-                    disabled={authLoading}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-elevated)_80%,transparent)] text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-disabled)] transition-all cursor-pointer disabled:opacity-50"
-                  >
-                    <Icon icon="lucide:github" width={14} height={14} />
-                    {authLoading ? 'Signing in…' : 'Sign in with GitHub'}
-                  </button>
-                  <button
-                    onClick={() => setShowPatInput(true)}
-                    className="text-[11px] text-[var(--text-disabled)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
-                  >
-                    or use a personal access token
-                  </button>
-                </div>
-              )}
-
-              {/* PAT input */}
-              {!ghAuthenticated && showPatInput && !deviceFlow && (
-                <div className="w-full space-y-2">
-                  <div className="flex items-center gap-1.5">
-                    <div className="flex-1 relative">
-                      <Icon icon="lucide:key-round" width={14} height={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-disabled)]" />
-                      <input
-                        ref={patInputRef}
-                        type="password"
-                        value={patInput}
-                        onChange={(e) => setPatInput(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter') handlePatSubmit(); if (e.key === 'Escape') setShowPatInput(false) }}
-                        placeholder="ghp_xxxx..."
-                        autoCapitalize="off"
-                        autoCorrect="off"
-                        spellCheck={false}
-                        className="w-full pl-8 pr-3 py-2 rounded-lg border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-elevated)_80%,transparent)] text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-disabled)] outline-none focus:border-[var(--brand)] transition-colors"
-                      />
-                    </div>
-                    <button
-                      onClick={handlePatSubmit}
-                      disabled={!patInput.trim()}
-                      className="shrink-0 px-3 py-2 rounded-lg text-[12px] font-medium transition-all cursor-pointer disabled:opacity-40 disabled:cursor-default bg-[var(--brand)] text-[var(--brand-contrast,#fff)]"
-                    >
-                      Save
-                    </button>
-                  </div>
-                  <p className="text-[10px] text-[var(--text-disabled)] leading-relaxed">
-                    Create a token at{' '}
-                    <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer" className="text-[var(--brand)] underline">
-                      github.com/settings/tokens
-                    </a>
-                    {' '}with <span className="font-mono">repo</span> scope. Stored securely on device.
-                  </p>
-                  <button
-                    onClick={() => { setShowPatInput(false); setPatInput('') }}
-                    className="text-[11px] text-[var(--text-disabled)] hover:text-[var(--text-secondary)] cursor-pointer"
-                  >
-                    ← back to sign in
-                  </button>
-                </div>
-              )}
-
-              {/* Device flow — show code */}
-              {deviceFlow && (
-                <div className="text-center space-y-2">
-                  <p className="text-[11px] text-[var(--text-disabled)]">
-                    Enter this code at{' '}
-                    <a
-                      href={deviceFlow.verificationUri}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[var(--brand)] underline"
-                    >
-                      github.com/login/device
-                    </a>
-                  </p>
-                  <p className="text-[20px] font-mono font-bold tracking-[0.15em] text-[var(--text-primary)]">
-                    {deviceFlow.userCode}
-                  </p>
-                  <button
-                    onClick={cancelGitHubSignIn}
-                    className="text-[11px] text-[var(--text-disabled)] hover:text-[var(--text-secondary)] cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
-
-              {/* Connect repo — when authenticated */}
-              {ghAuthenticated && !hasWorkspace && !showRepoInput && (
+              {/* Not signed in — link to Settings */}
+              {!ghAuthenticated && (
                 <button
-                  onClick={() => setShowRepoInput(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-[color-mix(in_srgb,var(--brand)_28%,var(--border))] bg-[color-mix(in_srgb,var(--brand)_12%,transparent)] text-[12px] font-medium text-[var(--text-primary)] shadow-[0_8px_24px_color-mix(in_srgb,var(--brand)_10%,transparent)] hover:border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] hover:bg-[color-mix(in_srgb,var(--brand)_16%,transparent)] transition-all cursor-pointer"
+                  onClick={() => emit('open-settings')}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-dashed border-[var(--border)] text-[12px] text-[var(--text-disabled)] hover:text-[var(--text-secondary)] hover:border-[var(--text-disabled)] transition-all cursor-pointer"
                 >
-                  <Icon
-                    icon="lucide:folder-git-2"
-                    width={15}
-                    height={15}
-                    className="text-[var(--brand)]"
-                  />
-                  Connect a repository
+                  <Icon icon="lucide:github" width={14} height={14} />
+                  Sign in to GitHub via Settings
                 </button>
+              )}
+
+              {/* Signed in — favorites + recents picker */}
+              {ghAuthenticated && !hasWorkspace && !showRepoInput && (
+                <div className="w-full space-y-2">
+                  {/* Favorites */}
+                  {savedFavorites.length > 0 && (
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-[var(--text-disabled)] font-medium mb-1.5 px-1">Favorites</p>
+                      <div className="space-y-0.5">
+                        {savedFavorites.map(r => (
+                          <button
+                            key={r.fullName}
+                            onClick={() => selectSavedRepo(r)}
+                            className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] transition-colors cursor-pointer text-left"
+                          >
+                            <Icon icon="lucide:star" width={12} className="text-amber-400 shrink-0" />
+                            <span className="text-[12px] text-[var(--text-primary)] truncate flex-1">{r.fullName}</span>
+                            <Icon icon="lucide:chevron-right" width={12} className="text-[var(--text-disabled)] shrink-0" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Recents */}
+                  {savedRecents.length > 0 && (
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-[var(--text-disabled)] font-medium mb-1.5 px-1">Recent</p>
+                      <div className="space-y-0.5">
+                        {savedRecents.filter(r => !savedFavorites.some(f => f.fullName === r.fullName)).slice(0, 5).map(r => (
+                          <button
+                            key={r.fullName}
+                            onClick={() => selectSavedRepo(r)}
+                            className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] transition-colors cursor-pointer text-left"
+                          >
+                            <Icon icon="lucide:clock" width={12} className="text-[var(--text-disabled)] shrink-0" />
+                            <span className="text-[12px] text-[var(--text-primary)] truncate flex-1">{r.fullName}</span>
+                            <Icon icon="lucide:chevron-right" width={12} className="text-[var(--text-disabled)] shrink-0" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Manual input fallback */}
+                  <button
+                    onClick={() => setShowRepoInput(true)}
+                    className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-dashed border-[var(--border)] text-[12px] text-[var(--text-disabled)] hover:text-[var(--text-secondary)] hover:border-[var(--text-disabled)] transition-all cursor-pointer"
+                  >
+                    <Icon icon="lucide:plus" width={13} />
+                    Open a repository
+                  </button>
+                </div>
               )}
 
               {/* Repo input */}
@@ -454,60 +370,40 @@ export const ChatHome = memo(function ChatHome({
                 <div className="w-full">
                   <div className="flex items-center gap-1.5">
                     <div className="flex-1 relative">
-                      <Icon
-                        icon="lucide:github"
-                        width={14}
-                        height={14}
-                        className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-disabled)]"
-                      />
+                      <Icon icon="lucide:github" width={14} height={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-disabled)]" />
                       <input
                         ref={repoInputRef}
                         type="text"
                         value={repoInput}
-                        onChange={(e) => {
-                          setRepoInput(e.target.value)
-                          setRepoError(null)
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleRepoConnect()
-                          if (e.key === 'Escape') setShowRepoInput(false)
-                        }}
+                        onChange={(e) => { setRepoInput(e.target.value); setRepoError(null) }}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleRepoConnect(); if (e.key === 'Escape') setShowRepoInput(false) }}
                         placeholder="owner/repo"
-                        autoCapitalize="off"
-                        autoCorrect="off"
-                        spellCheck={false}
+                        autoCapitalize="off" autoCorrect="off" spellCheck={false}
                         className="w-full pl-8 pr-3 py-2 rounded-lg border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-elevated)_80%,transparent)] text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-disabled)] outline-none focus:border-[var(--brand)] transition-colors"
                       />
                     </div>
                     <button
                       onClick={handleRepoConnect}
                       disabled={repoLoading || !repoInput.trim()}
-                      className="shrink-0 px-3 py-2 rounded-lg text-[12px] font-medium transition-all cursor-pointer disabled:opacity-40 disabled:cursor-default bg-[var(--brand)] text-[var(--brand-contrast,#fff)]"
+                      className="shrink-0 px-3 py-2 rounded-lg text-[12px] font-medium cursor-pointer disabled:opacity-40 bg-[var(--brand)] text-[var(--brand-contrast,#fff)]"
                     >
                       {repoLoading ? '…' : 'Go'}
                     </button>
                   </div>
+                  {repoError && <p className="mt-1.5 text-[11px] text-[var(--color-deletions)]">{repoError}</p>}
                 </div>
               )}
 
-              {/* Connected repo */}
+              {/* Connected repo — tap to switch */}
               {hasWorkspace && (
                 <button
-                  onClick={() => {
-                    setRepo(null)
-                    setShowRepoInput(true)
-                  }}
+                  onClick={() => { setRepo(null); setShowRepoInput(false) }}
                   className="inline-flex items-center gap-1.5 text-[13px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
                 >
                   <Icon icon="lucide:folder-git-2" width={13} height={13} className="opacity-60" />
                   {repo?.fullName ?? repoShort}
                   <Icon icon="lucide:chevron-down" width={12} height={12} className="opacity-40" />
                 </button>
-              )}
-
-              {/* Error */}
-              {repoError && (
-                <p className="text-[11px] text-[var(--color-deletions)]">{repoError}</p>
               )}
             </div>
           )}

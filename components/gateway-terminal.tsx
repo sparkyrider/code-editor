@@ -97,6 +97,7 @@ interface TerminalEntry {
 
 const MONO = "'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace"
 const STORAGE_KEY = 'knot-code:gw-terminal-history'
+const TERMINAL_SESSION_KEY = 'terminal:main'
 const MAX_HISTORY = 100
 
 function uid(): string {
@@ -451,9 +452,9 @@ export function GatewayTerminal() {
           : undefined)) as string | undefined
       const eventIdempotencyKey = (p.idempotencyKey ?? p.idempotency_key) as string | undefined
 
-      // Accept if: idempotency key matches one we sent, OR session is 'main', OR no session key
+      // Accept if: idempotency key matches one we sent, OR session is terminal's, OR no session key
       const idempotencyMatch = eventIdempotencyKey && pendingIdempotencyKeys.current.has(eventIdempotencyKey)
-      const sessionMatch = !eventSessionKey || eventSessionKey === 'main'
+      const sessionMatch = !eventSessionKey || eventSessionKey === TERMINAL_SESSION_KEY
 
       console.log('[GW-Terminal] chat event:', { state, sessionKey: eventSessionKey, idempotencyKey: eventIdempotencyKey, idempotencyMatch, sessionMatch })
 
@@ -579,7 +580,7 @@ export function GatewayTerminal() {
         const idempotencyKey = `gw-term-${Date.now()}`
         pendingIdempotencyKeys.current.add(idempotencyKey)
         const resp = (await sendRequest('chat.send', {
-          sessionKey: 'main',
+          sessionKey: TERMINAL_SESSION_KEY,
           message,
           idempotencyKey,
         })) as Record<string, unknown> | undefined
@@ -697,9 +698,9 @@ export function GatewayTerminal() {
     }
 
     // Chat send (slash command or plain text)
-    updateSkillProbeFromMessage('main', trimmed)
+    updateSkillProbeFromMessage(TERMINAL_SESSION_KEY, trimmed)
     const policy = evaluateSkillFirstPolicy({
-      sessionKey: 'main',
+      sessionKey: TERMINAL_SESSION_KEY,
       message: trimmed,
       mode: 'hard_with_override',
     })

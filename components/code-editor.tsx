@@ -918,7 +918,7 @@ export function CodeEditor() {
   return (
     <div ref={containerRef} tabIndex={-1} className="flex-1 flex flex-col min-h-0 outline-none">
       {/* Breadcrumb navigation */}
-      <div className="flex items-center justify-between gap-2 px-3 py-1 border-b border-[var(--border)] bg-[var(--bg)] shrink-0">
+      <div className="flex items-center justify-between gap-2 px-3 py-0.5 border-b border-[var(--border)] bg-[var(--bg)] shrink-0">
         <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar min-w-0">
           <Icon
             icon={fileIcon}

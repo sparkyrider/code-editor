@@ -1118,11 +1118,11 @@ body {
 
 .shell-utility-button {
   display: flex;
-  height: 36px;
-  width: 36px;
+  height: 30px;
+  width: 30px;
   align-items: center;
   justify-content: center;
-  border-radius: 14px;
+  border-radius: 10px;
   border: 1px solid transparent;
   background: color-mix(in srgb, var(--shell-chip-bg) 88%, transparent);
   color: var(--text-disabled);
@@ -2638,8 +2638,8 @@ p {
 .folder-tab {
   position: relative;
   z-index: 1;
-  padding: 7px 18px 8px;
-  font-size: 13px;
+  padding: 5px 14px 6px;
+  font-size: 12px;
   font-weight: 600;
   border: none;
   background: transparent;
@@ -2812,8 +2812,8 @@ p {
 .shell-mode-button {
   position: relative;
   display: flex;
-  height: 28px;
-  width: 28px;
+  height: 24px;
+  width: 24px;
   align-items: center;
   justify-content: center;
   border: none;
@@ -2849,7 +2849,7 @@ p {
 [data-theme='supreme'] .folder-tab-strip {
   align-items: center;
   gap: 2px;
-  padding: 6px;
+  padding: 4px;
   border: 1px solid var(--shell-pill-border);
   border-radius: 999px;
   background: linear-gradient(
@@ -2866,7 +2866,7 @@ p {
 }
 
 [data-theme='supreme'] .folder-tab {
-  padding: 8px 14px;
+  padding: 5px 12px;
   border-radius: 999px;
   color: var(--shell-icon-muted);
 }
@@ -2920,7 +2920,7 @@ p {
 [data-theme='supreme'] .shell-mode-switcher {
   position: relative;
   gap: 0;
-  padding: 6px;
+  padding: 3px;
   border: 1px solid var(--shell-pill-border);
   background: linear-gradient(
     180deg,
@@ -2932,9 +2932,9 @@ p {
 }
 
 [data-theme='supreme'] .shell-mode-button {
-  height: 42px;
-  width: 42px;
-  border-radius: 16px;
+  height: 32px;
+  width: 32px;
+  border-radius: 12px;
   color: var(--shell-icon-muted);
 }
 

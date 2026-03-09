@@ -86,7 +86,7 @@ export function StatusBar({ agentActive }: StatusBarProps) {
   const dirtyCount = useMemo(() => files.filter((f) => f.dirty).length, [files])
 
   return (
-    <footer className="shell-statusbar flex items-center justify-between px-3 h-[28px] text-[11px] text-[var(--text-tertiary)] shrink-0">
+    <footer className="shell-statusbar flex items-center justify-between px-3 h-[24px] text-[11px] text-[var(--text-tertiary)] shrink-0">
       {/* ── Left: context info ── */}
       <div className="flex items-center gap-1.5">
         <span className="shell-status-item" title={`${modeSpec.label} mode`}>

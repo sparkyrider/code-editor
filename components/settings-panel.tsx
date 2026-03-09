@@ -15,6 +15,7 @@ import {
   getRecents, addRecent, type SavedRepo,
 } from '@/lib/github-repos-store'
 import { THEME_PRESETS, useTheme, type ThemeMode, type ThemePreset } from '@/context/theme-context'
+import { getAgentConfig, saveAgentConfig, APPROVAL_TIERS, type ApprovalTier } from '@/lib/agent-session'
 
 type SettingsTab = 'connect' | 'general'
 
@@ -68,6 +69,17 @@ export function SettingsPanel({
   const [repoSearch, setRepoSearch] = useState('')
   const [showGatewayUrl, setShowGatewayUrl] = useState(false)
   const [connectExpanded, setConnectExpanded] = useState(false)
+  const [approvalTier, setApprovalTierState] = useState<ApprovalTier>(() => {
+    try { return getAgentConfig()?.approvalTier ?? 'ask-all' } catch { return 'ask-all' }
+  })
+
+  const updateApprovalTier = useCallback((tier: ApprovalTier) => {
+    setApprovalTierState(tier)
+    try {
+      const cfg = getAgentConfig() ?? { persona: '', systemPrompt: '', behaviors: {}, modelPreference: '' }
+      saveAgentConfig({ ...cfg, approvalTier: tier })
+    } catch {}
+  }, [])
 
   // Fetch GitHub user on token change
   const ghTokenRef = useRef(ghToken)
@@ -408,6 +420,48 @@ export function SettingsPanel({
                         </div>
                       </div>
                       <CaffeinateToggle />
+                    </section>
+
+                    {/* Agent Autonomy */}
+                    <section className="rounded-[24px] border border-[var(--glass-border)] bg-[color-mix(in_srgb,var(--bg-elevated)_88%,transparent)] p-4 shadow-[var(--shadow-sm)]">
+                      <div className="mb-3 flex items-center gap-2">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--brand)_12%,transparent)] text-[var(--brand)]">
+                          <Icon icon="lucide:shield-check" width={14} />
+                        </span>
+                        <div>
+                          <h3 className="text-sm font-medium text-[var(--text-primary)]">Agent Autonomy</h3>
+                          <p className="text-[11px] text-[var(--text-secondary)]">
+                            Control what the agent can do without asking.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        {APPROVAL_TIERS.map(tier => (
+                          <button
+                            key={tier.id}
+                            onClick={() => updateApprovalTier(tier.id)}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                              approvalTier === tier.id
+                                ? 'border-[color-mix(in_srgb,var(--brand)_40%,var(--border))] bg-[color-mix(in_srgb,var(--brand)_8%,transparent)]'
+                                : 'border-transparent hover:bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)]'
+                            }`}
+                          >
+                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                              approvalTier === tier.id
+                                ? 'border-[var(--brand)]'
+                                : 'border-[var(--text-disabled)]'
+                            }`}>
+                              {approvalTier === tier.id && <div className="w-2 h-2 rounded-full bg-[var(--brand)]" />}
+                            </div>
+                            <div>
+                              <p className={`text-[12px] font-medium ${approvalTier === tier.id ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
+                                {tier.label}
+                              </p>
+                              <p className="text-[10px] text-[var(--text-disabled)]">{tier.description}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
                     </section>
 
                     {/* GitHub Account */}

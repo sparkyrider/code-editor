@@ -484,7 +484,7 @@ export default function EditorLayout() {
   return (
     <div
       className={`app-shell flex h-full w-full overflow-hidden bg-[var(--bg)] text-[var(--text-primary)] ${
-        isMobile ? 'gap-0 p-0' : 'gap-1.5 p-1.5'
+        isMobile ? 'gap-0 p-0' : 'gap-1 p-1'
       }`}
       style={keyboardOffset > 0 ? { height: `calc(100% - ${keyboardOffset}px)` } : undefined}
     >
@@ -579,7 +579,7 @@ export default function EditorLayout() {
         ) : (
           <div
             data-tauri-drag-region
-            className={`shell-topbar flex items-center h-12 shrink-0 px-4 gap-2 tauri-drag-region ${isMacTauri && sidebarCollapsed ? 'pl-20' : ''}`}
+            className={`shell-topbar flex items-center h-10 shrink-0 px-4 gap-2 tauri-drag-region ${isMacTauri && sidebarCollapsed ? 'pl-20' : ''}`}
           >
             {/* Folder-style tab strip — hidden in TUI mode */}
             {!modeSpec.hideTabs && (
@@ -606,8 +606,8 @@ export default function EditorLayout() {
                       <span className="flex items-center gap-2">
                         <Icon
                           icon={VIEW_ICONS[v].icon}
-                          width={17}
-                          height={17}
+                          width={14}
+                          height={14}
                           className="folder-tab__icon"
                         />
                         <span className="hidden sm:inline">{VIEW_ICONS[v].label}</span>
@@ -670,7 +670,7 @@ export default function EditorLayout() {
                   className={`shell-mode-button ${mode === m.id ? 'shell-mode-button--active' : ''}`}
                   title={`${m.label} mode (⌘⇧${index + 1})`}
                 >
-                  <Icon icon={m.icon} width={15} height={15} />
+                  <Icon icon={m.icon} width={13} height={13} />
                 </button>
               ))}
             </div>
@@ -693,7 +693,7 @@ export default function EditorLayout() {
               className="shell-utility-button tauri-no-drag"
               title="Settings"
             >
-              <Icon icon="lucide:settings" width={18} height={18} className="animate-gear-sway" />
+              <Icon icon="lucide:settings" width={15} height={15} className="animate-gear-sway" />
             </button>
           </div>
         )}

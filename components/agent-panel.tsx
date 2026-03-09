@@ -4,7 +4,6 @@ import { useState, useRef, useEffect, useCallback, useMemo, type DragEvent } fro
 import { Icon } from '@iconify/react'
 import { ModeSelector } from '@/components/mode-selector'
 import { ChatHome } from '@/components/chat-home'
-import { KnotLogo } from '@/components/knot-logo'
 import { ChatHeader } from '@/components/chat-header'
 import type { AgentMode } from '@/components/mode-selector'
 import { usePermissions } from '@/components/permissions-toggle'
@@ -50,6 +49,7 @@ import {
   CODE_EDITOR_SYSTEM_PROMPT,
   buildEditorContext,
   getEffectiveSystemPrompt,
+  getAgentConfig,
 } from '@/lib/agent-session'
 import {
   SKILL_FIRST_OVERRIDE_TOKEN,
@@ -1829,10 +1829,14 @@ export function AgentPanel() {
     setActiveDiff(null)
   }, [activeDiff, appendMessage])
 
-  // ─── Auto-apply when full access is enabled ──────────────────
+  // ─── Auto-apply when full access or approval tier allows ──────
   const autoAppliedRef = useRef(new Set<string>())
+  const currentApprovalTier = useMemo(() => {
+    try { return getAgentConfig()?.approvalTier ?? 'ask-all' } catch { return 'ask-all' as const }
+  }, [messages.length]) // re-check when messages change
   useEffect(() => {
-    if (permissions !== 'full' && agentMode !== 'agent') return
+    const tierAllows = currentApprovalTier === 'auto-edits' || currentApprovalTier === 'auto-all'
+    if (permissions !== 'full' && agentMode !== 'agent' && !tierAllows) return
     const last = messages[messages.length - 1]
     if (!last || last.role !== 'assistant' || !last.editProposals?.length) return
     if (autoAppliedRef.current.has(last.id)) return
@@ -1850,7 +1854,7 @@ export function AgentPanel() {
       id: crypto.randomUUID(),
       role: 'system',
       type: 'tool',
-      content: `Auto-applied edits to ${fileNames}${agentMode === 'agent' ? ' (agent mode)' : ' (full access mode)'}.`,
+      content: `Auto-applied edits to ${fileNames}.`,
       timestamp: Date.now(),
     })
   }, [messages, permissions, agentMode, getFile, updateFileContent, openFile, appendMessage])
@@ -2061,7 +2065,7 @@ export function AgentPanel() {
         filesChanged={agentActivities.filter(a => a.type === 'edit' || a.type === 'write' || a.type === 'create').reduce((acc, a) => { if (a.file) acc.add(a.file); return acc }, new Set<string>()).size}
       />
       {messages.length > 0 && (
-        <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--bg-elevated)] px-2.5 py-1 shrink-0">
+        <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--bg-elevated)] px-2.5 py-0.5 shrink-0">
           <div className="flex min-w-0 items-center gap-1.5">
             {/* Font size controls */}
             <div className="inline-flex items-center gap-0.5">
@@ -2198,14 +2202,6 @@ export function AgentPanel() {
         />
       )}
 
-      {/* Branded footer — hidden on mobile to save space */}
-      <div className="shrink-0 hidden sm:flex items-center justify-center gap-1.5 px-3 py-0.5 border-t border-[var(--border)] bg-[var(--bg-elevated)]">
-        <KnotLogo size={9} className="opacity-40" />
-        <span className="text-[8px] text-[var(--text-disabled)] font-medium tracking-wide">
-          KnotCode
-        </span>
-        <span className="text-[7px] text-[var(--text-disabled)] opacity-50">v1.4.0</span>
-      </div>
     </div>
   )
 }

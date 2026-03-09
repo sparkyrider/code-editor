@@ -142,7 +142,7 @@ function PageSkillCard({
     .toUpperCase()
 
   return (
-    <article className="group rounded-[26px] border border-[var(--border)] bg-[linear-gradient(180deg,color-mix(in_srgb,var(--bg-elevated)_92%,transparent),color-mix(in_srgb,var(--bg)_92%,transparent))] p-4 shadow-[var(--shadow-sm)] transition duration-200 hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] hover:shadow-[var(--shadow-md)]">
+    <article className="group rounded-[22px] border border-[var(--border)] bg-[linear-gradient(180deg,color-mix(in_srgb,var(--bg-elevated)_92%,transparent),color-mix(in_srgb,var(--bg)_92%,transparent))] p-3.5 shadow-[var(--shadow-sm)] transition duration-200 hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--brand)_35%,var(--border))] hover:shadow-[var(--shadow-md)] sm:rounded-[26px] sm:p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[color-mix(in_srgb,var(--brand)_24%,var(--border))] bg-[color-mix(in_srgb,var(--brand)_10%,transparent)] text-[var(--brand)]">
@@ -176,7 +176,7 @@ function PageSkillCard({
         </a>
       </div>
 
-      <p className="mt-4 min-h-[4.5rem] text-sm leading-6 text-[var(--text-secondary)]">
+      <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">
         {skill.shortDescription}
       </p>
 
@@ -723,10 +723,10 @@ export function SkillsInterface({ variant = 'page' }: SkillsInterfaceProps) {
   const resultCount = filteredSkills.length
 
   return (
-    <div className={cn('space-y-4', isPage ? 'h-full p-5 lg:p-6' : '')}>
+    <div className={cn('space-y-3', isPage ? 'h-full p-3 sm:p-5 lg:p-6' : '')}>
       {isPage ? (
         <>
-          <section className="relative overflow-hidden rounded-[32px] border border-[var(--border)] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--brand)_18%,var(--bg-elevated)),var(--bg-elevated)_42%,color-mix(in_srgb,var(--text-primary)_6%,transparent))] p-6 shadow-[var(--shadow-sm)]">
+          <section className="relative overflow-hidden rounded-[28px] border border-[var(--border)] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--brand)_18%,var(--bg-elevated)),var(--bg-elevated)_42%,color-mix(in_srgb,var(--text-primary)_6%,transparent))] p-4 shadow-[var(--shadow-sm)] sm:rounded-[32px] sm:p-6">
             <div
               className="pointer-events-none absolute inset-y-0 right-0 w-1/2 opacity-75"
               style={{
@@ -734,26 +734,26 @@ export function SkillsInterface({ variant = 'page' }: SkillsInterfaceProps) {
                   'radial-gradient(circle at top right, color-mix(in srgb, var(--brand) 25%, transparent), transparent 58%)',
               }}
             />
-            <div className="relative grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.8fr)]">
-              <div className="space-y-5">
+            <div className="relative grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.75fr)]">
+              <div className="space-y-4">
                 <div className="inline-flex items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--brand)_30%,var(--border))] bg-[color-mix(in_srgb,var(--brand)_10%,transparent)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-secondary)]">
                   <Icon icon="lucide:sparkles" width={14} height={14} className="text-[var(--brand)]" />
                   Skills Library
                 </div>
                 <div>
-                  <h1 className="max-w-3xl text-3xl font-semibold tracking-tight text-[var(--text-primary)] md:text-5xl">
+                  <h1 className="max-w-3xl text-2xl font-semibold tracking-tight text-[var(--text-primary)] sm:text-3xl md:text-4xl xl:text-5xl">
                     Agent skills for builders, reviewers, and workflow designers.
                   </h1>
-                  <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--text-secondary)] md:text-[15px]">
+                  <p className="mt-2 hidden max-w-2xl text-sm leading-6 text-[var(--text-secondary)] sm:mt-3 sm:block md:text-[15px]">
                     Browse curated workflows, sync them locally, and send the right skill straight
                     into chat when you need planning, debugging, review, or orchestration help.
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-2 sm:gap-3">
                   <button
                     onClick={handleNewSkill}
                     type="button"
-                    className="inline-flex items-center gap-2 rounded-xl bg-[var(--brand)] px-4 py-2.5 text-sm font-semibold text-[var(--brand-contrast)] transition hover:opacity-95"
+                    className="inline-flex items-center gap-2 rounded-xl bg-[var(--brand)] px-3.5 py-2 text-sm font-semibold text-[var(--brand-contrast)] transition hover:opacity-95 sm:px-4 sm:py-2.5"
                   >
                     <Icon icon="lucide:plus" width={15} height={15} />
                     Add Skill
@@ -761,7 +761,7 @@ export function SkillsInterface({ variant = 'page' }: SkillsInterfaceProps) {
                   <button
                     onClick={handleUpdate}
                     type="button"
-                    className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_74%,transparent)] px-4 py-2.5 text-sm font-semibold text-[var(--text-primary)] transition hover:border-[var(--brand)]"
+                    className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_74%,transparent)] px-3.5 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:border-[var(--brand)] sm:px-4 sm:py-2.5"
                   >
                     <Icon icon="lucide:refresh-cw" width={15} height={15} />
                     Update Library
@@ -769,33 +769,33 @@ export function SkillsInterface({ variant = 'page' }: SkillsInterfaceProps) {
                 </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-                <div className="rounded-[26px] border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_82%,transparent)] p-5 backdrop-blur">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-disabled)]">
+              <div className="grid grid-cols-2 gap-3 xl:grid-cols-1">
+                <div className="rounded-[22px] border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_82%,transparent)] p-4 backdrop-blur sm:rounded-[26px] sm:p-5">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-disabled)] sm:text-[11px]">
                     Library Pulse
                   </div>
-                  <div className="mt-3 flex items-end justify-between gap-3">
+                  <div className="mt-2 flex items-end justify-between gap-3 sm:mt-3">
                     <div>
-                      <div className="text-4xl font-semibold text-[var(--text-primary)]">
+                      <div className="text-3xl font-semibold text-[var(--text-primary)] sm:text-4xl">
                         {SKILLS_CATALOG.length}
                       </div>
-                      <div className="text-sm text-[var(--text-tertiary)]">curated skills</div>
+                      <div className="text-[12px] text-[var(--text-tertiary)] sm:text-sm">curated skills</div>
                     </div>
-                    <div className="text-right text-[12px] text-[var(--text-secondary)]">
+                    <div className="text-right text-[11px] text-[var(--text-secondary)] sm:text-[12px]">
                       <div>{installedCount} installed</div>
                       <div>{enabledCount} enabled</div>
                     </div>
                   </div>
                 </div>
 
-                <div className="rounded-[26px] border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_82%,transparent)] p-5 backdrop-blur">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-disabled)]">
+                <div className="rounded-[22px] border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_82%,transparent)] p-4 backdrop-blur sm:rounded-[26px] sm:p-5">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-disabled)] sm:text-[11px]">
                     Active Adapter
                   </div>
-                  <div className="mt-3 text-lg font-semibold text-[var(--text-primary)]">
+                  <div className="mt-2 truncate text-base font-semibold text-[var(--text-primary)] sm:mt-3 sm:text-lg">
                     {modelName || 'gateway-default'}
                   </div>
-                  <p className="mt-2 text-sm leading-6 text-[var(--text-tertiary)]">
+                  <p className="mt-1 hidden text-sm leading-6 text-[var(--text-tertiary)] sm:mt-2 sm:block">
                     Use skills directly in {mode === 'tui' ? 'the terminal workflow' : 'chat'} or
                     sync them for local command execution.
                   </p>
@@ -804,23 +804,23 @@ export function SkillsInterface({ variant = 'page' }: SkillsInterfaceProps) {
             </div>
           </section>
 
-          <section className="rounded-[28px] border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-elevated)_92%,transparent)] p-4 shadow-[var(--shadow-sm)]">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-              <div className="flex min-w-0 flex-1 flex-col gap-3 xl:flex-row xl:items-center">
+          <section className="rounded-[24px] border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-elevated)_92%,transparent)] p-3 shadow-[var(--shadow-sm)] sm:rounded-[28px] sm:p-4">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
                 <SearchField
                   value={query}
                   onChange={setQuery}
                   placeholder="Search skills by name or intent"
-                  className="xl:flex-1"
+                  className="sm:flex-1"
                 />
-                <div className="flex flex-wrap gap-2">
+                <div className="flex gap-2 overflow-x-auto no-scrollbar">
                   {PAGE_FILTERS.map((filter) => (
                     <button
                       key={filter.id}
                       type="button"
                       onClick={() => setActiveFilter(filter.id)}
                       className={cn(
-                        'rounded-full border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] transition',
+                        'shrink-0 rounded-full border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] transition',
                         activeFilter === filter.id
                           ? 'border-[color-mix(in_srgb,var(--brand)_34%,var(--border))] bg-[color-mix(in_srgb,var(--brand)_10%,transparent)] text-[var(--text-primary)]'
                           : 'border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_86%,transparent)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)]',
@@ -832,7 +832,7 @@ export function SkillsInterface({ variant = 'page' }: SkillsInterfaceProps) {
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+              <div className="flex items-center gap-2">
                 <button
                   onClick={handleCheck}
                   type="button"
@@ -841,25 +841,25 @@ export function SkillsInterface({ variant = 'page' }: SkillsInterfaceProps) {
                   <Icon icon="lucide:shield-check" width={12} height={12} />
                   Check
                 </button>
-                <div className="rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_86%,transparent)] px-3 py-2 text-[11px] text-[var(--text-tertiary)]">
-                  Showing {resultCount} of {SKILLS_CATALOG.length}
+                <div className="shrink-0 rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_86%,transparent)] px-3 py-2 text-[11px] text-[var(--text-tertiary)]">
+                  {resultCount} of {SKILLS_CATALOG.length}
                 </div>
               </div>
             </div>
 
             {actionNote ? (
-              <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_88%,transparent)] px-4 py-3 text-[12px] text-[var(--text-secondary)] whitespace-pre-wrap">
+              <div className="mt-3 rounded-2xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_88%,transparent)] px-4 py-3 text-[12px] text-[var(--text-secondary)] whitespace-pre-wrap">
                 {actionNote}
               </div>
             ) : null}
 
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-3 flex gap-2 overflow-x-auto no-scrollbar pb-0.5">
               {SKILL_DISCOVERY_SUGGESTIONS.map((suggestion) => (
                 <button
                   key={suggestion.id}
                   onClick={() => void handleSuggestion(suggestion.query)}
                   type="button"
-                  className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_86%,transparent)] px-3 py-2 text-[11px] font-medium text-[var(--text-secondary)] transition hover:border-[var(--brand)] hover:text-[var(--text-primary)]"
+                  className="inline-flex shrink-0 items-center gap-2 rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_86%,transparent)] px-3 py-2 text-[11px] font-medium text-[var(--text-secondary)] transition hover:border-[var(--brand)] hover:text-[var(--text-primary)]"
                 >
                   <Icon icon="lucide:plus" width={12} height={12} />
                   {suggestion.title}
@@ -868,11 +868,11 @@ export function SkillsInterface({ variant = 'page' }: SkillsInterfaceProps) {
             </div>
           </section>
 
-          <section className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+          <section className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <h2 className="text-lg font-semibold text-[var(--text-primary)]">Skill Catalog</h2>
-                <p className="mt-1 text-sm text-[var(--text-tertiary)]">
+                <h2 className="text-base font-semibold text-[var(--text-primary)] sm:text-lg">Skill Catalog</h2>
+                <p className="mt-0.5 hidden text-sm text-[var(--text-tertiary)] sm:block">
                   Browse curated workflows, inspect sources, and activate the ones you want ready.
                 </p>
               </div>
@@ -884,7 +884,7 @@ export function SkillsInterface({ variant = 'page' }: SkillsInterfaceProps) {
               ) : null}
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
               {filteredSkills.map((skill) => (
                 <PageSkillCard
                   key={skill.id}

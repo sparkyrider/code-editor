@@ -13,6 +13,7 @@ import { useLayout, usePanelResize } from '@/context/layout-context'
 import { useAppMode } from '@/context/app-mode-context'
 import { WorkspaceSidebar } from '@/components/workspace-sidebar'
 import { FloatingPanel } from '@/components/floating-panel'
+import { EditorTabs } from '@/components/editor-tabs'
 import { isTauri } from '@/lib/tauri'
 import {
   fetchFileContentsByName as fetchFileContents,
@@ -149,6 +150,8 @@ export default function EditorLayout() {
   )
   const showMobileBottomTabs = isMobile && !modeSpec.terminalCenter && keyboardOffset === 0
   const showMobileSidebarButton = isMobile && mode !== 'tui' && !usePrismShell
+  const showWorkflowEditorTabs =
+    !isMobile && !modeSpec.terminalCenter && activeView === 'workshop' && files.length > 0
   const mobileTerminalOffset = showMobileBottomTabs
     ? 'calc(env(safe-area-inset-bottom) + 5.75rem)'
     : 'calc(env(safe-area-inset-bottom) + 0.5rem)'
@@ -345,16 +348,23 @@ export default function EditorLayout() {
       const { path, sha, content: providedContent } = detail ?? {}
       if (!path) return
 
+      const revealEditorFromChat = () => {
+        if (activeView === 'chat') {
+          layout.show('chat')
+        }
+        setView('editor')
+      }
+
       const existing = files.find((f) => f.path === path)
       if (existing) {
         setActiveFile(path)
-        setView('editor')
+        revealEditorFromChat()
         return
       }
 
       if (providedContent != null) {
         openFile(path, providedContent, sha ?? '')
-        setView('editor')
+        revealEditorFromChat()
         return
       }
 
@@ -372,7 +382,7 @@ export default function EditorLayout() {
             const content = await localReadFile(path)
             openFile(path, content, '')
           }
-          setView('editor')
+          revealEditorFromChat()
         } catch (err) {
           console.error('Failed to read local file:', path, err)
         }
@@ -389,13 +399,24 @@ export default function EditorLayout() {
           } else {
             openFile(path, result.content, result.sha ?? sha ?? '')
           }
-          setView('editor')
+          revealEditorFromChat()
         } catch (err) {
           console.error('Failed to open file:', path, err)
         }
       }
     })
-  }, [repo, files, openFile, setActiveFile, setView, localMode, localReadFile, localReadFileBase64])
+  }, [
+    repo,
+    files,
+    openFile,
+    setActiveFile,
+    setView,
+    activeView,
+    layout,
+    localMode,
+    localReadFile,
+    localReadFileBase64,
+  ])
 
   // ─── Commit handler ────────────────────────────────────
   useEffect(() => {
@@ -679,6 +700,8 @@ export default function EditorLayout() {
             </button>
           </div>
         )}
+
+        {showWorkflowEditorTabs && <EditorTabs onTabSelect={() => setView('editor')} />}
 
         {/* Mode transition wrapper */}
         <AnimatePresence mode="wait" initial={false}>

@@ -46,7 +46,7 @@ function getFileIcon(path: string) {
   return EXT_ICONS[ext] ?? { icon: 'lucide:file', color: 'var(--text-tertiary)' }
 }
 
-export function EditorTabs() {
+export function EditorTabs({ onTabSelect }: { onTabSelect?: (path: string) => void }) {
   const { files, activeFile, setActiveFile, closeFile, reorderFiles } = useEditor()
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [dropTarget, setDropTarget] = useState<number | null>(null)
@@ -105,7 +105,10 @@ export function EditorTabs() {
               }
               ${isDragTarget ? 'border-l-2 border-l-[var(--brand)]' : 'border-l-0'}
             `}
-            onClick={() => setActiveFile(file.path)}
+            onClick={() => {
+              setActiveFile(file.path)
+              onTabSelect?.(file.path)
+            }}
           >
             {/* Active indicator — bottom bar with gradient edges */}
             {isActive && (

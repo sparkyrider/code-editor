@@ -154,15 +154,17 @@ jobs:
           path: dist
           merge-multiple: true
 
+      - name: Flatten release assets
+        run: |
+          mkdir -p release-assets
+          find dist -type f \( -name "*.AppImage" -o -name "*.deb" -o -name "*.dmg" -o -name "*.exe" -o -name "*.msi" \) -exec cp {} release-assets/ \;
+          echo "Release assets:"
+          ls -lh release-assets/
+
       - name: Publish GitHub release assets
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.inputs.version || github.ref_name }}
           name: ${{ github.event.inputs.version || github.ref_name }}
-          files: |
-            dist/**/*.AppImage
-            dist/**/*.deb
-            dist/**/*.dmg
-            dist/**/*.exe
-            dist/**/*.msi
+          files: release-assets/*
           fail_on_unmatched_files: true

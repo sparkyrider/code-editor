@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { MobileConnect } from './mobile-connect'
 import { SessionPresence } from './session-presence'
 import { CaffeinateToggle } from './caffeinate-toggle'
+import { KnotLogo } from './knot-logo'
 import { useGateway } from '@/context/gateway-context'
 import { useGitHubAuth } from '@/context/github-auth-context'
 import { fetchAuthenticatedUser, startDeviceFlow, pollDeviceFlow, fetchUserRepos, type GitHubUser, type Repo } from '@/lib/github-api'
@@ -66,6 +67,7 @@ export function SettingsPanel({
   const [loadingRepos, setLoadingRepos] = useState(false)
   const [repoSearch, setRepoSearch] = useState('')
   const [showGatewayUrl, setShowGatewayUrl] = useState(false)
+  const [connectExpanded, setConnectExpanded] = useState(false)
 
   // Fetch GitHub user on token change
   const ghTokenRef = useRef(ghToken)
@@ -248,58 +250,52 @@ export function SettingsPanel({
               <div className="flex-1 overflow-y-auto px-4 py-5 sm:py-5">
                 {tab === 'connect' && (
                   <div className="space-y-5">
-                    <MobileConnect />
-                    <SessionPresence />
-
+                    {/* Collapsed connect summary */}
                     <section className="rounded-[24px] border border-[var(--glass-border)] bg-[color-mix(in_srgb,var(--bg-elevated)_88%,transparent)] p-4 shadow-[var(--shadow-sm)]">
-                      <div className="mb-4 flex items-center gap-2">
-                        <span className="flex h-8 w-8 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--brand)_12%,transparent)] text-[var(--brand)]">
-                          <Icon icon="lucide:activity" width={14} />
-                        </span>
-                        <div>
-                          <h3 className="text-sm font-medium text-[var(--text-primary)]">
-                            Gateway
-                          </h3>
-                          <p className="text-[11px] text-[var(--text-secondary)]">
-                            Connection state for the local app bridge.
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="space-y-3 text-xs">
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-[var(--text-secondary)]">Status</span>
-                          <span
-                            className={`inline-flex items-center gap-2 rounded-full px-2.5 py-1 font-medium ${
-                              status === 'connected'
-                                ? 'bg-[color-mix(in_srgb,var(--success)_14%,transparent)] text-[var(--success)]'
-                                : status === 'connecting'
-                                  ? 'bg-[color-mix(in_srgb,var(--warning)_14%,transparent)] text-[var(--warning)]'
-                                  : 'bg-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] text-[var(--text-secondary)]'
-                            }`}
-                          >
-                            <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                            {status === 'connected'
-                              ? 'Connected'
-                              : status === 'connecting'
-                                ? 'Connecting'
-                                : 'Disconnected'}
+                      <button
+                        onClick={() => setConnectExpanded(v => !v)}
+                        className="w-full flex items-center justify-between cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-8 w-8 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--brand)_12%,transparent)] text-[var(--brand)]">
+                            <Icon icon="lucide:activity" width={14} />
                           </span>
-                        </div>
-
-                        {gatewayUrl && (
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="pt-0.5 text-[var(--text-secondary)]">Gateway</span>
-                            <button
-                              onClick={() => setShowGatewayUrl(v => !v)}
-                              className="max-w-[220px] truncate rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_92%,transparent)] px-2.5 py-1 font-mono text-[11px] text-[var(--text-primary)] cursor-pointer hover:border-[var(--text-disabled)] transition-colors"
-                            >
-                              {showGatewayUrl ? gatewayUrl : '••••••••'}
-                            </button>
+                          <div className="text-left">
+                            <h3 className="text-sm font-medium text-[var(--text-primary)]">Gateway</h3>
+                            <p className="text-[11px] text-[var(--text-secondary)]">
+                              {status === 'connected' ? 'Connected' : status === 'connecting' ? 'Connecting…' : 'Disconnected'}
+                            </p>
                           </div>
-                        )}
-                      </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`h-2 w-2 rounded-full ${status === 'connected' ? 'bg-[var(--success)]' : status === 'connecting' ? 'bg-[var(--warning)]' : 'bg-[var(--text-disabled)]'}`} />
+                          <Icon icon={connectExpanded ? 'lucide:chevron-up' : 'lucide:chevron-down'} width={14} className="text-[var(--text-disabled)]" />
+                        </div>
+                      </button>
+
+                      {connectExpanded && (
+                        <div className="mt-4 space-y-4">
+                          <div className="space-y-3 text-xs">
+                            {gatewayUrl && (
+                              <div className="flex items-start justify-between gap-3">
+                                <span className="pt-0.5 text-[var(--text-secondary)]">URL</span>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setShowGatewayUrl(v => !v) }}
+                                  className="max-w-[220px] truncate rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_92%,transparent)] px-2.5 py-1 font-mono text-[11px] text-[var(--text-primary)] cursor-pointer hover:border-[var(--text-disabled)] transition-colors"
+                                >
+                                  {showGatewayUrl ? gatewayUrl : '••••••••'}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                          <div className="border-t border-[var(--border)] pt-4">
+                            <MobileConnect />
+                          </div>
+                        </div>
+                      )}
                     </section>
+
+                    <SessionPresence />
                   </div>
                 )}
 
@@ -576,7 +572,7 @@ export function SettingsPanel({
                     <section className="rounded-[24px] border border-[var(--glass-border)] bg-[color-mix(in_srgb,var(--bg-elevated)_88%,transparent)] p-4 shadow-[var(--shadow-sm)]">
                       <div className="flex items-center gap-3">
                         <span className="flex h-10 w-10 items-center justify-center rounded-[18px] bg-[color-mix(in_srgb,var(--brand)_12%,transparent)] text-[var(--brand)]">
-                          <Icon icon="lucide:chevron-left-dot" width={20} />
+                          <KnotLogo size={22} />
                         </span>
                         <div>
                           <div className="text-sm font-semibold text-[var(--text-primary)]">
@@ -828,7 +824,7 @@ export function SettingsPanel({
               <section className="rounded-[24px] border border-[var(--glass-border)] bg-[color-mix(in_srgb,var(--bg-elevated)_88%,transparent)] p-4 shadow-[var(--shadow-sm)]">
                 <div className="flex items-center gap-3">
                   <span className="flex h-10 w-10 items-center justify-center rounded-[18px] bg-[color-mix(in_srgb,var(--brand)_12%,transparent)] text-[var(--brand)]">
-                    <Icon icon="lucide:chevron-left-dot" width={20} />
+                    <KnotLogo size={22} />
                   </span>
                   <div>
                     <div className="text-sm font-semibold text-[var(--text-primary)]">

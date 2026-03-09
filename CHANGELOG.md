@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.7.0] — 2026-03-09
+
+### Added
+
+- **Plan Mode** — Cursor-style structured plan generation with Execute and Edit buttons; plans render step-by-step before any code is touched
+- **Agent Mode — activity feed** — real-time action log shows tool calls, file edits, and status while the agent runs
+- **Agent Mode — approval tiers** — granular permission levels (auto-apply, confirm, manual) per operation type
+- **Agent Mode — auto-apply edits** — accepted diff hunks apply immediately without a separate confirm step
+- **Codex theme** — new dark/light theme pair with ink-black backgrounds and warm accent tones
+- **Skills UI redesign** — refined layout and typography for the skills panel
+
+### Changed
+
+- **Settings & WorkspaceSidebar** — unified spacing, removed stale automation references
+- **Terminal chat relay** — `sendChatMessage` now handles `streaming` and `started` statuses; timeout extended to 2 min
+- **Chat tab visibility** — Chat is now accessible from Classic and TUI modes via `visibleViews`
+- **Dev URL** — reverted to port 3000 (port 3080 conflicted with localhost plugin)
+
+### Removed
+
+- Workshop view and related components — streamlined navigation
+
 ## [1.6.0] — 2026-03-09
 
 ### Added

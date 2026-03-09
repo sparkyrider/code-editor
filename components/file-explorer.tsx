@@ -620,23 +620,33 @@ export function FileExplorer() {
     <div className="flex flex-col h-full bg-[var(--sidebar-bg)]">
       {/* Brand accent bar */}
       <div className="h-[2px] shrink-0 bg-gradient-to-r from-[var(--brand)] via-[color-mix(in_srgb,var(--brand)_50%,transparent)] to-transparent opacity-70" />
-      {/* Header */}
+      {/* Header with project name + folder trigger */}
       <div className="px-3 py-2 border-b border-[color-mix(in_srgb,var(--brand)_20%,var(--border))] bg-[color-mix(in_srgb,var(--brand)_4%,var(--sidebar-bg))] shrink-0">
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-semibold text-[var(--text-primary)] truncate uppercase tracking-wider">
-              Explorer
+          <button
+            onClick={() => local.openFolder()}
+            className="flex items-center gap-1.5 min-w-0 rounded-md px-1 py-0.5 -mx-1 hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer group"
+            title={local.rootPath ?? 'Open folder'}
+          >
+            <Icon
+              icon="lucide:folder-open"
+              width={13}
+              height={13}
+              className="text-[var(--brand)] shrink-0 group-hover:scale-110 transition-transform"
+            />
+            <span className="text-[11px] font-semibold text-[var(--text-primary)] truncate">
+              {local.rootPath?.split('/').pop() || (repo ? repo.repo.split('/').pop() : 'Open Folder')}
             </span>
             {fileCount > 0 && (
-              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-full bg-[color-mix(in_srgb,var(--brand)_10%,transparent)] text-[var(--text-tertiary)] border border-[color-mix(in_srgb,var(--brand)_15%,transparent)]">
+              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-full bg-[color-mix(in_srgb,var(--brand)_10%,transparent)] text-[var(--text-tertiary)] border border-[color-mix(in_srgb,var(--brand)_15%,transparent)] shrink-0">
                 {fileCount}
               </span>
             )}
-          </div>
+          </button>
           <button
             disabled={treeLoading}
             onClick={() => (local.localMode ? local.refresh() : loadTree())}
-            className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all cursor-pointer"
+            className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all cursor-pointer shrink-0"
             title="Refresh"
           >
             <Icon

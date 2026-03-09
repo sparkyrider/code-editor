@@ -28,19 +28,74 @@ const AgentPanel = dynamic(
 
 const PANEL_SPRING = { type: 'spring' as const, stiffness: 500, damping: 35 }
 
+function NoCodebasePane({
+  isDesktop,
+  onOpenFolder,
+}: {
+  isDesktop: boolean
+  onOpenFolder: () => void
+}) {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-6 bg-[var(--bg)] px-6 select-none">
+      <div className="flex flex-col items-center gap-4 max-w-[320px]">
+        <div className="w-16 h-16 rounded-2xl bg-[color-mix(in_srgb,var(--brand)_8%,transparent)] border border-[color-mix(in_srgb,var(--brand)_20%,var(--border))] flex items-center justify-center">
+          <Icon
+            icon="lucide:folder-search"
+            width={28}
+            height={28}
+            className="text-[var(--brand)]"
+          />
+        </div>
+        <div className="text-center">
+          <p className="text-[15px] font-semibold text-[var(--text-primary)] mb-1.5">
+            No codebase selected
+          </p>
+          <p className="text-[13px] text-[var(--text-tertiary)] leading-relaxed">
+            Open a folder{!isDesktop ? ' or connect a GitHub repo' : ''} to start editing, browsing files, and using the agent.
+          </p>
+        </div>
+        <div className="flex flex-col items-center gap-2 w-full mt-1">
+          <button
+            onClick={onOpenFolder}
+            className="flex items-center justify-center gap-2 w-full max-w-[220px] px-4 py-2.5 rounded-xl text-[13px] font-medium bg-[var(--brand)] text-[var(--brand-contrast)] hover:brightness-110 transition-all cursor-pointer shadow-[0_2px_8px_color-mix(in_srgb,var(--brand)_25%,transparent)]"
+          >
+            <Icon icon="lucide:folder-open" width={15} height={15} />
+            Open Folder
+          </button>
+          <div className="flex items-center gap-3 text-[11px] text-[var(--text-disabled)] mt-1">
+            <span className="flex items-center gap-1">
+              <Icon icon="lucide:command" width={10} height={10} />
+              <Icon icon="lucide:letter-text" width={10} height={10} className="opacity-60" />
+              P for commands
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function MainEditorPane({
   hasFiles,
+  hasCodebase,
   isDesktop,
   isNarrow,
   branchName,
   onBrowse,
+  onOpenFolder,
 }: {
   hasFiles: boolean
+  hasCodebase: boolean
   isDesktop: boolean
   isNarrow: boolean
   branchName: string | null
   onBrowse: () => void
+  onOpenFolder: () => void
 }) {
+  if (!hasCodebase && !hasFiles) {
+    return <NoCodebasePane isDesktop={isDesktop} onOpenFolder={onOpenFolder} />
+  }
+
   return hasFiles ? (
     <div className="flex flex-1 min-h-0 min-w-0 flex-col bg-[var(--bg)]">
       <EditorTabs />
@@ -118,6 +173,7 @@ export function EditorView() {
   const chatPanelResize = usePanelResize('chat')
 
   const hasFiles = files.length > 0 || !!activeFile
+  const hasCodebase = !!repo || !!local.rootPath
   const branchName = repo?.branch ?? local.gitInfo?.branch ?? null
 
   useEffect(() => {
@@ -150,12 +206,24 @@ export function EditorView() {
               className="shrink-0 overflow-hidden border-r border-[var(--border)] bg-[var(--sidebar-bg)] flex flex-col"
             >
               <div className="flex items-center justify-between h-10 px-3 border-b border-[var(--border)] shrink-0">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-disabled)]">
-                  Explorer
-                </span>
+                <button
+                  onClick={() => local.openFolder()}
+                  className="flex items-center gap-1.5 min-w-0 rounded-md px-1 py-0.5 -mx-1 hover:bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] transition-colors cursor-pointer group"
+                  title={local.rootPath ?? 'Open folder'}
+                >
+                  <Icon
+                    icon="lucide:folder-open"
+                    width={13}
+                    height={13}
+                    className="text-[var(--brand)] shrink-0 group-hover:scale-110 transition-transform"
+                  />
+                  <span className="text-[11px] font-bold text-[var(--text-disabled)] group-hover:text-[var(--text-secondary)] truncate uppercase tracking-wider transition-colors">
+                    {local.rootPath?.split('/').pop() || (repo ? repo.repo.split('/').pop() : 'Explorer')}
+                  </span>
+                </button>
                 <button
                   onClick={() => layout.hide('tree')}
-                  className="p-1.5 rounded-lg hover:bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] text-[var(--text-disabled)] hover:text-[var(--text-tertiary)] cursor-pointer"
+                  className="p-1.5 rounded-lg hover:bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] text-[var(--text-disabled)] hover:text-[var(--text-tertiary)] cursor-pointer shrink-0"
                   title="Hide (⌘B)"
                 >
                   <Icon icon="lucide:panel-left-close" width={15} height={15} />
@@ -199,18 +267,20 @@ export function EditorView() {
           </button>
         )}
 
-        {/* Mobile: show file explorer full-width when no files are open */}
-        {isMobile && !hasFiles ? (
+        {/* Mobile: show file explorer when no files are open (but codebase is selected) */}
+        {isMobile && !hasFiles && hasCodebase ? (
           <div className="flex-1 overflow-y-auto">
             <FileExplorer />
           </div>
         ) : (
           <MainEditorPane
             hasFiles={hasFiles}
+            hasCodebase={hasCodebase}
             isDesktop={isDesktop}
             isNarrow={isNarrow}
             branchName={branchName}
             onBrowse={() => layout.show('tree')}
+            onOpenFolder={() => local.openFolder()}
           />
         )}
       </div>
@@ -272,12 +342,24 @@ export function EditorView() {
               className="absolute inset-y-0 left-0 z-50 w-[min(92vw,360px)] bg-[var(--sidebar-bg)] border-r border-[var(--border)] flex flex-col"
             >
               <div className="flex items-center justify-between h-10 px-3 border-b border-[var(--border)] shrink-0 bg-[var(--bg-elevated)]">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-disabled)]">
-                  Explorer
-                </span>
+                <button
+                  onClick={() => local.openFolder()}
+                  className="flex items-center gap-1.5 min-w-0 rounded-md px-1 py-0.5 -mx-1 hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer group"
+                  title={local.rootPath ?? 'Open folder'}
+                >
+                  <Icon
+                    icon="lucide:folder-open"
+                    width={13}
+                    height={13}
+                    className="text-[var(--brand)] shrink-0 group-hover:scale-110 transition-transform"
+                  />
+                  <span className="text-[11px] font-bold text-[var(--text-disabled)] group-hover:text-[var(--text-secondary)] truncate uppercase tracking-wider transition-colors">
+                    {local.rootPath?.split('/').pop() || (repo ? repo.repo.split('/').pop() : 'Explorer')}
+                  </span>
+                </button>
                 <button
                   onClick={() => layout.hide('tree')}
-                  className="p-2 rounded-lg hover:bg-[var(--bg-subtle)] text-[var(--text-tertiary)] cursor-pointer"
+                  className="p-2 rounded-lg hover:bg-[var(--bg-subtle)] text-[var(--text-tertiary)] cursor-pointer shrink-0"
                 >
                   <Icon icon="lucide:x" width={14} height={14} />
                 </button>

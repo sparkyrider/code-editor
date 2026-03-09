@@ -65,6 +65,7 @@ export function SettingsPanel({
   const [userRepos, setUserRepos] = useState<Repo[]>([])
   const [loadingRepos, setLoadingRepos] = useState(false)
   const [repoSearch, setRepoSearch] = useState('')
+  const [showGatewayUrl, setShowGatewayUrl] = useState(false)
 
   // Fetch GitHub user on token change
   const ghTokenRef = useRef(ghToken)
@@ -289,9 +290,12 @@ export function SettingsPanel({
                         {gatewayUrl && (
                           <div className="flex items-start justify-between gap-3">
                             <span className="pt-0.5 text-[var(--text-secondary)]">Gateway</span>
-                            <code className="max-w-[220px] truncate rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_92%,transparent)] px-2.5 py-1 font-mono text-[11px] text-[var(--text-primary)]">
-                              {gatewayUrl}
-                            </code>
+                            <button
+                              onClick={() => setShowGatewayUrl(v => !v)}
+                              className="max-w-[220px] truncate rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_92%,transparent)] px-2.5 py-1 font-mono text-[11px] text-[var(--text-primary)] cursor-pointer hover:border-[var(--text-disabled)] transition-colors"
+                            >
+                              {showGatewayUrl ? gatewayUrl : '••••••••'}
+                            </button>
                           </div>
                         )}
                       </div>
@@ -699,9 +703,12 @@ export function SettingsPanel({
                   {gatewayUrl && (
                     <div className="flex items-start justify-between gap-3">
                       <span className="pt-0.5 text-[var(--text-secondary)]">Gateway</span>
-                      <code className="max-w-[220px] truncate rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_92%,transparent)] px-2.5 py-1 font-mono text-[11px] text-[var(--text-primary)]">
-                        {gatewayUrl}
-                      </code>
+                      <button
+                        onClick={() => setShowGatewayUrl(v => !v)}
+                        className="max-w-[220px] truncate rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_92%,transparent)] px-2.5 py-1 font-mono text-[11px] text-[var(--text-primary)] cursor-pointer hover:border-[var(--text-disabled)] transition-colors"
+                      >
+                        {showGatewayUrl ? gatewayUrl : '••••••••'}
+                      </button>
                     </div>
                   )}
                 </div>

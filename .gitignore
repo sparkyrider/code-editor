@@ -45,3 +45,7 @@ next-env.d.ts
 .env*.local
 *.cache*
 *.pnpm-store*
+
+# private docs
+TESTFLIGHT.md
+ExportOptions.plist

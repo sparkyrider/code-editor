@@ -132,7 +132,8 @@ export default function EditorLayout() {
   const terminalFloating = layout.isFloating('terminal')
   const viewportHeight = layout.viewport.height
   const terminalRefreshToken = mode
-  const terminalStartupCommand = modeSpec.terminalCenter ? 'openclaw tui' : undefined
+  const useCenteredTerminal = modeSpec.terminalCenter && activeView === 'editor'
+  const terminalStartupCommand = useCenteredTerminal ? 'openclaw tui' : undefined
   const usePrismShell = activeView === 'prism'
   const mobileViewTabs = useMemo(() => {
     // On mobile, curate tabs to useful views + always include settings
@@ -190,9 +191,9 @@ export default function EditorLayout() {
 
   // Entering TUI should always surface the terminal view.
   useEffect(() => {
-    if (!modeSpec.terminalCenter) return
+    if (!useCenteredTerminal) return
     ensureTuiTerminalVisible()
-  }, [modeSpec.terminalCenter, ensureTuiTerminalVisible])
+  }, [useCenteredTerminal, ensureTuiTerminalVisible])
 
   // ─── Tauri detection ───────────────────────────────────
   useEffect(() => {
@@ -706,7 +707,7 @@ export default function EditorLayout() {
         {/* Mode transition wrapper */}
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
-            key={`mode-${mode}-${modeSpec.terminalCenter && terminalVisible ? 'term' : 'view'}`}
+            key={`mode-${mode}-${useCenteredTerminal && terminalVisible ? 'term' : activeView}`}
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
@@ -714,7 +715,7 @@ export default function EditorLayout() {
             className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden"
           >
             {/* TUI mode: gateway terminal fills center */}
-            {modeSpec.terminalCenter ? (
+            {useCenteredTerminal ? (
               <div className="flex-1 flex min-h-0 min-w-0 overflow-hidden rounded-xl border border-[var(--border)]">
                 <GatewayTerminalLazy />
               </div>

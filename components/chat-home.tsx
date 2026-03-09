@@ -233,7 +233,7 @@ export const ChatHome = memo(function ChatHome({
   return (
     <div className="flex-1 overflow-y-auto relative">
       <KnotBackground />
-      <div className="min-h-full w-full max-w-[720px] mx-auto flex flex-col justify-center px-4 sm:px-6 py-8 sm:py-10 md:py-12 relative z-[1]">
+      <div className="min-h-full w-full max-w-[720px] mx-auto flex flex-col justify-start pt-[15vh] sm:justify-center sm:pt-0 px-4 sm:px-6 py-4 sm:py-10 md:py-12 relative z-[1]">
         {/* Header — "Let's build" */}
         <div className="flex flex-col items-center mb-6 sm:mb-7">
           <div

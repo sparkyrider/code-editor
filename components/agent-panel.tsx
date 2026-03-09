@@ -2189,6 +2189,8 @@ export function AgentPanel() {
           agentMode={agentMode}
           onShowDiff={handleShowDiff}
           onQuickApply={handleQuickApply}
+          onApplyAll={(proposals) => proposals.forEach(handleQuickApply)}
+          getFileContent={(filePath) => getFile(filePath)?.content}
           onDeleteMessage={handleDeleteMessage}
           onRegenerate={handleRegenerate}
           onEditAndResend={handleEditAndResend}

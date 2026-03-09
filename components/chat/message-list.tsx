@@ -12,6 +12,7 @@ import { useChatAppearance } from '@/context/chat-appearance-context'
 import type { ChatMessage } from '@/lib/chat-stream'
 import type { EditProposal } from '@/lib/edit-parser'
 import { AgentActivityFeed } from '@/components/chat/agent-activity-feed'
+import { InlineDiffGroup } from '@/components/chat/inline-diff'
 
 interface MessageListProps {
   messages: ChatMessage[]
@@ -23,6 +24,8 @@ interface MessageListProps {
   agentMode: string
   onShowDiff: (proposal: EditProposal, messageId: string) => void
   onQuickApply: (proposal: EditProposal) => void
+  onApplyAll?: (proposals: EditProposal[]) => void
+  getFileContent?: (filePath: string) => string | undefined
   onDeleteMessage: (id: string) => void
   onRegenerate: (id: string) => void
   onEditAndResend: (id: string) => void
@@ -190,6 +193,8 @@ export function MessageList({
   agentMode,
   onShowDiff,
   onQuickApply,
+  onApplyAll,
+  getFileContent,
   onDeleteMessage,
   onRegenerate,
   onEditAndResend,
@@ -562,37 +567,14 @@ export function MessageList({
                 )}
               </div>
 
-              {/* Edit proposal buttons */}
+              {/* Inline diff review */}
               {msg.editProposals && msg.editProposals.length > 0 && (
-                <div className="flex flex-col gap-1 mt-1.5">
-                  {msg.editProposals.map((proposal, i) => (
-                    <div key={i} className="flex items-center gap-1 flex-wrap">
-                      <button
-                        onClick={() => onQuickApply(proposal)}
-                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium border transition-colors cursor-pointer"
-                        style={{
-                          borderColor:
-                            'color-mix(in srgb, var(--color-additions) 40%, transparent)',
-                          backgroundColor:
-                            'color-mix(in srgb, var(--color-additions) 12%, transparent)',
-                          color: 'var(--color-additions)',
-                        }}
-                        title="Apply changes to editor"
-                      >
-                        <Icon icon="lucide:play" width={13} height={13} />
-                        Apply to {proposal.filePath.split('/').pop()}
-                      </button>
-                      <button
-                        onClick={() => onShowDiff(proposal, msg.id)}
-                        className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
-                        title="Review changes in diff viewer first"
-                      >
-                        <Icon icon="lucide:git-compare" width={13} height={13} />
-                        Diff
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                <InlineDiffGroup
+                  proposals={msg.editProposals}
+                  getOriginal={(filePath) => getFileContent?.(filePath)}
+                  onApply={onQuickApply}
+                  onApplyAll={() => onApplyAll?.(msg.editProposals!)}
+                />
               )}
             </div>
           )

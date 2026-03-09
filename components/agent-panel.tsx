@@ -1189,8 +1189,8 @@ export function AgentPanel() {
   }, [appendErrorMessage, appendStatusMessage])
 
   // ─── Send message ─────────────────────────────────────────────
-  const sendMessage = useCallback(async () => {
-    const text = input.trim()
+  const sendMessage = useCallback(async (overrideText?: string) => {
+    const text = (overrideText ?? input).trim()
     if (!text || sending) return
 
     logChatDebug('send attempt', {
@@ -1938,8 +1938,7 @@ export function AgentPanel() {
         if (userIdx < 0) return prev
         const userMsg = prev[userIdx]
         queueMicrotask(() => {
-          setInput(userMsg.content)
-          setTimeout(() => sendMessage(), 50)
+          sendMessage(userMsg.content)
         })
         return prev.slice(0, idx)
       })
@@ -2126,10 +2125,7 @@ export function AgentPanel() {
         <ChatHome
           onSend={(text, mode) => {
             setAgentMode(mode)
-            setInput(text)
-            setTimeout(() => {
-              sendMessage()
-            }, 50)
+            sendMessage(text)
           }}
           onSelectFolder={() => emit('open-folder')}
           onCloneRepo={() => emit('open-folder')}

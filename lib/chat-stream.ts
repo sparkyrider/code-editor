@@ -4,16 +4,18 @@
  */
 
 import { parseEditProposals, type EditProposal } from '@/lib/edit-parser'
+import { parsePlanSteps, isPlanContent } from '@/lib/plan-parser'
 import { diffEngine } from '@/lib/streaming-diff'
 import { emit } from '@/lib/events'
 
 export interface ChatMessage {
   id: string
   role: 'user' | 'assistant' | 'system'
-  type?: 'text' | 'edit' | 'error' | 'tool' | 'status' | 'cancelled'
+  type?: 'text' | 'edit' | 'error' | 'tool' | 'status' | 'cancelled' | 'plan'
   content: string
   timestamp: number
   editProposals?: EditProposal[]
+  planSteps?: import('@/lib/plan-parser').ParsedPlanStep[]
   images?: Array<{ name: string; dataUrl: string }>
 }
 
@@ -221,15 +223,22 @@ export function handleChatEvent(
           diffEngine.finalizeAll()
           emit('show-inline-diff', { proposals: editProposals })
         }
+        const planSteps = isPlanContent(text) ? parsePlanSteps(text) : undefined
+        const msgType = editProposals.length > 0
+          ? ('edit' as const)
+          : planSteps
+            ? ('plan' as const)
+            : ('text' as const)
         callbacks.setMessages((msgs) => [
           ...msgs,
           {
             id: crypto.randomUUID(),
             role: 'assistant' as const,
-            type: editProposals.length > 0 ? ('edit' as const) : ('text' as const),
+            type: msgType,
             content: text,
             timestamp: Date.now(),
             editProposals: editProposals.length > 0 ? editProposals : undefined,
+            planSteps,
           },
         ])
         emit('agent-reply')

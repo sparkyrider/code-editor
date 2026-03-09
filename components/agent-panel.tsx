@@ -884,7 +884,7 @@ export function AgentPanel() {
       agentMode === 'ask'
         ? '[Mode: Ask — discuss and answer questions. Do not make code changes unless explicitly asked.]\n'
         : agentMode === 'plan'
-          ? '[Mode: Plan — outline a step-by-step plan before making changes. Present the plan to the user for approval before executing.]\n'
+          ? '[Mode: Plan — You MUST respond with a structured plan before making any changes. Format your response as a numbered list where each step has a **bold title** followed by a description and affected files in backticks. Example:\n1. **Update auth module** — Add token refresh logic\n   `lib/auth.ts`, `lib/api.ts`\n2. **Add tests** — Cover the new refresh flow\n   `tests/auth.test.ts`\nAfter the user approves, execute each step sequentially. Do NOT make changes until approved.]\n'
           : '[Mode: Agent — make direct code changes and edits autonomously.]\n'
     return [modePrefix, context || '', attachCtx].filter(Boolean).join('\n\n')
   }, [agentMode, buildAttachmentContext, buildContext])

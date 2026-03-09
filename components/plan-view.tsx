@@ -15,7 +15,7 @@ export interface PlanStep {
 interface Props {
   steps: PlanStep[]
   onApprove?: () => void
-  onSkip?: () => void
+  onReject?: () => void
   onStepToggle?: (stepId: string) => void
   interactive?: boolean
   title?: string
@@ -24,7 +24,7 @@ interface Props {
 export function PlanView({
   steps,
   onApprove,
-  onSkip,
+  onReject,
   onStepToggle,
   interactive = false,
   title,
@@ -213,21 +213,33 @@ export function PlanView({
       </div>
 
       {/* Action bar — only shown for interactive plans */}
-      {interactive && !allDone && (
+      {interactive && !allDone && !hasRunning && (
         <div className="flex items-center justify-between px-4 py-2.5 bg-[var(--bg-secondary)] border-t border-[var(--border)]">
           <button
-            onClick={onSkip}
-            className="text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
+            onClick={onReject}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-all cursor-pointer"
           >
-            Skip All
+            <Icon icon="lucide:pencil" width={11} height={11} />
+            Edit Plan
           </button>
           <button
             onClick={onApprove}
             className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[10px] font-semibold bg-[var(--brand)] text-[var(--brand-contrast)] hover:opacity-90 transition-opacity cursor-pointer shadow-[0_1px_3px_rgba(0,0,0,0.2)]"
+            style={{ minHeight: 36, minWidth: 100 }}
           >
             <Icon icon="lucide:play" width={11} height={11} />
-            Continue
+            Execute Plan
           </button>
+        </div>
+      )}
+
+      {/* Executing state */}
+      {hasRunning && (
+        <div className="flex items-center justify-between px-4 py-2.5 bg-[var(--bg-secondary)] border-t border-[var(--border)]">
+          <div className="flex items-center gap-1.5">
+            <Icon icon="lucide:loader" width={12} height={12} className="text-[var(--brand)] animate-spin" />
+            <span className="text-[10px] font-medium text-[var(--brand)]">Executing plan…</span>
+          </div>
         </div>
       )}
 

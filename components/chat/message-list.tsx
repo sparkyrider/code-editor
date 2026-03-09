@@ -4,7 +4,8 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Icon } from '@iconify/react'
 import { KnotLogo } from '@/components/knot-logo'
 import { MarkdownPreview } from '@/components/markdown-preview'
-import { PlanView, type PlanStep } from '@/components/plan-view'
+import { PlanView } from '@/components/plan-view'
+import type { ParsedPlanStep } from '@/lib/plan-parser'
 import { navigateToLine } from '@/lib/line-links'
 import { copyToClipboard } from '@/lib/clipboard'
 import { useChatAppearance } from '@/context/chat-appearance-context'
@@ -22,26 +23,10 @@ interface MessageListProps {
   onDeleteMessage: (id: string) => void
   onRegenerate: (id: string) => void
   onEditAndResend: (id: string) => void
-  onSendMessage: () => void
+  onSendMessage: (text?: string) => void
 }
 
-function parsePlanSteps(text: string): PlanStep[] {
-  const steps: PlanStep[] = []
-  const seenByNumber = new Map<string, number>()
-  const matches = text.matchAll(/^(\d+)\.\s+\*{0,2}([^*]+?)\*{0,2}\s*$/gm)
-  for (const m of matches) {
-    const stepNumber = m[1]
-    const seenCount = (seenByNumber.get(stepNumber) ?? 0) + 1
-    seenByNumber.set(stepNumber, seenCount)
-    steps.push({
-      id: `step-${stepNumber}-${seenCount}`,
-      title: m[2].trim(),
-      description: undefined,
-      status: 'pending',
-    })
-  }
-  return steps
-}
+// Plan parsing moved to lib/plan-parser.ts
 
 const SYSTEM_PROMPT_SIGNATURES = [
   'You are KnotCode Agent',
@@ -543,12 +528,12 @@ export function MessageList({
                           </div>
                         )}
                         <MarkdownPreview content={msg.content} />
-                        {isAssistant && parsePlanSteps(msg.content).length >= 3 && (
+                        {isAssistant && msg.type === 'plan' && msg.planSteps && (
                           <PlanView
-                            steps={parsePlanSteps(msg.content)}
-                            interactive={agentMode === 'ask'}
-                            onApprove={() => onSendMessage()}
-                            onSkip={() => onSendMessage()}
+                            steps={msg.planSteps}
+                            interactive={agentMode === 'plan'}
+                            onApprove={() => onSendMessage('Execute the plan above. Proceed step by step.')}
+                            onReject={() => onSendMessage('I want to modify this plan. Let me explain what to change.')}
                           />
                         )}
                       </div>

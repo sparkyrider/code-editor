@@ -505,19 +505,30 @@ export function YouTubePlayer() {
 
       {/* Footer */}
       {current && (
-        <div className="flex items-center h-7 px-2.5 border-t border-[var(--border)] shrink-0 gap-1.5">
+        <div className="flex items-center h-8 px-2.5 border-t border-[var(--border)] shrink-0 gap-1.5">
+          <button
+            onClick={() => {
+              sendPlayerCommand(isPlaying ? 'pauseVideo' : 'playVideo')
+              setIsPlaying((prev) => !prev)
+            }}
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,#FF0000_12%,transparent)] text-[#FF0000] transition hover:bg-[color-mix(in_srgb,#FF0000_22%,transparent)]"
+            title={isPlaying ? 'Pause' : 'Play'}
+            aria-label={isPlaying ? 'Pause' : 'Play'}
+          >
+            <Icon icon={isPlaying ? 'lucide:pause' : 'lucide:play'} width={10} height={10} />
+          </button>
           <Icon
-            icon={current.type === 'playlist' ? 'lucide:list-music' : 'lucide:play'}
+            icon={current.type === 'playlist' ? 'lucide:list-music' : 'lucide:film'}
             width={9}
             height={9}
-            className="text-[var(--text-disabled)]"
+            className="text-[var(--text-disabled)] shrink-0"
           />
-          <span className="text-[8px] text-[var(--text-disabled)] ml-1 truncate">
+          <span className="text-[8px] text-[var(--text-disabled)] truncate flex-1 min-w-0">
             {current.label}
           </span>
           <button
             onClick={toggleMute}
-            className="ml-2 p-0.5 rounded hover:bg-[var(--bg-subtle)] text-[var(--text-disabled)] hover:text-[var(--text-secondary)] cursor-pointer"
+            className="p-0.5 rounded hover:bg-[var(--bg-subtle)] text-[var(--text-disabled)] hover:text-[var(--text-secondary)] cursor-pointer"
             title={muted || volume === 0 ? 'Unmute' : 'Mute'}
           >
             <Icon
@@ -542,10 +553,9 @@ export function YouTubePlayer() {
             aria-label="YouTube volume"
           />
           <span className="text-[8px] text-[var(--text-disabled)] w-7 text-right">{volume}%</span>
-          <div className="flex-1" />
           <button
             onClick={clearCurrent}
-            className="text-[8px] text-[var(--text-disabled)] hover:text-[var(--text-secondary)] cursor-pointer"
+            className="text-[8px] text-[var(--text-disabled)] hover:text-[var(--text-secondary)] cursor-pointer shrink-0"
           >
             Clear
           </button>

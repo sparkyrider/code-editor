@@ -324,7 +324,7 @@ function PluginCompactState({ pluginId, pipActive }: { pluginId: string; pipActi
 
   return (
     <div className="p-3 text-[10px] text-[var(--text-tertiary)]">
-      Compact controls are not available for this add-on yet.
+      Compact controls are not available for this widget yet.
     </div>
   )
 }
@@ -390,7 +390,7 @@ export function GitSidebarAddons() {
       <div className="flex items-center gap-2 px-3 py-2.5">
         <div className="min-w-0 flex-1">
           <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-disabled)]">
-            Add-ons
+            Widgets
           </div>
           <p className="mt-0.5 text-[10px] text-[var(--text-tertiary)]">
             Switch between media tools without leaving the git panel.
@@ -400,8 +400,8 @@ export function GitSidebarAddons() {
           type="button"
           onClick={() => setCollapsed((current) => !current)}
           className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] text-[var(--text-secondary)] transition hover:border-[var(--border-hover)] hover:text-[var(--text-primary)]"
-          title={collapsed ? 'Expand add-ons' : 'Collapse add-ons'}
-          aria-label={collapsed ? 'Expand add-ons' : 'Collapse add-ons'}
+          title={collapsed ? 'Expand widgets' : 'Collapse widgets'}
+          aria-label={collapsed ? 'Expand widgets' : 'Collapse widgets'}
         >
           <Icon
             icon={collapsed ? 'lucide:chevron-down' : 'lucide:chevron-up'}
@@ -567,7 +567,7 @@ export function GitSidebarAddons() {
               <div className="space-y-3 p-3">
                 <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--bg)] p-3">
                   <p className="text-[11px] font-medium text-[var(--text-primary)]">
-                    Add this to the git rail
+                    Add this widget to the git rail
                   </p>
                   <p className="mt-1 text-[10px] leading-4 text-[var(--text-tertiary)]">
                     Turn on {label} to keep playback controls available while you review or commit.
@@ -576,29 +576,31 @@ export function GitSidebarAddons() {
               </div>
             ) : (
               <>
-                {(isMinimized || pipActive) && (
-                  <PluginCompactState pluginId={activeEntry.id} pipActive={pipActive} />
-                )}
+                {/* Compact controls — always visible when enabled */}
+                <PluginCompactState pluginId={activeEntry.id} pipActive={pipActive} />
 
-                {shouldMountInline ? (
+                {/* Full inline player — hidden when minimized or popped out */}
+                {shouldMountInline && (
                   <div
                     className={`transition-[height,opacity] duration-200 ${
                       isMinimized
                         ? 'h-0 overflow-hidden pointer-events-none opacity-0'
-                        : 'h-[360px]'
+                        : 'min-h-[200px] max-h-[400px]'
                     }`}
                     aria-hidden={isMinimized}
                   >
                     <Comp />
                   </div>
-                ) : pipActive ? (
+                )}
+
+                {/* PiP active notice */}
+                {pipActive && !shouldMountInline && (
                   <div className="px-3 pb-3">
                     <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] px-3 py-2.5 text-[10px] text-[var(--text-tertiary)]">
-                      {label} is open in picture-in-picture. The quick controls above stay active
-                      here.
+                      {label} is open in picture-in-picture. Controls above stay active here.
                     </div>
                   </div>
-                ) : null}
+                )}
               </>
             )}
           </CardShell>

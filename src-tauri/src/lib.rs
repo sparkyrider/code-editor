@@ -56,6 +56,17 @@ fn create_editor_window(app: &tauri::AppHandle) -> tauri::Result<()> {
         .ok();
     }
 
+    #[cfg(target_os = "windows")]
+    {
+        // Mica (Win11) provides a native translucent material; Acrylic (Win10 1809+)
+        // is the fallback. Either prevents raw transparency from tauri.conf.json.
+        if window_vibrancy::apply_mica(&window, None).is_err() {
+            log::warn!("Mica not available, falling back to Acrylic");
+            window_vibrancy::apply_acrylic(&window, Some((18, 18, 18, 200)))
+                .ok();
+        }
+    }
+
     Ok(())
 }
 
@@ -357,6 +368,16 @@ fn setup_desktop_menu(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>
         let window = app.get_webview_window("main").unwrap();
         apply_vibrancy(&window, window_vibrancy::NSVisualEffectMaterial::Sidebar, None, None)
             .ok();
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        let window = app.get_webview_window("main").unwrap();
+        if window_vibrancy::apply_mica(&window, None).is_err() {
+            log::warn!("Mica not available, falling back to Acrylic");
+            window_vibrancy::apply_acrylic(&window, Some((18, 18, 18, 200)))
+                .ok();
+        }
     }
 
     Ok(())

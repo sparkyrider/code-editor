@@ -105,8 +105,18 @@ export function ChatHeader({
               )}
             </span>
           )}
+          {/* Context token count */}
+          {contextTokens > 0 && (
+            <span className={`inline-flex items-center gap-1 whitespace-nowrap text-[9px] tabular-nums ${
+              contextPct > 80 ? 'text-amber-400' : contextPct > 95 ? 'text-red-400' : 'text-[var(--text-disabled)]'
+            }`}>
+              <Icon icon="lucide:database" width={9} height={9} />
+              {contextTokens >= 1000 ? `${(contextTokens / 1000).toFixed(0)}K` : contextTokens}
+              <span className="text-[8px]">/{maxContextTokens >= 1000 ? `${(maxContextTokens / 1000).toFixed(0)}K` : maxContextTokens}</span>
+            </span>
+          )}
           <span className="whitespace-nowrap text-[11px] text-[var(--text-disabled)]">
-            {messageCount} messages
+            {messageCount} msg
           </span>
         </div>
       </div>

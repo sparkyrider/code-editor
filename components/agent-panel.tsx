@@ -387,6 +387,8 @@ export function AgentPanel() {
   const [isStreaming, setIsStreaming] = useState(false)
   const [thinkingTrail, setThinkingTrail] = useState<string[]>([])
   const [agentActivities, setAgentActivities] = useState<import('@/lib/agent-activity').AgentActivity[]>([])
+  const [turnStartTime, setTurnStartTime] = useState<number | null>(null)
+  const [turnElapsedMs, setTurnElapsedMs] = useState(0)
   const [activeDiff, setActiveDiff] = useState<{
     proposal: EditProposal
     messageId: string
@@ -535,6 +537,22 @@ export function AgentPanel() {
   useEffect(() => {
     streamStateRef.current.isSending = sending
   }, [sending])
+
+  // ─── Elapsed time tracker ─────────────────────────────────────
+  useEffect(() => {
+    if (isStreaming || sending) {
+      if (!turnStartTime) setTurnStartTime(Date.now())
+      const timer = setInterval(() => {
+        setTurnElapsedMs(turnStartTime ? Date.now() - turnStartTime : 0)
+      }, 100)
+      return () => clearInterval(timer)
+    } else {
+      if (turnStartTime) {
+        setTurnElapsedMs(Date.now() - turnStartTime)
+        setTurnStartTime(null)
+      }
+    }
+  }, [isStreaming, sending, turnStartTime])
 
   // ─── Listen for chat events (streaming replies) ───────────────
   useEffect(() => {
@@ -1923,6 +1941,16 @@ export function AgentPanel() {
           return
         }
       }
+      // Shift+Tab: cycle agent mode (Ask → Agent → Plan → Ask)
+      if (e.key === 'Tab' && e.shiftKey) {
+        e.preventDefault()
+        setAgentMode((prev) => {
+          const modes: AgentMode[] = ['ask', 'agent', 'plan']
+          const idx = modes.indexOf(prev)
+          return modes[(idx + 1) % modes.length]
+        })
+        return
+      }
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault()
         sendMessage()
@@ -2157,6 +2185,7 @@ export function AgentPanel() {
           isStreaming={isStreaming}
           thinkingTrail={thinkingTrail}
           agentActivities={agentActivities}
+          turnElapsedMs={turnElapsedMs}
           agentMode={agentMode}
           onShowDiff={handleShowDiff}
           onQuickApply={handleQuickApply}

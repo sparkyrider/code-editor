@@ -19,6 +19,7 @@ interface MessageListProps {
   isStreaming: boolean
   thinkingTrail: string[]
   agentActivities?: import('@/lib/agent-activity').AgentActivity[]
+  turnElapsedMs?: number
   agentMode: string
   onShowDiff: (proposal: EditProposal, messageId: string) => void
   onQuickApply: (proposal: EditProposal) => void
@@ -185,6 +186,7 @@ export function MessageList({
   isStreaming,
   thinkingTrail,
   agentActivities = [],
+  turnElapsedMs = 0,
   agentMode,
   onShowDiff,
   onQuickApply,
@@ -605,7 +607,7 @@ export function MessageList({
             {/* Agent activity feed (structured) or inline tool badges (fallback) */}
             {agentActivities.length > 0 && !streamBuffer && (
               <div className="w-full mb-1.5">
-                <AgentActivityFeed activities={agentActivities} isRunning={isStreaming} />
+                <AgentActivityFeed activities={agentActivities} isRunning={isStreaming} elapsedMs={turnElapsedMs} />
               </div>
             )}
             {agentActivities.length === 0 && thinkingTrail.length > 0 && !streamBuffer && (

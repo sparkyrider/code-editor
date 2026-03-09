@@ -1,6 +1,6 @@
 /**
  * Agent Activity Log — structured tracking of agent actions during execution.
- * Replaces simple string[] thinkingTrail with typed activities.
+ * Inspired by Codex exec cells: shows commands, output, timing, and file diffs.
  */
 
 export type ActivityType = 'read' | 'edit' | 'search' | 'command' | 'think' | 'write' | 'create'
@@ -11,6 +11,14 @@ export interface AgentActivity {
   label: string
   file?: string
   detail?: string
+  /** For commands: the raw command text */
+  command?: string
+  /** For commands: truncated stdout/stderr */
+  output?: string
+  /** For commands: exit code (0 = success) */
+  exitCode?: number
+  /** Duration in milliseconds */
+  durationMs?: number
   timestamp: number
   status: 'running' | 'done' | 'error'
 }
@@ -71,10 +79,13 @@ export function parseToolActivity(
 
   if (toolName.includes('exec') || toolName === 'Bash' || toolName === 'bash') {
     const cmd = (input?.command || '') as string
+    const firstLine = cmd.split('\n')[0].slice(0, 60)
     return {
       id, type: 'command',
-      label: cmd ? `Run \`${cmd.split('\n')[0].slice(0, 40)}\`` : 'Run command',
-      detail: cmd, timestamp, status: 'done',
+      label: cmd ? firstLine : 'Run command',
+      command: cmd,
+      detail: cmd,
+      timestamp, status: 'running',
     }
   }
 
@@ -82,6 +93,34 @@ export function parseToolActivity(
     id, type: 'think', label: toolName,
     timestamp, status: 'done',
   }
+}
+
+/**
+ * Update a command activity with its result.
+ */
+export function completeCommandActivity(
+  activity: AgentActivity,
+  output?: string,
+  exitCode?: number,
+): AgentActivity {
+  return {
+    ...activity,
+    output: output ? output.slice(0, 500) : undefined,
+    exitCode,
+    durationMs: Date.now() - activity.timestamp,
+    status: exitCode === 0 || exitCode === undefined ? 'done' : 'error',
+  }
+}
+
+/**
+ * Format a duration in ms to a human-readable string.
+ */
+export function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`
+  const mins = Math.floor(ms / 60000)
+  const secs = Math.floor((ms % 60000) / 1000)
+  return `${mins}m ${secs}s`
 }
 
 /**
@@ -130,16 +169,16 @@ export function activityIcon(type: ActivityType): string {
 }
 
 /**
- * Color class for an activity type.
+ * Color for an activity type using CSS custom properties.
  */
 export function activityColor(type: ActivityType): string {
   switch (type) {
-    case 'read': return 'text-blue-400'
-    case 'edit': return 'text-amber-400'
-    case 'write': return 'text-amber-400'
-    case 'create': return 'text-green-400'
-    case 'search': return 'text-purple-400'
-    case 'command': return 'text-cyan-400'
-    case 'think': return 'text-[var(--text-disabled)]'
+    case 'read': return 'color-mix(in srgb, #60a5fa 80%, var(--brand))'
+    case 'edit': return 'color-mix(in srgb, #fbbf24 80%, var(--brand))'
+    case 'write': return 'color-mix(in srgb, #fbbf24 80%, var(--brand))'
+    case 'create': return 'color-mix(in srgb, #34d399 80%, var(--brand))'
+    case 'search': return 'color-mix(in srgb, #a78bfa 80%, var(--brand))'
+    case 'command': return 'color-mix(in srgb, #22d3ee 80%, var(--brand))'
+    case 'think': return 'var(--text-disabled)'
   }
 }

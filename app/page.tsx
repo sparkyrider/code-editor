@@ -133,7 +133,12 @@ export default function EditorLayout() {
   const terminalRefreshToken = mode
   const terminalStartupCommand = modeSpec.terminalCenter ? 'openclaw tui' : undefined
   const usePrismShell = activeView === 'prism'
-  const mobileViewTabs = useMemo(() => visibleViews.slice(0, 5), [visibleViews])
+  const mobileViewTabs = useMemo(() => {
+    // On mobile, curate tabs to useful views + always include settings
+    const mobile = visibleViews.filter(v => !['prism', 'preview', 'diff', 'skills'].includes(v))
+    if (!mobile.includes('settings')) mobile.push('settings')
+    return mobile.slice(0, 5)
+  }, [visibleViews])
   const activeViewMeta = VIEW_ICONS[activeView] ?? {
     icon: 'lucide:layout-panel-top',
     label: 'Workspace',
@@ -853,12 +858,13 @@ export default function EditorLayout() {
                       if ('vibrate' in navigator) navigator.vibrate(5)
                     }}
                     whileTap={{ scale: 0.92 }}
-                    className={`relative flex min-w-0 flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors ${
+                    className={`relative flex min-w-0 flex-col items-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors touch-manipulation ${
                       isActive
                         ? 'text-[var(--brand)]'
                         : 'text-[var(--text-disabled)]'
                     } ${flashedTab === v ? 'animate-badge-pop' : ''}`}
                     title={VIEW_ICONS[v].label}
+                    style={{ minHeight: 44, WebkitTapHighlightColor: 'transparent' }}
                   >
                     <span className="relative">
                       <Icon icon={VIEW_ICONS[v].icon} width={20} height={20} />

@@ -134,7 +134,7 @@ export default function EditorLayout() {
   const terminalStartupCommand = useCenteredTerminal ? 'openclaw tui' : undefined
   const mobileViewTabs = useMemo(() => {
     // On mobile, curate tabs to useful views + always include settings
-    const mobile = visibleViews.filter(v => !['preview', 'diff', 'skills'].includes(v))
+    const mobile = visibleViews.filter(v => !['preview', 'diff', 'workshop'].includes(v))
     if (!mobile.includes('settings')) mobile.push('settings')
     return mobile.slice(0, 5)
   }, [visibleViews])

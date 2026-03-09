@@ -26,7 +26,7 @@ const STORAGE_KEY = 'ce:app-mode'
 const AppModeContext = createContext<AppModeContextValue | null>(null)
 
 export function AppModeProvider({ children }: { children: ReactNode }) {
-  const { dispatch, setEditorCollapsed } = useLayout()
+  const { dispatch } = useLayout()
   const { activeView, setView } = useView()
   const activeViewRef = useRef(activeView)
 
@@ -77,12 +77,12 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
       if (!spec.visibleViews.includes(activeViewRef.current)) {
         setView(spec.defaultView)
       }
-      setEditorCollapsed(false)
+      dispatch({ type: 'SET_EDITOR_COLLAPSED', collapsed: false })
     }
 
     // Apply mode accent as CSS variable
     document.documentElement.style.setProperty('--mode-accent', spec.accent)
-  }, [mode, dispatch, setEditorCollapsed, setView])
+  }, [mode, dispatch, setView])
 
   const value = useMemo<AppModeContextValue>(
     () => ({

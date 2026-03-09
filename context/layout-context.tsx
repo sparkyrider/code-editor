@@ -516,11 +516,10 @@ export function LayoutProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(layoutReducer, undefined, buildInitialState)
   const { activeView } = useView()
   const hydrated = useRef(false)
-  const [viewport, setViewport] = useState<ViewportInfo>(() => {
-    if (typeof window === 'undefined') return { width: 1400, height: 900, breakpoint: 'gt1200' }
-    const w = window.innerWidth
-    const h = window.innerHeight
-    return { width: w, height: h, breakpoint: computeBreakpoint(w) }
+  const [viewport, setViewport] = useState<ViewportInfo>({
+    width: 1400,
+    height: 900,
+    breakpoint: 'gt1200',
   })
 
   // Hydrate from localStorage after mount

@@ -16,6 +16,7 @@ export function MobileConnect() {
   const [copied, setCopied] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [connectedDevices, setConnectedDevices] = useState<string[]>([])
+  const [expanded, setExpanded] = useState(false)
 
   useEffect(() => {
     if (!gatewayUrl) return
@@ -41,67 +42,78 @@ export function MobileConnect() {
 
   return (
     <div className="mobile-connect">
-      <div className="mobile-connect__header">
+      <button className="mobile-connect__header" onClick={() => setExpanded((v) => !v)}>
         <Icon icon="lucide:smartphone" width={18} />
         <span>Mobile Connect</span>
-      </div>
+        <Icon
+          icon="lucide:chevron-down"
+          width={14}
+          style={{
+            marginLeft: 'auto',
+            transition: 'transform 0.2s',
+            transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+          }}
+        />
+      </button>
 
-      <div className="mobile-connect__content">
-        {isConnected && gatewayUrl ? (
-          <>
-            {/* QR Code */}
-            <div className="mobile-connect__qr-wrapper">
-              <div className="mobile-connect__qr">
-                <QRCodeSVG
-                  value={gatewayUrl}
-                  size={180}
-                  bgColor="transparent"
-                  fgColor="var(--text-primary)"
-                  level="M"
-                  marginSize={0}
-                />
+      {expanded && (
+        <div className="mobile-connect__content">
+          {isConnected && gatewayUrl ? (
+            <>
+              {/* QR Code */}
+              <div className="mobile-connect__qr-wrapper">
+                <div className="mobile-connect__qr">
+                  <QRCodeSVG
+                    value={gatewayUrl}
+                    size={180}
+                    bgColor="transparent"
+                    fgColor="var(--text-primary)"
+                    level="M"
+                    marginSize={0}
+                  />
+                </div>
+                <p className="mobile-connect__hint">Scan with Knot Code iOS to connect</p>
               </div>
-              <p className="mobile-connect__hint">Scan with Knot Code iOS to connect</p>
-            </div>
 
-            {/* Gateway URL */}
-            <div className="mobile-connect__url-row">
-              <code className="mobile-connect__url">{gatewayUrl}</code>
-              <button
-                className="mobile-connect__copy-btn"
-                onClick={copyUrl}
-                title="Copy gateway URL"
-              >
-                <Icon icon={copied ? 'lucide:check' : 'lucide:copy'} width={14} />
-              </button>
-            </div>
-
-            {/* Connection Status */}
-            <div className="mobile-connect__status">
-              <div className="mobile-connect__status-dot mobile-connect__status-dot--active" />
-              <span>Gateway active</span>
-            </div>
-
-            {/* Device List */}
-            {connectedDevices.length > 0 && (
-              <div className="mobile-connect__devices">
-                <span className="mobile-connect__devices-label">Connected devices:</span>
-                {connectedDevices.map((d, i) => (
-                  <div key={i} className="mobile-connect__device">
-                    <Icon icon="lucide:monitor-smartphone" width={13} />
-                    <span>{d}</span>
-                  </div>
-                ))}
+              {/* Gateway URL */}
+              <div className="mobile-connect__url-row">
+                <code className="mobile-connect__url">{gatewayUrl}</code>
+                <button
+                  className="mobile-connect__copy-btn"
+                  onClick={copyUrl}
+                  title="Copy gateway URL"
+                >
+                  <Icon icon={copied ? 'lucide:check' : 'lucide:copy'} width={14} />
+                </button>
               </div>
-            )}
-          </>
-        ) : (
-          <div className="mobile-connect__offline">
-            <Icon icon="lucide:wifi-off" width={24} />
-            <p>Connect to a gateway first</p>
-          </div>
-        )}
-      </div>
+
+              {/* Connection Status */}
+              <div className="mobile-connect__status">
+                <div className="mobile-connect__status-dot mobile-connect__status-dot--active" />
+                <span>Gateway active</span>
+              </div>
+
+              {/* Device List */}
+              {connectedDevices.length > 0 && (
+                <div className="mobile-connect__devices">
+                  <span className="mobile-connect__devices-label">Connected devices:</span>
+                  {connectedDevices.map((d, i) => (
+                    <div key={i} className="mobile-connect__device">
+                      <Icon icon="lucide:monitor-smartphone" width={13} />
+                      <span>{d}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="mobile-connect__offline">
+              <Icon icon="lucide:wifi-off" width={24} />
+              <p>Connect to a gateway first</p>
+            </div>
+          )}
+        </div>
+      )}
 
       <style jsx>{`
         .mobile-connect {
@@ -117,6 +129,14 @@ export function MobileConnect() {
           font-weight: 600;
           color: var(--text-primary);
           padding: 0 2px;
+          background: none;
+          border: none;
+          width: 100%;
+          cursor: pointer;
+          text-align: left;
+        }
+        .mobile-connect__header:hover {
+          color: var(--brand);
         }
         .mobile-connect__content {
           display: flex;

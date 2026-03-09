@@ -13,12 +13,11 @@ import { FolderIndicator } from '@/components/source-switcher'
 import { SessionPresence } from '@/components/session-presence'
 import { CaffeinateToggle } from '@/components/caffeinate-toggle'
 
-// ─── Activity Pulse Ring ─────────────────────────────
-function ActivityPulseRing({ status, agentActive }: { status: string; agentActive: boolean }) {
+function StatusIndicator({ status, agentActive }: { status: string; agentActive: boolean }) {
   const isConnected = status === 'connected'
   const isConnecting = status === 'connecting' || status === 'authenticating'
 
-  const ringColor =
+  const color =
     agentActive && isConnected
       ? 'var(--brand)'
       : isConnected
@@ -27,46 +26,48 @@ function ActivityPulseRing({ status, agentActive }: { status: string; agentActiv
           ? 'var(--warning, #eab308)'
           : 'var(--text-disabled)'
 
-  const statusTitle = isConnected
+  const label = isConnected
     ? agentActive
       ? 'Agent working'
       : 'Connected'
     : isConnecting
-      ? 'Connecting...'
-      : 'Disconnected'
+      ? 'Connecting…'
+      : 'Offline'
 
   return (
-    <span className="relative w-5 h-5 flex items-center justify-center" title={statusTitle}>
-      <motion.svg
-        className="absolute inset-0 w-5 h-5"
-        viewBox="0 0 16 16"
-        animate={
-          isConnecting
-            ? { rotate: 360 }
-            : isConnected
-              ? { scale: [1, agentActive ? 1.25 : 1.12, 1], opacity: [0.5, 1, 0.5] }
-              : { opacity: 0.4, scale: 1 }
-        }
-        transition={
-          isConnecting
-            ? { repeat: Infinity, duration: 2, ease: 'linear' }
-            : isConnected
-              ? { repeat: Infinity, duration: agentActive ? 1.2 : 3, ease: 'easeInOut' }
-              : { duration: 0.3 }
-        }
-      >
-        <circle
-          cx="8"
-          cy="8"
-          r="6"
-          fill="none"
-          stroke={ringColor}
-          strokeWidth="1.5"
-          strokeDasharray={isConnecting ? '3 3' : undefined}
-          strokeLinecap="round"
-        />
-      </motion.svg>
-      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: ringColor }} />
+    <span className="shell-status-item gap-[5px]" title={label}>
+      <span className="relative w-[16px] h-[16px] flex items-center justify-center">
+        <motion.svg
+          className="absolute inset-0 w-[16px] h-[16px]"
+          viewBox="0 0 16 16"
+          animate={
+            isConnecting
+              ? { rotate: 360 }
+              : isConnected
+                ? { scale: [1, agentActive ? 1.2 : 1.08, 1], opacity: [0.45, 1, 0.45] }
+                : { opacity: 0.35, scale: 1 }
+          }
+          transition={
+            isConnecting
+              ? { repeat: Infinity, duration: 2, ease: 'linear' }
+              : isConnected
+                ? { repeat: Infinity, duration: agentActive ? 1.2 : 3.5, ease: 'easeInOut' }
+                : { duration: 0.3 }
+          }
+        >
+          <circle
+            cx="8"
+            cy="8"
+            r="6"
+            fill="none"
+            stroke={color}
+            strokeWidth="1.2"
+            strokeDasharray={isConnecting ? '3 3' : undefined}
+            strokeLinecap="round"
+          />
+        </motion.svg>
+        <span className="w-[5px] h-[5px] rounded-full" style={{ backgroundColor: color }} />
+      </span>
     </span>
   )
 }
@@ -85,89 +86,77 @@ export function StatusBar({ agentActive }: StatusBarProps) {
   const dirtyCount = useMemo(() => files.filter((f) => f.dirty).length, [files])
 
   return (
-    <footer className="shell-statusbar flex items-center justify-between px-4 h-[34px] text-[11px] text-[var(--text-tertiary)] shrink-0">
-      <div className="flex items-center gap-3.5">
-        {/* Mode indicator dot */}
-        <span className="shell-status-chip" title={`${modeSpec.label} mode`}>
+    <footer className="shell-statusbar flex items-center justify-between px-3 h-[28px] text-[11px] text-[var(--text-tertiary)] shrink-0">
+      {/* ── Left: context info ── */}
+      <div className="flex items-center gap-1.5">
+        <span className="shell-status-item" title={`${modeSpec.label} mode`}>
           <span
-            className="w-[7px] h-[7px] rounded-full"
+            className="w-[6px] h-[6px] rounded-full shrink-0"
             style={{ backgroundColor: 'var(--mode-accent, var(--brand))' }}
           />
-          <span className="text-[var(--text-disabled)] font-medium">{modeSpec.label}</span>
         </span>
-        <div className="shell-status-chip shell-status-chip--compact">
+
+        <span className="shell-status-separator" />
+
+        <div className="shell-status-item">
           <FolderIndicator />
         </div>
-        <div className="shell-status-chip shell-status-chip--compact">
+
+        <span className="shell-status-separator" />
+
+        <div className="shell-status-item">
           <BranchPicker />
         </div>
+
         {dirtyCount > 0 && (
-          <span
-            key={dirtyCount}
-            className="shell-status-chip shell-status-chip--attention animate-badge-pop"
-          >
-            <Icon icon="lucide:circle-dot" width={10} height={10} />
-            {dirtyCount} unsaved
-          </span>
+          <>
+            <span className="shell-status-separator" />
+            <span
+              key={dirtyCount}
+              className="shell-status-item shell-status-item--attention animate-badge-pop"
+            >
+              <Icon icon="lucide:circle-dot" width={9} height={9} />
+              <span>{dirtyCount}</span>
+            </span>
+          </>
         )}
-        {/* Active file path */}
+
         {activeFile && (
-          <span
-            className="shell-status-path text-[var(--text-disabled)] font-mono truncate max-w-[240px]"
-            title={activeFile}
-          >
-            {activeFile}
-          </span>
+          <>
+            <span className="shell-status-separator" />
+            <span
+              className="text-[var(--text-disabled)] font-mono text-[10px] truncate max-w-[200px]"
+              title={activeFile}
+            >
+              {activeFile.split('/').pop()}
+            </span>
+          </>
         )}
       </div>
-      <div className="flex items-center gap-3.5">
-        <div className="shell-status-chip shell-status-chip--compact">
+
+      {/* ── Right: tools & status ── */}
+      <div className="flex items-center gap-1.5">
+        <div className="shell-status-item">
           <SessionPresence compact />
         </div>
-        <div className="shell-status-chip shell-status-chip--compact">
+
+        <div className="shell-status-item">
           <CaffeinateToggle compact />
         </div>
+
         <PluginSlotRenderer slot="status-bar-right" />
-        {/* Terminal toggle */}
+
         <button
           onClick={() => layout.toggle('terminal')}
           className={`shell-status-icon-btn ${terminalVisible ? 'shell-status-icon-btn--active' : ''}`}
           title={`${terminalVisible ? 'Hide' : 'Show'} Terminal (⌘J)`}
         >
-          <Icon icon="lucide:terminal" width={13} height={13} />
+          <Icon icon="lucide:terminal" width={12} height={12} />
         </button>
-        {/* Connection status */}
-        <span
-          className="shell-status-chip shell-status-chip--connection"
-          title={
-            status === 'connected'
-              ? 'Gateway connected'
-              : status === 'connecting'
-                ? 'Connecting...'
-                : 'Disconnected'
-          }
-        >
-          <span
-            className={`w-[6px] h-[6px] rounded-full ${
-              status === 'connected'
-                ? 'bg-emerald-400'
-                : status === 'connecting'
-                  ? 'bg-amber-400 animate-pulse'
-                  : 'bg-red-400'
-            }`}
-          />
-          <span className="text-[var(--text-secondary)]">
-            {status === 'connected'
-              ? 'Gateway'
-              : status === 'connecting'
-                ? 'Connecting'
-                : 'Offline'}
-          </span>
-        </span>
-        <span className="shell-status-brand">KnotCode</span>
-        <span className="shell-status-chip shell-status-chip--signal">
-          <ActivityPulseRing status={status} agentActive={agentActive} />
-        </span>
+
+        <span className="shell-status-separator" />
+
+        <StatusIndicator status={status} agentActive={agentActive} />
       </div>
     </footer>
   )

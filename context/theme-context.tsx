@@ -23,6 +23,7 @@ export interface ThemePreset {
 
 export const THEME_PRESETS: ThemePreset[] = [
   { id: 'supreme', label: 'Supreme', color: '#d2a34f', group: 'core' },
+  { id: 'codex', label: 'Codex', color: '#1f1f1f', group: 'core' },
   { id: 'obsidian', label: 'Obsidian', color: '#ca3a29', group: 'core' },
   { id: 'neon', label: 'Neon', color: '#a855f7', group: 'core' },
   { id: 'catppuccin-mocha', label: 'Catppuccin', color: '#cba6f7', group: 'core' },

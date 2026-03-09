@@ -97,33 +97,33 @@ export function SessionPresence({ compact = false }: { compact?: boolean }) {
             display: flex;
           }
           .presence-compact__avatar {
-            width: 22px;
-            height: 22px;
+            width: 18px;
+            height: 18px;
             border-radius: 50%;
             background: var(--bg-elevated);
-            border: 2px solid var(--bg-primary);
+            border: 1.5px solid var(--bg-primary);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--text-secondary);
-            margin-left: -6px;
+            color: var(--text-tertiary);
+            margin-left: -5px;
           }
           .presence-compact__avatar:first-child {
             margin-left: 0;
           }
           .presence-compact__more {
-            width: 22px;
-            height: 22px;
+            width: 18px;
+            height: 18px;
             border-radius: 50%;
             background: var(--brand);
-            border: 2px solid var(--bg-primary);
+            border: 1.5px solid var(--bg-primary);
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 9px;
+            font-size: 8px;
             font-weight: 700;
-            margin-left: -6px;
+            margin-left: -5px;
           }
         `}</style>
       </div>

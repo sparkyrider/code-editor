@@ -61,27 +61,30 @@ export function CaffeinateToggle({ compact = false }: { compact?: boolean }) {
         onClick={toggle}
         title={isActive ? 'Allow sleep (caffeinate off)' : 'Prevent sleep (caffeinate on)'}
       >
-        <Icon icon={isActive ? 'lucide:coffee' : 'lucide:moon'} width={14} />
+        <Icon icon={isActive ? 'lucide:coffee' : 'lucide:moon'} width={12} />
 
         <style jsx>{`
           .caffeinate-compact {
-            background: none;
-            border: 1px solid var(--border);
-            color: var(--text-muted);
+            background: transparent;
+            border: none;
+            color: var(--text-disabled);
             cursor: pointer;
-            padding: 5px 8px;
-            border-radius: 6px;
+            padding: 3px;
+            border-radius: 4px;
             display: flex;
             align-items: center;
-            transition: all 0.15s;
+            transition:
+              color 140ms ease,
+              background 140ms ease;
           }
           .caffeinate-compact:hover {
             color: var(--text-secondary);
-            border-color: var(--text-muted);
+            background: var(--shell-chip-hover);
           }
           .caffeinate-compact--active {
             color: #f59e0b;
-            border-color: rgba(245, 158, 11, 0.3);
+          }
+          .caffeinate-compact--active:hover {
             background: rgba(245, 158, 11, 0.08);
           }
         `}</style>

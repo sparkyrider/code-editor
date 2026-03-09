@@ -105,7 +105,10 @@ function getFileTypeIcon(path: string, kind: UserAttachmentChip['kind']): string
   }
 }
 
-function parseUserAttachmentPreview(content: string): { text: string; chips: UserAttachmentChip[] } {
+function parseUserAttachmentPreview(content: string): {
+  text: string
+  chips: UserAttachmentChip[]
+} {
   const match = content.match(/^\[([^\]]*(?:📄|📝|🖼)[^\]]*)\]\n?/)
   if (!match) return { text: content, chips: [] }
 
@@ -544,8 +547,8 @@ export function MessageList({
                           <PlanView
                             steps={parsePlanSteps(msg.content)}
                             interactive={agentMode === 'ask'}
-                            onApprove={onSendMessage}
-                            onSkip={onSendMessage}
+                            onApprove={() => onSendMessage()}
+                            onSkip={() => onSendMessage()}
                           />
                         )}
                       </div>

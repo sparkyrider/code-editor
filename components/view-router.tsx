@@ -31,6 +31,10 @@ const PreviewPanel = dynamic(
 const AgentPanel = dynamic(() => import('@/components/agent-panel').then((m) => m.AgentPanel), {
   ssr: false,
 })
+const GatewayTerminal = dynamic(
+  () => import('@/components/gateway-terminal').then((m) => m.GatewayTerminal),
+  { ssr: false },
+)
 
 const VIEW_ICONS: Record<string, { label: string }> = {
   chat: { label: 'Chat' },
@@ -40,6 +44,7 @@ const VIEW_ICONS: Record<string, { label: string }> = {
   workshop: { label: 'Workshop' },
   skills: { label: 'Skills' },
   settings: { label: 'Settings' },
+  terminal: { label: 'Terminal' },
 }
 
 const viewVariants = {
@@ -84,6 +89,11 @@ export function ViewRouter() {
             {activeView === 'settings' && (
               <div className="flex-1 flex items-center justify-center">
                 <SettingsPanel open={true} onClose={() => setView('editor')} />
+              </div>
+            )}
+            {activeView === 'terminal' && (
+              <div className="flex-1 flex min-h-0 min-w-0 overflow-hidden">
+                <GatewayTerminal />
               </div>
             )}
           </ErrorBoundary>

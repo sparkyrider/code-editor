@@ -91,6 +91,7 @@ const VIEW_ICONS: Record<string, { icon: string; label: string }> = {
   workshop: { icon: 'lucide:bot', label: 'Workshop' },
   skills: { icon: 'lucide:sparkles', label: 'Skills' },
   settings: { icon: 'lucide:settings', label: 'Settings' },
+  terminal: { icon: 'lucide:terminal', label: 'Terminal' },
 }
 
 const MODE_BUTTONS: Array<{ id: AppMode; icon: string; label: string }> = [
@@ -134,7 +135,7 @@ export default function EditorLayout() {
   const mobileViewTabs = useMemo(() => {
     // On mobile, curate tabs to useful views + always include settings
     const mobile = visibleViews.filter((v) => !['preview', 'diff', 'workshop'].includes(v))
-    if (!mobile.includes('settings')) mobile.push('settings')
+    if (!mobile.includes('terminal')) mobile.push('terminal')
     return mobile.slice(0, 5)
   }, [visibleViews])
   const activeViewMeta = VIEW_ICONS[activeView] ?? {

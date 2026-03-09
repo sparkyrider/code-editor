@@ -20,6 +20,7 @@ export type ViewId =
   | 'workshop'
   | 'skills'
   | 'settings'
+  | 'terminal'
 
 const VIEW_ORDER: ViewId[] = [
   'chat',
@@ -29,6 +30,7 @@ const VIEW_ORDER: ViewId[] = [
   'workshop',
   'skills',
   'settings',
+  'terminal',
 ]
 
 interface ViewState {

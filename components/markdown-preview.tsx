@@ -122,8 +122,9 @@ function decodeHtmlEntities(s: string): string {
 
 const MENTION_HREF_RE = /^https:\/\/github\.com\/([a-zA-Z0-9](?:[a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?)$/
 
-let markdownMonacoPromise: Promise<Awaited<ReturnType<typeof import('@monaco-editor/loader').default.init>>> | null =
-  null
+let markdownMonacoPromise: Promise<
+  Awaited<ReturnType<typeof import('@monaco-editor/loader').default.init>>
+> | null = null
 
 async function getMarkdownMonaco() {
   if (!markdownMonacoPromise) {
@@ -195,17 +196,26 @@ function FloatingCard({
   )
 }
 
-export function MarkdownPreview({ content, className, streaming }: MarkdownPreviewProps & { streaming?: boolean }) {
+export function MarkdownPreview({
+  content,
+  className,
+  streaming,
+}: MarkdownPreviewProps & { streaming?: boolean }) {
   // Debounce parsing during streaming — parse at most every 150ms
   const lastParsedRef = useRef('')
   const lastBlocksRef = useRef<ReturnType<typeof parse>>([])
   const lastParseTimeRef = useRef(0)
 
+  // Track parse timing outside render (updated via effect)
+  const parseTickRef = useRef(0)
+  useEffect(() => {
+    parseTickRef.current = Date.now()
+  })
+
   const blocks = useMemo(() => {
     // During streaming, skip re-parse if content hasn't grown enough or too recent
     if (streaming && lastBlocksRef.current.length > 0) {
-      const now = Date.now()
-      const timeSince = now - lastParseTimeRef.current
+      const timeSince = parseTickRef.current - lastParseTimeRef.current
       const growth = content.length - lastParsedRef.current.length
       if (timeSince < 150 && growth < 100) {
         return lastBlocksRef.current
@@ -220,7 +230,7 @@ export function MarkdownPreview({ content, className, streaming }: MarkdownPrevi
     const result = parse(normalized)
     lastParsedRef.current = content
     lastBlocksRef.current = result
-    lastParseTimeRef.current = Date.now()
+    lastParseTimeRef.current = parseTickRef.current
     return result
   }, [content, streaming])
 

@@ -43,13 +43,6 @@ function buildStageCards(blueprint: WorkshopBlueprint): StageCard[] {
       summary: 'Workflow modules define the agent’s backbone from discovery to handoff.',
     },
     {
-      id: 'automation',
-      icon: 'lucide:zap',
-      label: WORKSHOP_STAGE_LABELS.automation,
-      countLabel: `${blueprint.automationIds.length} rules`,
-      summary: 'Automations keep quality signals and follow-through alive between actions.',
-    },
-    {
       id: 'guardrails',
       icon: 'lucide:shield',
       label: WORKSHOP_STAGE_LABELS.guardrails,
@@ -119,12 +112,16 @@ export function ModuleCanvas({ blueprint, activeStage, onFocusStage }: ModuleCan
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="text-sm font-semibold text-[var(--text-primary)]">{card.label}</div>
+                      <div className="text-sm font-semibold text-[var(--text-primary)]">
+                        {card.label}
+                      </div>
                       <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--text-disabled)]">
                         {card.countLabel}
                       </div>
                     </div>
-                    <p className="mt-1 text-xs leading-5 text-[var(--text-tertiary)]">{card.summary}</p>
+                    <p className="mt-1 text-xs leading-5 text-[var(--text-tertiary)]">
+                      {card.summary}
+                    </p>
                   </div>
                 </div>
               </button>

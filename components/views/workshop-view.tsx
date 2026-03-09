@@ -31,11 +31,7 @@ import {
 } from '@/lib/agent-workshop/types'
 import { PERSONA_PRESETS } from '@/lib/agent-personas'
 import { PLAYGROUND_SCENARIOS } from '@/lib/playground/data'
-import {
-  getSkillDisplayIcon,
-  getSkillPresentationMeta,
-  SKILLS_CATALOG,
-} from '@/lib/skills/catalog'
+import { getSkillDisplayIcon, getSkillPresentationMeta, SKILLS_CATALOG } from '@/lib/skills/catalog'
 import { mergeRuntimeState, SKILLS_RUNTIME_STORAGE_KEY } from '@/lib/skills/workflow'
 import type { SkillsRuntimeMap } from '@/lib/skills/types'
 
@@ -805,27 +801,6 @@ export function WorkshopView() {
                       label={workflow.label}
                       description={workflow.description}
                       onClick={() => toggleWorkflow(workflow.id)}
-                    />
-                  ))}
-                </div>
-              </SectionFrame>
-            </div>
-
-            <div ref={setStageRef('automation')} className="min-w-0">
-              <SectionFrame
-                eyebrow="Momentum"
-                title="Automations"
-                description="Set up the quality pulses and reminders that keep the agent aligned before and after each move."
-              >
-                <div className="grid gap-3 md:grid-cols-2">
-                  {WORKSHOP_AUTOMATION_CATALOG.map((automation) => (
-                    <SelectionChip
-                      key={automation.id}
-                      active={primaryBlueprint.automationIds.includes(automation.id)}
-                      icon={automation.icon}
-                      label={automation.label}
-                      description={automation.description}
-                      onClick={() => toggleAutomation(automation.id)}
                     />
                   ))}
                 </div>

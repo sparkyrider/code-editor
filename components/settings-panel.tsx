@@ -9,13 +9,30 @@ import { CaffeinateToggle } from './caffeinate-toggle'
 import { KnotLogo } from './knot-logo'
 import { useGateway } from '@/context/gateway-context'
 import { useGitHubAuth } from '@/context/github-auth-context'
-import { fetchAuthenticatedUser, startDeviceFlow, pollDeviceFlow, fetchUserRepos, type GitHubUser, type Repo } from '@/lib/github-api'
 import {
-  getFavorites, addFavorite, removeFavorite, isFavorite,
-  getRecents, addRecent, type SavedRepo,
+  fetchAuthenticatedUser,
+  startDeviceFlow,
+  pollDeviceFlow,
+  fetchUserRepos,
+  type GitHubUser,
+  type Repo,
+} from '@/lib/github-api'
+import {
+  getFavorites,
+  addFavorite,
+  removeFavorite,
+  isFavorite,
+  getRecents,
+  addRecent,
+  type SavedRepo,
 } from '@/lib/github-repos-store'
 import { THEME_PRESETS, useTheme, type ThemeMode, type ThemePreset } from '@/context/theme-context'
-import { getAgentConfig, saveAgentConfig, APPROVAL_TIERS, type ApprovalTier } from '@/lib/agent-session'
+import {
+  getAgentConfig,
+  saveAgentConfig,
+  APPROVAL_TIERS,
+  type ApprovalTier,
+} from '@/lib/agent-session'
 
 type SettingsTab = 'connect' | 'general'
 
@@ -58,7 +75,10 @@ export function SettingsPanel({
   const [ghUser, setGhUser] = useState<GitHubUser | null>(null)
   const [patInput, setPatInput] = useState('')
   const [showPatField, setShowPatField] = useState(false)
-  const [deviceFlow, setDeviceFlow] = useState<{ userCode: string; verificationUri: string } | null>(null)
+  const [deviceFlow, setDeviceFlow] = useState<{
+    userCode: string
+    verificationUri: string
+  } | null>(null)
   const [authLoading, setAuthLoading] = useState(false)
   const [authError, setAuthError] = useState<string | null>(null)
   const deviceFlowAbort = useRef<AbortController | null>(null)
@@ -70,13 +90,22 @@ export function SettingsPanel({
   const [showGatewayUrl, setShowGatewayUrl] = useState(false)
   const [connectExpanded, setConnectExpanded] = useState(false)
   const [approvalTier, setApprovalTierState] = useState<ApprovalTier>(() => {
-    try { return getAgentConfig()?.approvalTier ?? 'ask-all' } catch { return 'ask-all' }
+    try {
+      return getAgentConfig()?.approvalTier ?? 'ask-all'
+    } catch {
+      return 'ask-all'
+    }
   })
 
   const updateApprovalTier = useCallback((tier: ApprovalTier) => {
     setApprovalTierState(tier)
     try {
-      const cfg = getAgentConfig() ?? { persona: '', systemPrompt: '', behaviors: {}, modelPreference: '' }
+      const cfg = getAgentConfig() ?? {
+        persona: '',
+        systemPrompt: '',
+        behaviors: {},
+        modelPreference: '',
+      }
       saveAgentConfig({ ...cfg, approvalTier: tier })
     } catch {}
   }, [])
@@ -86,9 +115,14 @@ export function SettingsPanel({
   if (ghTokenRef.current !== ghToken) {
     ghTokenRef.current = ghToken
     if (ghToken) {
-      fetchAuthenticatedUser().then(u => setGhUser(u))
+      fetchAuthenticatedUser().then((u) => setGhUser(u))
       setLoadingRepos(true)
-      fetchUserRepos().then(r => { setUserRepos(r); setLoadingRepos(false) }).catch(() => setLoadingRepos(false))
+      fetchUserRepos()
+        .then((r) => {
+          setUserRepos(r)
+          setLoadingRepos(false)
+        })
+        .catch(() => setLoadingRepos(false))
     } else {
       setGhUser(null)
       setUserRepos([])
@@ -110,7 +144,11 @@ export function SettingsPanel({
       const flow = await startDeviceFlow()
       setDeviceFlow({ userCode: flow.user_code, verificationUri: flow.verification_uri })
       deviceFlowAbort.current = new AbortController()
-      const token = await pollDeviceFlow(flow.device_code, flow.interval, deviceFlowAbort.current.signal)
+      const token = await pollDeviceFlow(
+        flow.device_code,
+        flow.interval,
+        deviceFlowAbort.current.signal,
+      )
       setManualToken(token)
       setDeviceFlow(null)
     } catch (err) {
@@ -124,12 +162,21 @@ export function SettingsPanel({
   }, [setManualToken])
 
   const toggleFavorite = useCallback((repo: Repo | SavedRepo) => {
-    const fn = 'fullName' in repo ? repo.fullName : ('full_name' in repo ? (repo as Repo).full_name : '')
+    const fn =
+      'fullName' in repo ? repo.fullName : 'full_name' in repo ? (repo as Repo).full_name : ''
     const saved: SavedRepo = {
       fullName: fn,
-      name: 'name' in repo ? repo.name : fn.split('/').pop() ?? '',
-      owner: 'owner' in repo && typeof repo.owner === 'object' ? (repo.owner as { login: string }).login : fn.split('/')[0] ?? '',
-      defaultBranch: 'defaultBranch' in repo ? (repo as SavedRepo).defaultBranch : ('default_branch' in repo ? (repo as Repo).default_branch : 'main'),
+      name: 'name' in repo ? repo.name : (fn.split('/').pop() ?? ''),
+      owner:
+        'owner' in repo && typeof repo.owner === 'object'
+          ? (repo.owner as { login: string }).login
+          : (fn.split('/')[0] ?? ''),
+      defaultBranch:
+        'defaultBranch' in repo
+          ? (repo as SavedRepo).defaultBranch
+          : 'default_branch' in repo
+            ? (repo as Repo).default_branch
+            : 'main',
       addedAt: Date.now(),
     }
     if (isFavorite(fn)) {
@@ -142,7 +189,7 @@ export function SettingsPanel({
   const filteredRepos = useMemo(() => {
     if (!repoSearch.trim()) return userRepos.slice(0, 20)
     const q = repoSearch.toLowerCase()
-    return userRepos.filter(r => r.full_name.toLowerCase().includes(q)).slice(0, 20)
+    return userRepos.filter((r) => r.full_name.toLowerCase().includes(q)).slice(0, 20)
   }, [userRepos, repoSearch])
 
   const themeGroups = useMemo(() => groupThemes(), [])
@@ -265,7 +312,7 @@ export function SettingsPanel({
                     {/* Collapsed connect summary */}
                     <section className="rounded-[24px] border border-[var(--glass-border)] bg-[color-mix(in_srgb,var(--bg-elevated)_88%,transparent)] p-4 shadow-[var(--shadow-sm)]">
                       <button
-                        onClick={() => setConnectExpanded(v => !v)}
+                        onClick={() => setConnectExpanded((v) => !v)}
                         className="w-full flex items-center justify-between cursor-pointer"
                       >
                         <div className="flex items-center gap-2">
@@ -273,15 +320,27 @@ export function SettingsPanel({
                             <Icon icon="lucide:activity" width={14} />
                           </span>
                           <div className="text-left">
-                            <h3 className="text-sm font-medium text-[var(--text-primary)]">Gateway</h3>
+                            <h3 className="text-sm font-medium text-[var(--text-primary)]">
+                              Gateway
+                            </h3>
                             <p className="text-[11px] text-[var(--text-secondary)]">
-                              {status === 'connected' ? 'Connected' : status === 'connecting' ? 'Connecting…' : 'Disconnected'}
+                              {status === 'connected'
+                                ? 'Connected'
+                                : status === 'connecting'
+                                  ? 'Connecting…'
+                                  : 'Disconnected'}
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className={`h-2 w-2 rounded-full ${status === 'connected' ? 'bg-[var(--success)]' : status === 'connecting' ? 'bg-[var(--warning)]' : 'bg-[var(--text-disabled)]'}`} />
-                          <Icon icon={connectExpanded ? 'lucide:chevron-up' : 'lucide:chevron-down'} width={14} className="text-[var(--text-disabled)]" />
+                          <span
+                            className={`h-2 w-2 rounded-full ${status === 'connected' ? 'bg-[var(--success)]' : status === 'connecting' ? 'bg-[var(--warning)]' : 'bg-[var(--text-disabled)]'}`}
+                          />
+                          <Icon
+                            icon={connectExpanded ? 'lucide:chevron-up' : 'lucide:chevron-down'}
+                            width={14}
+                            className="text-[var(--text-disabled)]"
+                          />
                         </div>
                       </button>
 
@@ -292,7 +351,10 @@ export function SettingsPanel({
                               <div className="flex items-start justify-between gap-3">
                                 <span className="pt-0.5 text-[var(--text-secondary)]">URL</span>
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); setShowGatewayUrl(v => !v) }}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setShowGatewayUrl((v) => !v)
+                                  }}
                                   className="max-w-[220px] truncate rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_92%,transparent)] px-2.5 py-1 font-mono text-[11px] text-[var(--text-primary)] cursor-pointer hover:border-[var(--text-disabled)] transition-colors"
                                 >
                                   {showGatewayUrl ? gatewayUrl : '••••••••'}
@@ -429,14 +491,16 @@ export function SettingsPanel({
                           <Icon icon="lucide:shield-check" width={14} />
                         </span>
                         <div>
-                          <h3 className="text-sm font-medium text-[var(--text-primary)]">Agent Autonomy</h3>
+                          <h3 className="text-sm font-medium text-[var(--text-primary)]">
+                            Agent Autonomy
+                          </h3>
                           <p className="text-[11px] text-[var(--text-secondary)]">
                             Control what the agent can do without asking.
                           </p>
                         </div>
                       </div>
                       <div className="space-y-1.5">
-                        {APPROVAL_TIERS.map(tier => (
+                        {APPROVAL_TIERS.map((tier) => (
                           <button
                             key={tier.id}
                             onClick={() => updateApprovalTier(tier.id)}
@@ -446,18 +510,26 @@ export function SettingsPanel({
                                 : 'border-transparent hover:bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)]'
                             }`}
                           >
-                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                              approvalTier === tier.id
-                                ? 'border-[var(--brand)]'
-                                : 'border-[var(--text-disabled)]'
-                            }`}>
-                              {approvalTier === tier.id && <div className="w-2 h-2 rounded-full bg-[var(--brand)]" />}
+                            <div
+                              className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                                approvalTier === tier.id
+                                  ? 'border-[var(--brand)]'
+                                  : 'border-[var(--text-disabled)]'
+                              }`}
+                            >
+                              {approvalTier === tier.id && (
+                                <div className="w-2 h-2 rounded-full bg-[var(--brand)]" />
+                              )}
                             </div>
                             <div>
-                              <p className={`text-[12px] font-medium ${approvalTier === tier.id ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
+                              <p
+                                className={`text-[12px] font-medium ${approvalTier === tier.id ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}
+                              >
                                 {tier.label}
                               </p>
-                              <p className="text-[10px] text-[var(--text-disabled)]">{tier.description}</p>
+                              <p className="text-[10px] text-[var(--text-disabled)]">
+                                {tier.description}
+                              </p>
                             </div>
                           </button>
                         ))}
@@ -473,7 +545,9 @@ export function SettingsPanel({
                         <div>
                           <h3 className="text-sm font-medium text-[var(--text-primary)]">GitHub</h3>
                           <p className="text-[11px] text-[var(--text-secondary)]">
-                            {ghAuth ? 'Manage your account and repositories.' : 'Sign in to browse and favorite repos.'}
+                            {ghAuth
+                              ? 'Manage your account and repositories.'
+                              : 'Sign in to browse and favorite repos.'}
                           </p>
                         </div>
                       </div>
@@ -483,15 +557,27 @@ export function SettingsPanel({
                         <div className="flex items-center justify-between mb-4 pb-3 border-b border-[var(--border)]">
                           <div className="flex items-center gap-2.5">
                             {ghUser.avatar_url && (
-                              <img src={ghUser.avatar_url} alt="" className="w-8 h-8 rounded-full border border-[var(--border)]" />
+                              <img
+                                src={ghUser.avatar_url}
+                                alt=""
+                                className="w-8 h-8 rounded-full border border-[var(--border)]"
+                              />
                             )}
                             <div>
-                              <p className="text-[13px] font-medium text-[var(--text-primary)]">{ghUser.name ?? ghUser.login}</p>
-                              <p className="text-[11px] text-[var(--text-secondary)]">@{ghUser.login}</p>
+                              <p className="text-[13px] font-medium text-[var(--text-primary)]">
+                                {ghUser.name ?? ghUser.login}
+                              </p>
+                              <p className="text-[11px] text-[var(--text-secondary)]">
+                                @{ghUser.login}
+                              </p>
                             </div>
                           </div>
                           <button
-                            onClick={() => { clearToken(); setGhUser(null); setUserRepos([]) }}
+                            onClick={() => {
+                              clearToken()
+                              setGhUser(null)
+                              setUserRepos([])
+                            }}
                             className="text-[11px] text-[var(--text-disabled)] hover:text-[var(--color-deletions)] cursor-pointer"
                           >
                             Sign out
@@ -524,22 +610,41 @@ export function SettingsPanel({
                             <div className="space-y-2">
                               <div className="flex items-center gap-1.5">
                                 <div className="flex-1 relative">
-                                  <Icon icon="lucide:key-round" width={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-disabled)]" />
+                                  <Icon
+                                    icon="lucide:key-round"
+                                    width={13}
+                                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-disabled)]"
+                                  />
                                   <input
                                     type="password"
                                     value={patInput}
                                     onChange={(e) => setPatInput(e.target.value)}
                                     onKeyDown={(e) => {
-                                      if (e.key === 'Enter' && patInput.trim()) { setManualToken(patInput.trim()); setPatInput(''); setShowPatField(false) }
-                                      if (e.key === 'Escape') { setShowPatField(false); setPatInput('') }
+                                      if (e.key === 'Enter' && patInput.trim()) {
+                                        setManualToken(patInput.trim())
+                                        setPatInput('')
+                                        setShowPatField(false)
+                                      }
+                                      if (e.key === 'Escape') {
+                                        setShowPatField(false)
+                                        setPatInput('')
+                                      }
                                     }}
                                     placeholder="ghp_xxxx..."
-                                    autoCapitalize="off" autoCorrect="off" spellCheck={false}
+                                    autoCapitalize="off"
+                                    autoCorrect="off"
+                                    spellCheck={false}
                                     className="w-full pl-8 pr-3 py-2 rounded-lg border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_80%,transparent)] text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-disabled)] outline-none focus:border-[var(--brand)] transition-colors"
                                   />
                                 </div>
                                 <button
-                                  onClick={() => { if (patInput.trim()) { setManualToken(patInput.trim()); setPatInput(''); setShowPatField(false) } }}
+                                  onClick={() => {
+                                    if (patInput.trim()) {
+                                      setManualToken(patInput.trim())
+                                      setPatInput('')
+                                      setShowPatField(false)
+                                    }
+                                  }}
                                   disabled={!patInput.trim()}
                                   className="shrink-0 px-3 py-2 rounded-lg text-[12px] font-medium cursor-pointer disabled:opacity-40 bg-[var(--brand)] text-[var(--brand-contrast,#fff)]"
                                 >
@@ -547,11 +652,22 @@ export function SettingsPanel({
                                 </button>
                               </div>
                               <p className="text-[10px] text-[var(--text-disabled)]">
-                                Create at <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer" className="text-[var(--brand)] underline">github.com/settings/tokens</a> with <span className="font-mono">repo</span> scope.
+                                Create at{' '}
+                                <a
+                                  href="https://github.com/settings/tokens"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-[var(--brand)] underline"
+                                >
+                                  github.com/settings/tokens
+                                </a>{' '}
+                                with <span className="font-mono">repo</span> scope.
                               </p>
                             </div>
                           )}
-                          {authError && <p className="text-[11px] text-[var(--color-deletions)]">{authError}</p>}
+                          {authError && (
+                            <p className="text-[11px] text-[var(--color-deletions)]">{authError}</p>
+                          )}
                         </div>
                       )}
 
@@ -559,23 +675,57 @@ export function SettingsPanel({
                       {deviceFlow && (
                         <div className="text-center space-y-2 py-2">
                           <p className="text-[11px] text-[var(--text-disabled)]">
-                            Enter this code at <a href={deviceFlow.verificationUri} target="_blank" rel="noopener noreferrer" className="text-[var(--brand)] underline">github.com/login/device</a>
+                            Enter this code at{' '}
+                            <a
+                              href={deviceFlow.verificationUri}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[var(--brand)] underline"
+                            >
+                              github.com/login/device
+                            </a>
                           </p>
-                          <p className="text-[22px] font-mono font-bold tracking-[0.15em] text-[var(--text-primary)]">{deviceFlow.userCode}</p>
-                          <button onClick={() => { deviceFlowAbort.current?.abort(); setDeviceFlow(null); setAuthLoading(false) }} className="text-[11px] text-[var(--text-disabled)] hover:text-[var(--text-secondary)] cursor-pointer">Cancel</button>
+                          <p className="text-[22px] font-mono font-bold tracking-[0.15em] text-[var(--text-primary)]">
+                            {deviceFlow.userCode}
+                          </p>
+                          <button
+                            onClick={() => {
+                              deviceFlowAbort.current?.abort()
+                              setDeviceFlow(null)
+                              setAuthLoading(false)
+                            }}
+                            className="text-[11px] text-[var(--text-disabled)] hover:text-[var(--text-secondary)] cursor-pointer"
+                          >
+                            Cancel
+                          </button>
                         </div>
                       )}
 
                       {/* Favorites */}
                       {ghAuth && favorites.length > 0 && (
                         <div className="mb-3">
-                          <p className="text-[10px] uppercase tracking-wider text-[var(--text-disabled)] font-medium mb-2">Favorites</p>
+                          <p className="text-[10px] uppercase tracking-wider text-[var(--text-disabled)] font-medium mb-2">
+                            Favorites
+                          </p>
                           <div className="space-y-1">
-                            {favorites.map(r => (
-                              <div key={r.fullName} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)] group">
-                                <Icon icon="lucide:star" width={12} className="text-amber-400 shrink-0" />
-                                <span className="text-[12px] text-[var(--text-primary)] flex-1 truncate">{r.fullName}</span>
-                                <button onClick={() => toggleFavorite(r)} className="opacity-0 group-hover:opacity-100 text-[var(--text-disabled)] hover:text-[var(--color-deletions)] cursor-pointer" title="Remove">
+                            {favorites.map((r) => (
+                              <div
+                                key={r.fullName}
+                                className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)] group"
+                              >
+                                <Icon
+                                  icon="lucide:star"
+                                  width={12}
+                                  className="text-amber-400 shrink-0"
+                                />
+                                <span className="text-[12px] text-[var(--text-primary)] flex-1 truncate">
+                                  {r.fullName}
+                                </span>
+                                <button
+                                  onClick={() => toggleFavorite(r)}
+                                  className="opacity-0 group-hover:opacity-100 text-[var(--text-disabled)] hover:text-[var(--color-deletions)] cursor-pointer"
+                                  title="Remove"
+                                >
                                   <Icon icon="lucide:x" width={12} />
                                 </button>
                               </div>
@@ -587,32 +737,62 @@ export function SettingsPanel({
                       {/* Your repos */}
                       {ghAuth && (
                         <div>
-                          <p className="text-[10px] uppercase tracking-wider text-[var(--text-disabled)] font-medium mb-2">Your Repositories</p>
+                          <p className="text-[10px] uppercase tracking-wider text-[var(--text-disabled)] font-medium mb-2">
+                            Your Repositories
+                          </p>
                           <div className="relative mb-2">
-                            <Icon icon="lucide:search" width={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-disabled)]" />
+                            <Icon
+                              icon="lucide:search"
+                              width={13}
+                              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-disabled)]"
+                            />
                             <input
                               type="text"
                               value={repoSearch}
-                              onChange={e => setRepoSearch(e.target.value)}
+                              onChange={(e) => setRepoSearch(e.target.value)}
                               placeholder="Search repos…"
-                              autoCapitalize="off" autoCorrect="off" spellCheck={false}
+                              autoCapitalize="off"
+                              autoCorrect="off"
+                              spellCheck={false}
                               className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_80%,transparent)] text-[12px] text-[var(--text-primary)] placeholder:text-[var(--text-disabled)] outline-none focus:border-[var(--brand)] transition-colors"
                             />
                           </div>
                           {loadingRepos ? (
-                            <p className="text-[11px] text-[var(--text-disabled)] py-2 text-center">Loading repos…</p>
+                            <p className="text-[11px] text-[var(--text-disabled)] py-2 text-center">
+                              Loading repos…
+                            </p>
                           ) : (
                             <div className="space-y-0.5 max-h-[240px] overflow-y-auto">
-                              {filteredRepos.map(r => {
+                              {filteredRepos.map((r) => {
                                 const fav = isFavorite(r.full_name)
                                 return (
-                                  <div key={r.full_name} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)] group">
-                                    <button onClick={() => toggleFavorite(r)} className="shrink-0 cursor-pointer" title={fav ? 'Unfavorite' : 'Favorite'}>
-                                      <Icon icon={fav ? 'lucide:star' : 'lucide:star'} width={13} className={fav ? 'text-amber-400' : 'text-[var(--text-disabled)] opacity-40 group-hover:opacity-100'} />
+                                  <div
+                                    key={r.full_name}
+                                    className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)] group"
+                                  >
+                                    <button
+                                      onClick={() => toggleFavorite(r)}
+                                      className="shrink-0 cursor-pointer"
+                                      title={fav ? 'Unfavorite' : 'Favorite'}
+                                    >
+                                      <Icon
+                                        icon={fav ? 'lucide:star' : 'lucide:star'}
+                                        width={13}
+                                        className={
+                                          fav
+                                            ? 'text-amber-400'
+                                            : 'text-[var(--text-disabled)] opacity-40 group-hover:opacity-100'
+                                        }
+                                      />
                                     </button>
                                     <div className="flex-1 min-w-0">
-                                      <p className="text-[12px] text-[var(--text-primary)] truncate">{r.full_name}</p>
-                                      <p className="text-[10px] text-[var(--text-disabled)]">{r.private ? '🔒 Private' : '🌐 Public'} · {r.default_branch}</p>
+                                      <p className="text-[12px] text-[var(--text-primary)] truncate">
+                                        {r.full_name}
+                                      </p>
+                                      <p className="text-[10px] text-[var(--text-disabled)]">
+                                        {r.private ? '🔒 Private' : '🌐 Public'} ·{' '}
+                                        {r.default_branch}
+                                      </p>
                                     </div>
                                   </div>
                                 )
@@ -623,40 +803,46 @@ export function SettingsPanel({
                       )}
                     </section>
 
-                    <section className="rounded-[24px] border border-[var(--glass-border)] bg-[color-mix(in_srgb,var(--bg-elevated)_88%,transparent)] p-4 shadow-[var(--shadow-sm)]">
+                    <section className="rounded-[20px] border border-[var(--glass-border)] bg-[color-mix(in_srgb,var(--bg-elevated)_72%,transparent)] px-4 py-4 shadow-[var(--shadow-sm)]">
                       <div className="flex items-center gap-3">
-                        <span className="flex h-10 w-10 items-center justify-center rounded-[18px] bg-[color-mix(in_srgb,var(--brand)_12%,transparent)] text-[var(--brand)]">
-                          <KnotLogo size={22} />
-                        </span>
-                        <div>
-                          <div className="text-sm font-semibold text-[var(--text-primary)]">
-                            Knot Code
+                        <div className="shrink-0 text-[var(--brand)]">
+                          <KnotLogo size={28} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[13px] font-semibold tracking-tight text-[var(--text-primary)]">
+                              KnotCode
+                            </span>
+                            <span className="rounded-full bg-[color-mix(in_srgb,var(--brand)_10%,transparent)] px-1.5 py-0.5 text-[9px] font-semibold tabular-nums text-[var(--brand)]">
+                              v1.6.0
+                            </span>
                           </div>
-                          <p className="text-[12px] text-[var(--text-secondary)]">
-                            AI-native code editor by OpenKnot.
+                          <p className="mt-0.5 truncate text-[11px] text-[var(--text-tertiary)]">
+                            AI-native editor by OpenKnot
                           </p>
                         </div>
-                      </div>
-
-                      <div className="mt-4 flex gap-2">
-                        <a
-                          href="https://github.com/OpenKnots/code-editor"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_92%,transparent)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition hover:border-[var(--border-hover)] hover:bg-[color-mix(in_srgb,var(--text-primary)_5%,transparent)]"
-                        >
-                          <Icon icon="lucide:github" width={14} />
-                          Source
-                        </a>
-                        <a
-                          href="https://github.com/OpenKnots/code-editor/issues"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_92%,transparent)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition hover:border-[var(--border-hover)] hover:bg-[color-mix(in_srgb,var(--text-primary)_5%,transparent)]"
-                        >
-                          <Icon icon="lucide:bug" width={14} />
-                          Report Bug
-                        </a>
+                        <div className="flex shrink-0 items-center gap-1">
+                          <a
+                            href="https://github.com/OpenKnots/code-editor"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex h-7 w-7 items-center justify-center rounded-xl border border-[var(--border)] text-[var(--text-disabled)] transition hover:border-[var(--border-hover)] hover:text-[var(--text-primary)]"
+                            title="Source on GitHub"
+                            aria-label="Source on GitHub"
+                          >
+                            <Icon icon="lucide:github" width={13} />
+                          </a>
+                          <a
+                            href="https://github.com/OpenKnots/code-editor/issues"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex h-7 w-7 items-center justify-center rounded-xl border border-[var(--border)] text-[var(--text-disabled)] transition hover:border-[var(--border-hover)] hover:text-[var(--text-primary)]"
+                            title="Report a bug"
+                            aria-label="Report a bug"
+                          >
+                            <Icon icon="lucide:bug" width={13} />
+                          </a>
+                        </div>
                       </div>
                     </section>
                   </div>
@@ -754,7 +940,7 @@ export function SettingsPanel({
                     <div className="flex items-start justify-between gap-3">
                       <span className="pt-0.5 text-[var(--text-secondary)]">Gateway</span>
                       <button
-                        onClick={() => setShowGatewayUrl(v => !v)}
+                        onClick={() => setShowGatewayUrl((v) => !v)}
                         className="max-w-[220px] truncate rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_92%,transparent)] px-2.5 py-1 font-mono text-[11px] text-[var(--text-primary)] cursor-pointer hover:border-[var(--text-disabled)] transition-colors"
                       >
                         {showGatewayUrl ? gatewayUrl : '••••••••'}
@@ -875,40 +1061,46 @@ export function SettingsPanel({
                 <CaffeinateToggle />
               </section>
 
-              <section className="rounded-[24px] border border-[var(--glass-border)] bg-[color-mix(in_srgb,var(--bg-elevated)_88%,transparent)] p-4 shadow-[var(--shadow-sm)]">
+              <section className="rounded-[20px] border border-[var(--glass-border)] bg-[color-mix(in_srgb,var(--bg-elevated)_72%,transparent)] px-4 py-4 shadow-[var(--shadow-sm)]">
                 <div className="flex items-center gap-3">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-[18px] bg-[color-mix(in_srgb,var(--brand)_12%,transparent)] text-[var(--brand)]">
-                    <KnotLogo size={22} />
-                  </span>
-                  <div>
-                    <div className="text-sm font-semibold text-[var(--text-primary)]">
-                      Knot Code
+                  <div className="shrink-0 text-[var(--brand)]">
+                    <KnotLogo size={28} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[13px] font-semibold tracking-tight text-[var(--text-primary)]">
+                        KnotCode
+                      </span>
+                      <span className="rounded-full bg-[color-mix(in_srgb,var(--brand)_10%,transparent)] px-1.5 py-0.5 text-[9px] font-semibold tabular-nums text-[var(--brand)]">
+                        v1.6.0
+                      </span>
                     </div>
-                    <p className="text-[12px] text-[var(--text-secondary)]">
-                      AI-native code editor by OpenKnot.
+                    <p className="mt-0.5 truncate text-[11px] text-[var(--text-tertiary)]">
+                      AI-native editor by OpenKnot
                     </p>
                   </div>
-                </div>
-
-                <div className="mt-4 flex gap-2">
-                  <a
-                    href="https://github.com/OpenKnots/code-editor"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_92%,transparent)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition hover:border-[var(--border-hover)] hover:bg-[color-mix(in_srgb,var(--text-primary)_5%,transparent)]"
-                  >
-                    <Icon icon="lucide:github" width={14} />
-                    Source
-                  </a>
-                  <a
-                    href="https://github.com/OpenKnots/code-editor/issues"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_92%,transparent)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] transition hover:border-[var(--border-hover)] hover:bg-[color-mix(in_srgb,var(--text-primary)_5%,transparent)]"
-                  >
-                    <Icon icon="lucide:bug" width={14} />
-                    Report Bug
-                  </a>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <a
+                      href="https://github.com/OpenKnots/code-editor"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex h-7 w-7 items-center justify-center rounded-xl border border-[var(--border)] text-[var(--text-disabled)] transition hover:border-[var(--border-hover)] hover:text-[var(--text-primary)]"
+                      title="Source on GitHub"
+                      aria-label="Source on GitHub"
+                    >
+                      <Icon icon="lucide:github" width={13} />
+                    </a>
+                    <a
+                      href="https://github.com/OpenKnots/code-editor/issues"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex h-7 w-7 items-center justify-center rounded-xl border border-[var(--border)] text-[var(--text-disabled)] transition hover:border-[var(--border-hover)] hover:text-[var(--text-primary)]"
+                      title="Report a bug"
+                      aria-label="Report a bug"
+                    >
+                      <Icon icon="lucide:bug" width={13} />
+                    </a>
+                  </div>
                 </div>
               </section>
             </div>

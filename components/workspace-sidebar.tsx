@@ -237,18 +237,6 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
                 className="codex-sidebar-nav-item flex items-center gap-2.5 px-3.5 py-2 rounded-lg text-[13px] text-[var(--text-secondary)] hover:bg-[color-mix(in_srgb,var(--text-primary)_5%,transparent)] hover:text-[var(--text-primary)] transition-all cursor-pointer w-full"
               >
                 <Icon
-                  icon="lucide:zap"
-                  width={15}
-                  height={15}
-                  className="text-[var(--text-tertiary)]"
-                />
-                Automations
-              </button>
-              <button
-                onClick={() => setView('skills')}
-                className="codex-sidebar-nav-item flex items-center gap-2.5 px-3.5 py-2 rounded-lg text-[13px] text-[var(--text-secondary)] hover:bg-[color-mix(in_srgb,var(--text-primary)_5%,transparent)] hover:text-[var(--text-primary)] transition-all cursor-pointer w-full"
-              >
-                <Icon
                   icon="lucide:sparkles"
                   width={15}
                   height={15}

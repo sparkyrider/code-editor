@@ -160,9 +160,9 @@ jobs:
           tag_name: ${{ github.event.inputs.version || github.ref_name }}
           name: ${{ github.event.inputs.version || github.ref_name }}
           files: |
-            dist/*.AppImage
-            dist/*.deb
-            dist/*.dmg
-            dist/*.exe
-            dist/*.msi
+            dist/**/*.AppImage
+            dist/**/*.deb
+            dist/**/*.dmg
+            dist/**/*.exe
+            dist/**/*.msi
           fail_on_unmatched_files: true

@@ -10,6 +10,12 @@
 - **Agent Mode — auto-apply edits** — accepted diff hunks apply immediately without a separate confirm step
 - **Codex theme** — new dark/light theme pair with ink-black backgrounds and warm accent tones
 - **Skills UI redesign** — refined layout and typography for the skills panel
+- **Mobile terminal tab** — bottom tab bar now surfaces a full-screen gateway terminal (replaces Settings shortcut)
+
+### Fixed
+
+- **Chat send race condition** — message text passed directly to the send handler instead of via `setInput` + `setTimeout`
+- **Git sidebar action buttons** — inline buttons now only appear when a file is unstaged and in local mode
 
 ### Changed
 
@@ -26,10 +32,22 @@
 
 ### Added
 
+- **GitHub Device Flow sign-in** — Authenticate with GitHub directly from the app without leaving the editor; username badge auto-appears after sign-in
+- **GitHub hub in Settings** — Device Flow auth, PAT entry, starred favorites, and repo list in one place; secure token persistence on iOS via localStorage fallback
+- **`tauri-plugin-http`** — Server-side HTTP plugin bypasses CORS restrictions for GitHub Device Flow on iOS
+- **Mobile file explorer** — Browse and open repo files from chat home on mobile
+- **Editor workflow tabs** — Streamlined editor view with workflow tab strip; files can be revealed from chat
 - **Cross-platform desktop release assets** — GitHub releases now attach macOS (`.dmg`), Linux (`.AppImage`, `.deb`), and Windows (`.exe`, `.msi`) installers from the release workflow
+
+### Fixed
+
+- **iOS export compliance** — Added `ITSAppUsesNonExemptEncryption = false` to skip the TestFlight export compliance prompt
+- **Mobile chat home layout** — Content pushed to top instead of vertical center for better reachability
+- **Mobile connect section** — Collapses by default; gateway URL hidden behind a tap-to-reveal control
 
 ### Changed
 
+- **Mobile tabs** — Skills replaces Workshop in the bottom tab bar
 - **Version metadata aligned** — Synced app, Tauri, Rust, and Apple bundle versions for the 1.6.0 release
 
 ## [1.5.0] — 2026-03-08

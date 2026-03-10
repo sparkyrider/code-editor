@@ -16,6 +16,10 @@ const SkillsView = dynamic(
   () => import('@/components/views/skills-view').then((m) => m.SkillsView),
   { ssr: false },
 )
+const McpLibraryView = dynamic(
+  () => import('@/components/views/mcp-library-view').then((m) => m.McpLibraryView),
+  { ssr: false },
+)
 const SettingsPanel = dynamic(
   () => import('@/components/settings-panel').then((m) => m.SettingsPanel),
   { ssr: false },
@@ -38,6 +42,7 @@ const VIEW_ICONS: Record<string, { label: string }> = {
   preview: { label: 'Preview' },
   git: { label: 'Git' },
   skills: { label: 'Skills' },
+  mcp: { label: 'MCP Library' },
   settings: { label: 'Settings' },
   terminal: { label: 'Terminal' },
 }
@@ -80,6 +85,7 @@ export function ViewRouter() {
             {activeView === 'preview' && <PreviewPanel />}
             {activeView === 'git' && <GitView />}
             {activeView === 'skills' && <SkillsView />}
+            {activeView === 'mcp' && <McpLibraryView />}
             {activeView === 'settings' && (
               <div className="flex-1 flex items-center justify-center">
                 <SettingsPanel open={true} onClose={() => setView('editor')} />

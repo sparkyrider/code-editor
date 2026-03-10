@@ -90,6 +90,7 @@ const VIEW_ICONS: Record<string, { icon: string; label: string }> = {
   diff: { icon: 'lucide:git-compare', label: 'Diff' },
   git: { icon: 'lucide:git-branch', label: 'Git' },
   skills: { icon: 'lucide:sparkles', label: 'Skills' },
+  mcp: { icon: 'lucide:plug', label: 'MCP' },
   settings: { icon: 'lucide:settings', label: 'Settings' },
   terminal: { icon: 'lucide:terminal', label: 'Terminal' },
 }
@@ -134,7 +135,7 @@ export default function EditorLayout() {
   const terminalStartupCommand = useCenteredTerminal ? 'openclaw tui' : undefined
   const mobileViewTabs = useMemo(() => {
     // On mobile, curate tabs to useful views + always include settings
-    const mobile = visibleViews.filter((v) => !['preview', 'diff', 'skills'].includes(v))
+    const mobile = visibleViews.filter((v) => !['preview', 'diff', 'skills', 'mcp'].includes(v))
     if (!mobile.includes('terminal')) mobile.push('terminal')
     return mobile.slice(0, 5)
   }, [visibleViews])

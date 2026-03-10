@@ -201,7 +201,7 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
           <button
             onClick={() => setView('prompts')}
             className={`activity-bar-btn ${activeView === 'prompts' ? 'activity-bar-btn--active' : ''}`}
-            title="Prompt Library"
+            title="Prompts"
           >
             <Icon icon="lucide:book-open" width={24} height={24} />
           </button>
@@ -274,54 +274,29 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
             </div>
 
             {/* View Navigation */}
-            <div className="mt-2 space-y-0.5">
-              <button
-                onClick={() => setView('chat')}
-                className={`sidebar-view-nav ${activeView === 'chat' ? 'sidebar-view-nav--active' : ''}`}
-              >
-                <Icon icon="lucide:message-circle" width={18} height={18} />
-                Chat
-              </button>
-              <button
-                onClick={() => setView('editor')}
-                className={`sidebar-view-nav ${activeView === 'editor' ? 'sidebar-view-nav--active' : ''}`}
-              >
-                <Icon icon="lucide:code" width={18} height={18} />
-                Editor
-              </button>
-              <button
-                onClick={() => setView('git')}
-                className={`sidebar-view-nav ${activeView === 'git' ? 'sidebar-view-nav--active' : ''}`}
-              >
-                <Icon icon="lucide:git-branch" width={18} height={18} />
-                Git
-                {dirtyCount > 0 && (
-                  <span className="ml-auto px-2 min-w-[22px] text-center rounded-full bg-[var(--brand)] text-[var(--brand-contrast)] text-[11px] leading-[18px] font-bold">
-                    {dirtyCount}
-                  </span>
-                )}
-              </button>
-              <button
-                onClick={() => setView('mcp')}
-                className={`sidebar-view-nav ${activeView === 'mcp' ? 'sidebar-view-nav--active' : ''}`}
-              >
-                <Icon icon="lucide:plug" width={18} height={18} />
-                MCP
-              </button>
-              <button
-                onClick={() => setView('skills')}
-                className={`sidebar-view-nav ${activeView === 'skills' ? 'sidebar-view-nav--active' : ''}`}
-              >
-                <Icon icon="lucide:wand-2" width={18} height={18} />
-                Skills
-              </button>
-              <button
-                onClick={() => setView('prompts')}
-                className={`sidebar-view-nav ${activeView === 'prompts' ? 'sidebar-view-nav--active' : ''}`}
-              >
-                <Icon icon="lucide:book-open" width={18} height={18} />
-                Prompts
-              </button>
+            <div className="mt-2 flex flex-col gap-0.5">
+              {([
+                { id: 'chat' as const, icon: 'lucide:message-circle', label: 'Chat' },
+                { id: 'editor' as const, icon: 'lucide:code', label: 'Editor' },
+                { id: 'git' as const, icon: 'lucide:git-branch', label: 'Git' },
+                { id: 'mcp' as const, icon: 'lucide:plug', label: 'MCP' },
+                { id: 'skills' as const, icon: 'lucide:wand-2', label: 'Skills' },
+                { id: 'prompts' as const, icon: 'lucide:book-open', label: 'Prompts' },
+              ] as const).map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setView(item.id)}
+                  className={`sidebar-view-nav ${activeView === item.id ? 'sidebar-view-nav--active' : ''}`}
+                >
+                  <Icon icon={item.icon} width={16} height={16} className="shrink-0" />
+                  <span className="truncate">{item.label}</span>
+                  {item.id === 'git' && dirtyCount > 0 && (
+                    <span className="ml-auto px-1.5 min-w-[20px] text-center rounded-full bg-[var(--brand)] text-[var(--brand-contrast)] text-[10px] leading-[18px] font-bold shrink-0">
+                      {dirtyCount}
+                    </span>
+                  )}
+                </button>
+              ))}
             </div>
           </div>
 

@@ -3470,16 +3470,21 @@ p {
 
 /* Expanded sidebar view navigation */
 .sidebar-view-nav {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
-  padding: 8px 12px;
+  padding: 7px 10px;
   border-radius: 8px;
-  font-size: 14px;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--text-secondary);
   transition: all 180ms ease;
   cursor: pointer;
+  text-align: left;
   position: relative;
   text-align: left;
 }

@@ -1946,21 +1946,21 @@ export function AgentPanel() {
       return []
     }
 
-    // Detect picker triggers
-    if (input === '/skill ' || input.startsWith('/skill use ')) {
-      const query = input.replace('/skill use ', '').replace('/skill ', '')
+    // Detect picker triggers — open on exact match OR with trailing space/query
+    if (input === '/skill' || input === '/skill ' || input.startsWith('/skill use') || input === '/skill use') {
+      const query = input.replace(/^\/skill\s*(use\s*)?/, '')
       setActivePicker('skill')
       setPickerQuery(query)
       return []
     }
-    if (input.startsWith('/mcp ')) {
-      const query = input.replace('/mcp ', '')
+    if (input === '/mcp' || input.startsWith('/mcp ')) {
+      const query = input.replace(/^\/mcp\s*/, '')
       setActivePicker('mcp')
       setPickerQuery(query)
       return []
     }
-    if (input.startsWith('/prompt ')) {
-      const query = input.replace('/prompt ', '')
+    if (input === '/prompt' || input.startsWith('/prompt ')) {
+      const query = input.replace(/^\/prompt\s*/, '')
       setActivePicker('prompt')
       setPickerQuery(query)
       return []

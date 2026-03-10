@@ -431,10 +431,10 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
               Settings
             </button>
             <button
-              onClick={() => window.open('https://github.com/OpenKnots/code-editor', '_blank')}
+              onClick={() => window.open('https://x.com/OpenKnot', '_blank')}
               className="codex-sidebar-nav-item flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all cursor-pointer w-full"
             >
-              <Icon icon="lucide:life-buoy" width={18} height={18} />
+              <Icon icon="ri:twitter-x-fill" width={18} height={18} />
               Get Help
             </button>
             <button

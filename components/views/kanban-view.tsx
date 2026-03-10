@@ -117,6 +117,619 @@ const DEFAULT_LABELS: Label[] = [
   { id: 'urgent', name: 'Urgent', color: '#f97316' },
 ]
 
+// ── Card Templates ─────────────────────────────────────────────
+interface CardTemplate {
+  id: string
+  name: string
+  icon: string
+  title: string
+  priority: Priority
+  labels: string[]
+  subtasks: string[]
+  description?: string
+}
+
+const CARD_TEMPLATES: CardTemplate[] = [
+  {
+    id: 'bug-report',
+    name: 'Bug Report',
+    icon: 'lucide:bug',
+    title: 'Bug: [describe issue]',
+    priority: 'P1',
+    labels: ['bug'],
+    subtasks: ['Steps to reproduce', 'Expected behavior', 'Actual behavior', 'Environment info'],
+  },
+  {
+    id: 'feature-request',
+    name: 'Feature Request',
+    icon: 'lucide:sparkles',
+    title: 'Feature: [describe feature]',
+    priority: 'P2',
+    labels: ['feature'],
+    subtasks: ['User story', 'Acceptance criteria', 'Design mockup', 'Implementation plan'],
+  },
+  {
+    id: 'test-case',
+    name: 'Test Case',
+    icon: 'lucide:flask-conical',
+    title: 'Test: [describe test]',
+    priority: 'P2',
+    labels: ['docs'],
+    subtasks: ['Setup', 'Steps', 'Assertions', 'Cleanup'],
+  },
+  {
+    id: 'security-issue',
+    name: 'Security Issue',
+    icon: 'lucide:shield-alert',
+    title: 'Security: [describe vulnerability]',
+    priority: 'P0',
+    labels: ['urgent'],
+    subtasks: ['Identify scope', 'Assess impact', 'Implement fix', 'Verify fix', 'Post-mortem'],
+  },
+  {
+    id: 'refactor',
+    name: 'Refactor',
+    icon: 'lucide:wrench',
+    title: 'Refactor: [describe target]',
+    priority: 'P2',
+    labels: ['refactor'],
+    subtasks: ['Identify code smells', 'Plan changes', 'Implement', 'Run tests', 'Review'],
+  },
+  {
+    id: 'documentation',
+    name: 'Documentation',
+    icon: 'lucide:file-text',
+    title: 'Docs: [describe docs]',
+    priority: 'P3',
+    labels: ['docs'],
+    subtasks: ['Outline', 'Draft', 'Review', 'Publish'],
+  },
+  {
+    id: 'code-review',
+    name: 'Code Review',
+    icon: 'lucide:git-pull-request',
+    title: 'Review: [PR/branch name]',
+    priority: 'P1',
+    labels: ['feature'],
+    subtasks: [],
+    description: 'PR: \nBranch: \nChanges: ',
+  },
+  {
+    id: 'hotfix',
+    name: 'Hotfix',
+    icon: 'lucide:flame',
+    title: 'Hotfix: [describe fix]',
+    priority: 'P0',
+    labels: ['bug', 'urgent'],
+    subtasks: ['Identify issue', 'Write fix', 'Test fix', 'Deploy to prod', 'Verify in prod'],
+  },
+]
+
+// ── Board Templates ────────────────────────────────────────────
+interface BoardTemplate {
+  id: string
+  name: string
+  icon: string
+  description: string
+  columns: Omit<KanbanColumn, 'collapsed'>[]
+  cards: Omit<
+    KanbanCard,
+    | 'id'
+    | 'createdAt'
+    | 'sortOrder'
+    | 'comments'
+    | 'activity'
+    | 'assignee'
+    | 'dueDate'
+    | 'linkedBranch'
+    | 'subtasks'
+  > &
+    { subtasks: string[] }[]
+}
+
+const BOARD_TEMPLATES: BoardTemplate[] = [
+  {
+    id: 'empty',
+    name: 'Empty Board',
+    icon: 'lucide:layout-grid',
+    description: 'Start with a blank canvas',
+    columns: [
+      { id: 'backlog', title: 'Backlog', icon: 'lucide:inbox', color: '#6b7280' },
+      { id: 'started', title: 'Started', icon: 'lucide:play', color: '#3b82f6' },
+      { id: 'review', title: 'Reviewing', icon: 'lucide:eye', color: '#f59e0b' },
+      { id: 'done', title: 'Done', icon: 'lucide:check', color: '#22c55e' },
+    ],
+    cards: [],
+  },
+  {
+    id: 'sprint-planning',
+    name: 'Sprint Planning',
+    icon: 'lucide:rocket',
+    description: 'Organize your sprint workflow',
+    columns: [
+      { id: 'backlog', title: 'Backlog', icon: 'lucide:inbox', color: '#6b7280' },
+      { id: 'sprint', title: 'Sprint', icon: 'lucide:target', color: '#8b5cf6' },
+      { id: 'in-progress', title: 'In Progress', icon: 'lucide:play', color: '#3b82f6' },
+      { id: 'review', title: 'Review', icon: 'lucide:eye', color: '#f59e0b' },
+      { id: 'done', title: 'Done', icon: 'lucide:check', color: '#22c55e' },
+    ],
+    cards: [
+      {
+        title: 'Define sprint goals',
+        priority: 'P1',
+        labels: ['feature'],
+        description: 'Identify key deliverables',
+        subtasks: [],
+        columnId: 'sprint',
+      },
+      {
+        title: 'Estimate story points',
+        priority: 'P2',
+        labels: ['feature'],
+        subtasks: [],
+        columnId: 'sprint',
+      },
+      {
+        title: 'Prioritize backlog items',
+        priority: 'P1',
+        labels: ['feature'],
+        subtasks: [],
+        columnId: 'backlog',
+      },
+      {
+        title: 'Assign team capacity',
+        priority: 'P2',
+        labels: ['feature'],
+        subtasks: [],
+        columnId: 'backlog',
+      },
+      {
+        title: 'Set sprint duration',
+        priority: 'P3',
+        labels: ['feature'],
+        subtasks: [],
+        columnId: 'backlog',
+      },
+    ],
+  },
+  {
+    id: 'bug-triage',
+    name: 'Bug Triage',
+    icon: 'lucide:bug',
+    description: 'Track and fix bugs systematically',
+    columns: [
+      { id: 'reported', title: 'Reported', icon: 'lucide:inbox', color: '#6b7280' },
+      { id: 'confirmed', title: 'Confirmed', icon: 'lucide:check-circle', color: '#f97316' },
+      { id: 'in-fix', title: 'In Fix', icon: 'lucide:wrench', color: '#3b82f6' },
+      { id: 'qa', title: 'QA', icon: 'lucide:flask-conical', color: '#8b5cf6' },
+      { id: 'resolved', title: 'Resolved', icon: 'lucide:check', color: '#22c55e' },
+    ],
+    cards: [
+      {
+        title: 'Critical crash on startup',
+        priority: 'P0',
+        labels: ['bug'],
+        subtasks: [
+          { id: genId('sub'), title: 'Reproduce', done: false },
+          { id: genId('sub'), title: 'Identify root cause', done: false },
+          { id: genId('sub'), title: 'Write fix', done: false },
+          { id: genId('sub'), title: 'Add regression test', done: false },
+        ],
+        columnId: 'reported',
+      },
+      {
+        title: 'Memory leak in data processing',
+        priority: 'P1',
+        labels: ['bug'],
+        subtasks: [],
+        columnId: 'reported',
+      },
+      {
+        title: 'UI alignment issue on mobile',
+        priority: 'P2',
+        labels: ['bug'],
+        subtasks: [],
+        columnId: 'confirmed',
+      },
+      {
+        title: 'Broken link in footer',
+        priority: 'P3',
+        labels: ['bug'],
+        subtasks: [],
+        columnId: 'confirmed',
+      },
+      {
+        title: 'Performance degradation after update',
+        priority: 'P1',
+        labels: ['bug'],
+        subtasks: [],
+        columnId: 'reported',
+      },
+    ],
+  },
+  {
+    id: 'security-audit',
+    name: 'Security Audit',
+    icon: 'lucide:shield-check',
+    description: 'Security review checklist',
+    columns: [
+      { id: 'scan', title: 'Scan', icon: 'lucide:search', color: '#6b7280' },
+      { id: 'analyze', title: 'Analyze', icon: 'lucide:microscope', color: '#f97316' },
+      { id: 'remediate', title: 'Remediate', icon: 'lucide:wrench', color: '#3b82f6' },
+      { id: 'verify', title: 'Verify', icon: 'lucide:check-circle', color: '#8b5cf6' },
+      { id: 'closed', title: 'Closed', icon: 'lucide:lock', color: '#22c55e' },
+    ],
+    cards: [
+      {
+        title: 'Run dependency audit (npm audit)',
+        priority: 'P0',
+        labels: ['urgent'],
+        subtasks: [
+          { id: genId('sub'), title: 'Run scan', done: false },
+          { id: genId('sub'), title: 'Review critical', done: false },
+          { id: genId('sub'), title: 'Review high', done: false },
+          { id: genId('sub'), title: 'Review moderate', done: false },
+        ],
+        columnId: 'scan',
+      },
+      {
+        title: 'Check for hardcoded secrets',
+        priority: 'P0',
+        labels: ['urgent'],
+        subtasks: [],
+        columnId: 'scan',
+      },
+      {
+        title: 'Review authentication flow',
+        priority: 'P1',
+        labels: ['feature'],
+        subtasks: [],
+        columnId: 'scan',
+      },
+      {
+        title: 'Test CORS configuration',
+        priority: 'P1',
+        labels: ['feature'],
+        subtasks: [],
+        columnId: 'analyze',
+      },
+      {
+        title: 'Verify CSP headers',
+        priority: 'P2',
+        labels: ['feature'],
+        subtasks: [],
+        columnId: 'analyze',
+      },
+      {
+        title: 'Check SQL injection vectors',
+        priority: 'P1',
+        labels: ['bug'],
+        subtasks: [],
+        columnId: 'scan',
+      },
+      {
+        title: 'Review rate limiting',
+        priority: 'P2',
+        labels: ['feature'],
+        subtasks: [],
+        columnId: 'analyze',
+      },
+    ],
+  },
+  {
+    id: 'test-coverage',
+    name: 'Test Coverage',
+    icon: 'lucide:flask-conical',
+    description: 'Improve test coverage',
+    columns: [
+      { id: 'untested', title: 'Untested', icon: 'lucide:alert-circle', color: '#ef4444' },
+      { id: 'writing-tests', title: 'Writing Tests', icon: 'lucide:edit', color: '#3b82f6' },
+      { id: 'in-review', title: 'In Review', icon: 'lucide:eye', color: '#f59e0b' },
+      { id: 'passing', title: 'Passing', icon: 'lucide:check-circle', color: '#22c55e' },
+      { id: 'skipped', title: 'Skipped', icon: 'lucide:skip-forward', color: '#6b7280' },
+    ],
+    cards: [
+      {
+        title: 'Unit tests for auth module',
+        priority: 'P1',
+        labels: ['feature'],
+        subtasks: [
+          { id: genId('sub'), title: 'Login flow', done: false },
+          { id: genId('sub'), title: 'Register flow', done: false },
+          { id: genId('sub'), title: 'Password reset', done: false },
+          { id: genId('sub'), title: 'Token refresh', done: false },
+        ],
+        columnId: 'untested',
+      },
+      {
+        title: 'Integration tests for API',
+        priority: 'P1',
+        labels: ['feature'],
+        subtasks: [],
+        columnId: 'untested',
+      },
+      {
+        title: 'E2E tests for checkout',
+        priority: 'P2',
+        labels: ['feature'],
+        subtasks: [],
+        columnId: 'writing-tests',
+      },
+      {
+        title: 'Snapshot tests for components',
+        priority: 'P3',
+        labels: ['feature'],
+        subtasks: [],
+        columnId: 'untested',
+      },
+      {
+        title: 'Performance benchmarks',
+        priority: 'P2',
+        labels: ['feature'],
+        subtasks: [],
+        columnId: 'untested',
+      },
+    ],
+  },
+  {
+    id: 'release-checklist',
+    name: 'Release Checklist',
+    icon: 'lucide:package',
+    description: 'Pre-release preparation',
+    columns: [
+      { id: 'pre-release', title: 'Pre-Release', icon: 'lucide:clipboard-list', color: '#6b7280' },
+      { id: 'building', title: 'Building', icon: 'lucide:hammer', color: '#3b82f6' },
+      { id: 'testing', title: 'Testing', icon: 'lucide:flask-conical', color: '#f59e0b' },
+      { id: 'staging', title: 'Staging', icon: 'lucide:cloud-upload', color: '#8b5cf6' },
+      { id: 'shipped', title: 'Shipped', icon: 'lucide:rocket', color: '#22c55e' },
+    ],
+    cards: [
+      {
+        title: 'Update CHANGELOG.md',
+        priority: 'P1',
+        labels: ['docs'],
+        subtasks: [],
+        columnId: 'pre-release',
+      },
+      {
+        title: 'Bump version numbers',
+        priority: 'P1',
+        labels: ['feature'],
+        subtasks: [],
+        columnId: 'pre-release',
+      },
+      {
+        title: 'Run full test suite',
+        priority: 'P0',
+        labels: ['urgent'],
+        subtasks: [
+          { id: genId('sub'), title: 'Unit tests', done: false },
+          { id: genId('sub'), title: 'Integration tests', done: false },
+          { id: genId('sub'), title: 'E2E tests', done: false },
+          { id: genId('sub'), title: 'Smoke tests', done: false },
+        ],
+        columnId: 'testing',
+      },
+      {
+        title: 'Build release assets',
+        priority: 'P1',
+        labels: ['feature'],
+        subtasks: [
+          { id: genId('sub'), title: 'macOS DMG', done: false },
+          { id: genId('sub'), title: 'Windows MSI', done: false },
+          { id: genId('sub'), title: 'Linux AppImage', done: false },
+          { id: genId('sub'), title: 'Linux DEB', done: false },
+        ],
+        columnId: 'building',
+      },
+      {
+        title: 'Update documentation',
+        priority: 'P2',
+        labels: ['docs'],
+        subtasks: [],
+        columnId: 'pre-release',
+      },
+      {
+        title: 'Draft release notes',
+        priority: 'P1',
+        labels: ['docs'],
+        subtasks: [],
+        columnId: 'pre-release',
+      },
+      {
+        title: 'Deploy to staging',
+        priority: 'P1',
+        labels: ['feature'],
+        subtasks: [],
+        columnId: 'testing',
+      },
+      {
+        title: 'Final QA sign-off',
+        priority: 'P0',
+        labels: ['urgent'],
+        subtasks: [],
+        columnId: 'testing',
+      },
+    ],
+  },
+  {
+    id: 'feature-development',
+    name: 'Feature Development',
+    icon: 'lucide:puzzle',
+    description: 'End-to-end feature workflow',
+    columns: [
+      { id: 'discovery', title: 'Discovery', icon: 'lucide:lightbulb', color: '#6b7280' },
+      { id: 'design', title: 'Design', icon: 'lucide:palette', color: '#f97316' },
+      { id: 'implement', title: 'Implement', icon: 'lucide:code', color: '#3b82f6' },
+      { id: 'review', title: 'Review', icon: 'lucide:eye', color: '#8b5cf6' },
+      { id: 'ship', title: 'Ship', icon: 'lucide:rocket', color: '#22c55e' },
+    ],
+    cards: [
+      {
+        title: 'Write user stories',
+        priority: 'P2',
+        labels: ['docs'],
+        subtasks: [],
+        columnId: 'discovery',
+      },
+      {
+        title: 'Create wireframes',
+        priority: 'P2',
+        labels: ['docs'],
+        subtasks: [],
+        columnId: 'design',
+      },
+      {
+        title: 'Define acceptance criteria',
+        priority: 'P1',
+        labels: ['feature'],
+        subtasks: [],
+        columnId: 'discovery',
+      },
+      {
+        title: 'Set up feature branch',
+        priority: 'P3',
+        labels: ['feature'],
+        subtasks: [],
+        columnId: 'implement',
+      },
+      {
+        title: 'Implement core logic',
+        priority: 'P1',
+        labels: ['feature'],
+        subtasks: [],
+        columnId: 'implement',
+      },
+      {
+        title: 'Write tests',
+        priority: 'P1',
+        labels: ['feature'],
+        subtasks: [],
+        columnId: 'implement',
+      },
+      {
+        title: 'Code review',
+        priority: 'P1',
+        labels: ['feature'],
+        subtasks: [],
+        columnId: 'review',
+      },
+      {
+        title: 'Update docs',
+        priority: 'P2',
+        labels: ['docs'],
+        subtasks: [],
+        columnId: 'review',
+      },
+    ],
+  },
+  {
+    id: 'devops-pipeline',
+    name: 'DevOps Pipeline',
+    icon: 'lucide:cloud-cog',
+    description: 'Infrastructure and CI/CD',
+    columns: [
+      { id: 'backlog', title: 'Backlog', icon: 'lucide:inbox', color: '#6b7280' },
+      { id: 'configuring', title: 'Configuring', icon: 'lucide:settings', color: '#3b82f6' },
+      { id: 'testing', title: 'Testing', icon: 'lucide:flask-conical', color: '#f59e0b' },
+      { id: 'deployed', title: 'Deployed', icon: 'lucide:cloud-upload', color: '#22c55e' },
+      { id: 'monitoring', title: 'Monitoring', icon: 'lucide:activity', color: '#8b5cf6' },
+    ],
+    cards: [
+      {
+        title: 'Set up CI/CD pipeline',
+        priority: 'P0',
+        labels: ['urgent'],
+        subtasks: [
+          { id: genId('sub'), title: 'GitHub Actions', done: false },
+          { id: genId('sub'), title: 'Build step', done: false },
+          { id: genId('sub'), title: 'Test step', done: false },
+          { id: genId('sub'), title: 'Deploy step', done: false },
+        ],
+        columnId: 'backlog',
+      },
+      {
+        title: 'Configure monitoring alerts',
+        priority: 'P1',
+        labels: ['feature'],
+        subtasks: [],
+        columnId: 'backlog',
+      },
+      {
+        title: 'Set up staging environment',
+        priority: 'P1',
+        labels: ['feature'],
+        subtasks: [],
+        columnId: 'configuring',
+      },
+      {
+        title: 'Implement rollback strategy',
+        priority: 'P1',
+        labels: ['feature'],
+        subtasks: [],
+        columnId: 'backlog',
+      },
+      {
+        title: 'Document deployment process',
+        priority: 'P2',
+        labels: ['docs'],
+        subtasks: [],
+        columnId: 'backlog',
+      },
+    ],
+  },
+  {
+    id: 'research-spike',
+    name: 'Research & Spike',
+    icon: 'lucide:microscope',
+    description: 'Exploration and prototyping',
+    columns: [
+      { id: 'ideas', title: 'Ideas', icon: 'lucide:lightbulb', color: '#6b7280' },
+      { id: 'investigating', title: 'Investigating', icon: 'lucide:search', color: '#3b82f6' },
+      { id: 'prototyping', title: 'Prototyping', icon: 'lucide:flask-conical', color: '#f59e0b' },
+      { id: 'findings', title: 'Findings', icon: 'lucide:clipboard-check', color: '#22c55e' },
+      { id: 'archived', title: 'Archived', icon: 'lucide:archive', color: '#6b7280' },
+    ],
+    cards: [
+      {
+        title: 'Evaluate alternative frameworks',
+        priority: 'P2',
+        labels: ['feature'],
+        subtasks: [],
+        columnId: 'ideas',
+      },
+      {
+        title: 'Benchmark database options',
+        priority: 'P2',
+        labels: ['feature'],
+        subtasks: [],
+        columnId: 'investigating',
+      },
+      {
+        title: 'Prototype new UI approach',
+        priority: 'P2',
+        labels: ['feature'],
+        subtasks: [],
+        columnId: 'prototyping',
+      },
+      {
+        title: 'Research API design patterns',
+        priority: 'P3',
+        labels: ['docs'],
+        subtasks: [],
+        columnId: 'ideas',
+      },
+      {
+        title: 'Analyze competitor features',
+        priority: 'P3',
+        labels: ['docs'],
+        subtasks: [],
+        columnId: 'investigating',
+      },
+    ],
+  },
+]
+
 const PRIORITY_CONFIG = {
   P0: { label: 'Critical', color: '#ef4444', icon: 'lucide:alert-triangle' },
   P1: { label: 'High', color: '#f97316', icon: 'lucide:arrow-up' },
@@ -225,10 +838,7 @@ function formatDateInput(ts?: number) {
 }
 
 // ── Board Health Calculation ───────────────────────────────────
-function calculateBoardHealth(
-  cards: KanbanCard[],
-  columns: KanbanColumn[],
-): BoardHealth {
+function calculateBoardHealth(cards: KanbanCard[], columns: KanbanColumn[]): BoardHealth {
   if (cards.length === 0) {
     return {
       score: 100,
@@ -266,7 +876,8 @@ function calculateBoardHealth(
   const totalScore = (wipScore + labelScore + descScore + staleScore + overdueScore) / 5
 
   let color = '#22c55e' // green
-  if (totalScore < 50) color = '#ef4444' // red
+  if (totalScore < 50)
+    color = '#ef4444' // red
   else if (totalScore < 75) color = '#f59e0b' // amber
 
   return {
@@ -308,7 +919,8 @@ function generateRecommendations(
       id: 'wip-too-high',
       icon: 'lucide:alert-triangle',
       title: 'Too much WIP',
-      description: 'Consider finishing current work before starting new tasks. Move some cards back to Backlog.',
+      description:
+        'Consider finishing current work before starting new tasks. Move some cards back to Backlog.',
       action: 'View Started',
       actionFn: () => handlers.onHighlightColumn('started'),
       priority: 'high',
@@ -1188,7 +1800,10 @@ function RecommendationsPanel({
       {/* Recommendations Cards */}
       {!collapsed && recommendations.length > 0 && (
         <div className="px-6 pb-4">
-          <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          <div
+            className="flex gap-3 overflow-x-auto pb-2"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
             {recommendations.map((rec, index) => (
               <motion.div
                 key={rec.id}
@@ -1346,6 +1961,9 @@ export function KanbanView() {
   })
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [highlightedColumn, setHighlightedColumn] = useState<string | null>(null)
+  const [showBoardTemplatePicker, setShowBoardTemplatePicker] = useState(false)
+  const [cardTemplatePickerColumn, setCardTemplatePickerColumn] = useState<string | null>(null)
+  const cardTemplatePickerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     saveKanbanData(data)
@@ -1453,6 +2071,20 @@ export function KanbanView() {
     return () => document.removeEventListener('mousedown', handler)
   }, [boardMenuOpen])
 
+  // Close card template picker on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (
+        cardTemplatePickerRef.current &&
+        !cardTemplatePickerRef.current.contains(e.target as Node)
+      ) {
+        setCardTemplatePickerColumn(null)
+      }
+    }
+    if (cardTemplatePickerColumn) document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [cardTemplatePickerColumn])
+
   const activeBoard = useMemo(() => {
     return data.boards.find((b) => b.id === data.activeBoard) || data.boards[0]
   }, [data])
@@ -1530,6 +2162,69 @@ export function KanbanView() {
     })
     setNewCardColumn(null)
     setNewCardTitle('')
+  }, [])
+
+  const addCardFromTemplate = useCallback((columnId: string, templateId: string) => {
+    const template = CARD_TEMPLATES.find((t) => t.id === templateId)
+    if (!template) return
+
+    let newCardId: string = ''
+
+    setData((prev) => {
+      const board = prev.boards.find((b) => b.id === prev.activeBoard)
+      if (!board) return prev
+
+      const colCards = board.cards.filter((c) => c.columnId === columnId)
+      const maxSort = colCards.reduce((max, c) => Math.max(max, c.sortOrder), 0)
+
+      // Ensure all labels from template exist in board
+      const existingLabelIds = new Set(board.labels.map((l) => l.id))
+      const missingLabels = template.labels
+        .filter((labelId) => !existingLabelIds.has(labelId))
+        .map((labelId) => DEFAULT_LABELS.find((l) => l.id === labelId))
+        .filter((l): l is Label => l !== undefined)
+
+      newCardId = genId('card')
+      const newCard: KanbanCard = {
+        id: newCardId,
+        title: template.title,
+        description: template.description,
+        labels: template.labels,
+        priority: template.priority,
+        createdAt: Date.now(),
+        columnId,
+        sortOrder: maxSort + 1,
+        subtasks: template.subtasks.map((title) => ({
+          id: genId('sub'),
+          title,
+          done: false,
+        })),
+        comments: [],
+        activity: [
+          {
+            id: genId('activity'),
+            action: 'Created card',
+            timestamp: Date.now(),
+          },
+        ],
+      }
+
+      return {
+        ...prev,
+        boards: prev.boards.map((b) =>
+          b.id === prev.activeBoard
+            ? {
+                ...b,
+                cards: [...b.cards, newCard],
+                labels: [...b.labels, ...missingLabels],
+              }
+            : b,
+        ),
+      }
+    })
+
+    setCardTemplatePickerColumn(null)
+    setSelectedCardId(newCardId)
   }, [])
 
   const moveCard = useCallback(
@@ -1627,6 +2322,65 @@ export function KanbanView() {
       boards: [...prev.boards, newBoard],
       activeBoard: newBoard.id,
     }))
+    setBoardMenuOpen(false)
+  }, [])
+
+  const createBoardFromTemplate = useCallback((templateId: string) => {
+    const template = BOARD_TEMPLATES.find((t) => t.id === templateId)
+    if (!template) return
+
+    const boardId = genId('board')
+
+    // Create columns with unique IDs and collapsed state
+    const columns: KanbanColumn[] = template.columns.map((col) => ({
+      ...col,
+      id: `${boardId}-${col.id}`,
+      collapsed: false,
+    }))
+
+    // Collect all label IDs referenced in template cards
+    const referencedLabelIds = new Set<string>()
+    template.cards.forEach((card) => {
+      card.labels.forEach((labelId) => referencedLabelIds.add(labelId))
+    })
+
+    // Include all referenced labels from defaults
+    const labels: Label[] = DEFAULT_LABELS.filter((label) => referencedLabelIds.has(label.id))
+
+    // Create cards with proper IDs, timestamps, and column mappings
+    const cards: KanbanCard[] = template.cards.map((card, index) => ({
+      id: genId('card'),
+      title: card.title,
+      description: card.description,
+      labels: card.labels,
+      priority: card.priority,
+      subtasks: card.subtasks,
+      columnId: `${boardId}-${card.columnId}`,
+      sortOrder: index,
+      createdAt: Date.now(),
+      comments: [],
+      activity: [
+        {
+          id: genId('activity'),
+          action: 'Created card',
+          timestamp: Date.now(),
+        },
+      ],
+    }))
+
+    const newBoard: KanbanBoard = {
+      id: boardId,
+      name: template.name,
+      cards,
+      columns,
+      labels,
+    }
+
+    setData((prev) => ({
+      boards: [...prev.boards, newBoard],
+      activeBoard: newBoard.id,
+    }))
+    setShowBoardTemplatePicker(false)
     setBoardMenuOpen(false)
   }, [])
 
@@ -1745,7 +2499,9 @@ export function KanbanView() {
       setData((prev) => ({
         ...prev,
         boards: prev.boards.map((b) =>
-          b.id === prev.activeBoard ? { ...b, cards: b.cards.filter((c) => c.columnId !== 'done') } : b,
+          b.id === prev.activeBoard
+            ? { ...b, cards: b.cards.filter((c) => c.columnId !== 'done') }
+            : b,
         ),
       }))
       setToastMessage('Done column cleared!')
@@ -1756,7 +2512,9 @@ export function KanbanView() {
     return generateRecommendations(activeBoard.cards, activeBoard.columns, dismissedRecs, {
       onHighlightColumn: (colId: string) => {
         setHighlightedColumn(colId)
-        setToastMessage(`Viewing ${activeBoard.columns.find((c) => c.id === colId)?.title || colId} column`)
+        setToastMessage(
+          `Viewing ${activeBoard.columns.find((c) => c.id === colId)?.title || colId} column`,
+        )
       },
       onOpenCard: (cardId: string) => {
         setSelectedCardId(cardId)
@@ -1859,7 +2617,10 @@ export function KanbanView() {
                     ))}
                     <div className="border-t border-[var(--border)] mt-1 pt-1">
                       <button
-                        onClick={createBoard}
+                        onClick={() => {
+                          setBoardMenuOpen(false)
+                          setShowBoardTemplatePicker(true)
+                        }}
                         className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[var(--text-secondary)] transition hover:bg-[var(--bg)] hover:text-[var(--text-primary)]"
                       >
                         <Icon icon="lucide:plus" width={14} height={14} />
@@ -1874,7 +2635,7 @@ export function KanbanView() {
 
           <div className="flex items-center gap-2">
             <button
-              onClick={createBoard}
+              onClick={() => setShowBoardTemplatePicker(true)}
               className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition hover:border-[var(--brand)]"
             >
               <Icon icon="lucide:plus" width={16} height={16} />
@@ -2225,13 +2986,60 @@ export function KanbanView() {
 
                     {/* Add Card Button */}
                     {newCardColumn !== column.id && (
-                      <button
-                        onClick={() => setNewCardColumn(column.id)}
-                        className="mx-3 mb-3 flex items-center gap-2 rounded-xl border border-dashed border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text-secondary)] transition hover:border-[var(--brand)] hover:text-[var(--text-primary)]"
-                      >
-                        <Icon icon="lucide:plus" width={16} height={16} />
-                        Add card
-                      </button>
+                      <div className="mx-3 mb-3 flex items-center gap-1">
+                        <button
+                          onClick={() => setNewCardColumn(column.id)}
+                          className="flex-1 flex items-center gap-2 rounded-xl border border-dashed border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text-secondary)] transition hover:border-[var(--brand)] hover:text-[var(--text-primary)]"
+                        >
+                          <Icon icon="lucide:plus" width={16} height={16} />
+                          Add card
+                        </button>
+                        <div className="relative">
+                          <button
+                            onClick={() =>
+                              setCardTemplatePickerColumn(
+                                cardTemplatePickerColumn === column.id ? null : column.id,
+                              )
+                            }
+                            className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--bg)] p-2 text-[var(--text-secondary)] transition hover:border-[var(--brand)] hover:text-[var(--text-primary)]"
+                          >
+                            <Icon icon="lucide:chevron-down" width={16} height={16} />
+                          </button>
+                          {cardTemplatePickerColumn === column.id && (
+                            <div
+                              ref={cardTemplatePickerRef}
+                              className="absolute right-0 top-full z-50 mt-1 w-72 rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] shadow-xl py-1 backdrop-blur-sm"
+                            >
+                              {CARD_TEMPLATES.map((template) => (
+                                <button
+                                  key={template.id}
+                                  onClick={() => addCardFromTemplate(column.id, template.id)}
+                                  className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition hover:bg-[var(--bg)]"
+                                >
+                                  <Icon
+                                    icon={template.icon}
+                                    width={18}
+                                    height={18}
+                                    className="text-[var(--text-secondary)]"
+                                  />
+                                  <span className="flex-1 text-[var(--text-primary)] font-medium">
+                                    {template.name}
+                                  </span>
+                                  <div
+                                    className="rounded px-1.5 py-0.5 text-xs font-medium"
+                                    style={{
+                                      backgroundColor: `${PRIORITY_CONFIG[template.priority].color}20`,
+                                      color: PRIORITY_CONFIG[template.priority].color,
+                                    }}
+                                  >
+                                    {template.priority}
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     )}
                   </>
                 )}
@@ -2262,6 +3070,88 @@ export function KanbanView() {
               onDelete={deleteCard}
               onClose={() => setSelectedCardId(null)}
             />
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Board Template Picker */}
+      <AnimatePresence>
+        {showBoardTemplatePicker && (
+          <>
+            <motion.div
+              key="template-overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.4 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-black"
+              onClick={() => setShowBoardTemplatePicker(false)}
+            />
+            <motion.div
+              key="template-picker"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-6"
+            >
+              <div
+                className="w-full max-w-4xl rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)] shadow-2xl backdrop-blur-sm"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="border-b border-[var(--border)] px-6 py-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-semibold text-[var(--text-primary)]">
+                      Choose a Template
+                    </h2>
+                    <button
+                      onClick={() => setShowBoardTemplatePicker(false)}
+                      className="rounded-lg p-1 text-[var(--text-secondary)] transition hover:bg-[var(--bg)] hover:text-[var(--text-primary)]"
+                    >
+                      <Icon icon="lucide:x" width={20} height={20} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-6 max-h-[70vh] overflow-y-auto">
+                  <div className="grid grid-cols-2 gap-4">
+                    {BOARD_TEMPLATES.map((template) => (
+                      <motion.button
+                        key={template.id}
+                        onClick={() => createBoardFromTemplate(template.id)}
+                        whileHover={{ scale: 1.02 }}
+                        className="group relative overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg)] p-5 text-left transition hover:border-[var(--brand)] hover:shadow-lg"
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className="shrink-0 rounded-lg bg-[var(--brand)]/10 p-3">
+                            <Icon
+                              icon={template.icon}
+                              width={24}
+                              height={24}
+                              className="text-[var(--brand)]"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-[var(--text-primary)] mb-1">
+                              {template.name}
+                            </h3>
+                            <p className="text-sm text-[var(--text-secondary)] mb-3">
+                              {template.description}
+                            </p>
+                            <div className="flex items-center gap-2">
+                              <div className="rounded-full bg-[var(--bg-elevated)] px-2 py-0.5 text-xs font-medium text-[var(--text-secondary)]">
+                                {template.cards.length} cards
+                              </div>
+                              <div className="rounded-full bg-[var(--bg-elevated)] px-2 py-0.5 text-xs font-medium text-[var(--text-secondary)]">
+                                {template.columns.length} columns
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
           </>
         )}
       </AnimatePresence>

@@ -2324,7 +2324,7 @@ p {
   scrollbar-width: thin;
 }
 .pip-scroll:hover::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--scrollbar-thumb) 30%, transparent);
+  background: var(--scrollbar-thumb);
 }
 
 /* ──────────────────────────────────────────────────────────────────

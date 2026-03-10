@@ -18,6 +18,8 @@ declare global {
   interface Window {
     Spotify: { Player: new (opts: Record<string, unknown>) => Spotify.Player }
     onSpotifyWebPlaybackSDKReady: () => void
+    __knotSpotifyPlayer?: Spotify.Player
+    __knotSpotifyDeviceId?: string | null
   }
 }
 
@@ -79,7 +81,6 @@ function formatMs(ms: number): string {
 
 export function SpotifyPlayer() {
   const [authenticated, setAuthenticated] = useState(false)
-  const [visible, setVisible] = useState(true)
   const [loggingIn, setLoggingIn] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useState('')
@@ -88,14 +89,14 @@ export function SpotifyPlayer() {
   const [showSearch, setShowSearch] = useState(false)
 
   const [sdkReady, setSdkReady] = useState(false)
-  const [deviceId, setDeviceId] = useState<string | null>(null)
+  const [deviceId, setDeviceId] = useState<string | null>(window.__knotSpotifyDeviceId ?? null)
   const [playerState, setPlayerState] = useState<Spotify.PlayerState | null>(null)
   const [localPosition, setLocalPosition] = useState(0)
   const [volume, setVolume] = useState(0.5)
   const [muted, setMuted] = useState(false)
   const volumeBeforeMute = useRef(0.5)
 
-  const playerRef = useRef<Spotify.Player | null>(null)
+  const playerRef = useRef<Spotify.Player | null>(window.__knotSpotifyPlayer ?? null)
   const positionTimer = useRef<ReturnType<typeof setInterval> | null>(null)
   const lastStateTime = useRef(0)
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -121,6 +122,10 @@ export function SpotifyPlayer() {
 
   useEffect(() => {
     if (!authenticated) return
+    if (window.__knotSpotifyPlayer) {
+      setSdkReady(true)
+      return
+    }
     if (document.querySelector(`script[src="${SDK_URL}"]`)) {
       if (window.Spotify) setSdkReady(true)
       return
@@ -134,6 +139,44 @@ export function SpotifyPlayer() {
 
   useEffect(() => {
     if (!sdkReady || !authenticated) return
+
+    if (window.__knotSpotifyPlayer) {
+      const player = window.__knotSpotifyPlayer
+      playerRef.current = player
+      if (window.__knotSpotifyDeviceId) {
+        setDeviceId(window.__knotSpotifyDeviceId)
+      }
+      player
+        .getVolume()
+        .then((v: number) => {
+          setVolume(v)
+          setMuted(v === 0)
+        })
+        .catch(() => {})
+      player
+        .getCurrentState()
+        .then((s) => {
+          if (s) {
+            setPlayerState(s)
+            setLocalPosition(s.position)
+            lastStateTime.current = Date.now()
+          }
+        })
+        .catch(() => {})
+
+      const stateHandler = (state: Spotify.PlayerState) => {
+        setPlayerState(state ?? null)
+        if (state) {
+          setLocalPosition(state.position)
+          lastStateTime.current = Date.now()
+        }
+      }
+      player.addListener('player_state_changed', stateHandler)
+      return () => {
+        player.removeListener('player_state_changed', stateHandler)
+      }
+    }
+
     const player = new window.Spotify.Player({
       name: 'KnotCode',
       getOAuthToken: async (cb: (t: string) => void) => {
@@ -144,6 +187,7 @@ export function SpotifyPlayer() {
     })
     player.addListener('ready', ({ device_id }: { device_id: string }) => {
       setDeviceId(device_id)
+      window.__knotSpotifyDeviceId = device_id
       setError(null)
       player
         .getVolume()
@@ -158,7 +202,6 @@ export function SpotifyPlayer() {
         body: JSON.stringify({ device_ids: [device_id], play: false }),
       })
         .then(() => {
-          // Auto-start Liked Songs as default playlist
           return spotifyFetch('/me/tracks?limit=50&market=US')
         })
         .then(async (res) => {
@@ -168,7 +211,6 @@ export function SpotifyPlayer() {
             .map((item: { track?: { uri?: string } }) => item.track?.uri)
             .filter(Boolean) as string[]
           if (uris.length === 0) return
-          // Only start if nothing is already playing
           const state = await player.getCurrentState()
           if (state) return
           await spotifyFetch(`/me/player/play?device_id=${device_id}`, {
@@ -179,7 +221,10 @@ export function SpotifyPlayer() {
         })
         .catch(() => {})
     })
-    player.addListener('not_ready', () => setDeviceId(null))
+    player.addListener('not_ready', () => {
+      setDeviceId(null)
+      window.__knotSpotifyDeviceId = null
+    })
     player.addListener('player_state_changed', (state: Spotify.PlayerState) => {
       setPlayerState(state ?? null)
       if (state) {
@@ -196,9 +241,11 @@ export function SpotifyPlayer() {
     )
     player.connect()
     playerRef.current = player
+    window.__knotSpotifyPlayer = player
+
     return () => {
-      player.disconnect()
-      playerRef.current = null
+      // Do NOT disconnect — keep the player alive globally so music persists
+      // across sidebar/PiP transitions and panel minimization
     }
   }, [sdkReady, authenticated])
 
@@ -290,6 +337,12 @@ export function SpotifyPlayer() {
   }, [])
 
   const handleLogout = useCallback(() => {
+    if (window.__knotSpotifyPlayer) {
+      window.__knotSpotifyPlayer.disconnect()
+      window.__knotSpotifyPlayer = undefined
+      window.__knotSpotifyDeviceId = null
+    }
+    playerRef.current = null
     clearSpotifyAuth()
     setAuthenticated(false)
     setPlayerState(null)
@@ -366,7 +419,7 @@ export function SpotifyPlayer() {
     [deviceId],
   )
 
-  if (!visible || !spotifyAvailable()) return null
+  if (!spotifyAvailable()) return null
 
   const track = authenticated ? (playerState?.track_window.current_track ?? null) : null
   const paused = playerState?.paused ?? true

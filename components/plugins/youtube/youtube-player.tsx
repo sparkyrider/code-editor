@@ -2,13 +2,10 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Icon } from '@iconify/react'
-import { emit } from '@/lib/events'
 import { usePlugins } from '@/context/plugin-context'
+import { useYouTubeEngine } from './youtube-plugin'
 
-const STORAGE_KEY = 'knot:youtube-playlist'
 const HISTORY_KEY = 'knot:youtube-history'
-const VOLUME_KEY = 'knot:youtube-volume'
-const MUTED_KEY = 'knot:youtube-muted'
 const MAX_HISTORY = 8
 
 interface PlaylistInfo {
@@ -18,61 +15,25 @@ interface PlaylistInfo {
   label: string
 }
 
-type YouTubeCommandDetail =
-  | { type: 'toggle-play' }
-  | { type: 'next-video' }
-  | { type: 'set-volume'; value: number }
-  | { type: 'toggle-mute' }
-  | { type: 'show-input' }
-
 function parseYouTubeUrl(input: string): PlaylistInfo | null {
   const trimmed = input.trim()
 
-  // Playlist: youtube.com/playlist?list=PLxxxxx or &list=PLxxxxx
   const playlistMatch = trimmed.match(/[?&]list=([A-Za-z0-9_-]+)/)
   if (playlistMatch) {
-    return {
-      type: 'playlist',
-      id: playlistMatch[1],
-      url: trimmed,
-      label: 'Playlist',
-    }
+    return { type: 'playlist', id: playlistMatch[1], url: trimmed, label: 'Playlist' }
   }
 
-  // Video: youtube.com/watch?v=ID, youtu.be/ID, youtube.com/embed/ID, youtube.com/shorts/ID
   const videoPatterns = [
     /(?:youtube\.com\/watch\?.*v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([A-Za-z0-9_-]{11})/,
   ]
   for (const pattern of videoPatterns) {
     const match = trimmed.match(pattern)
     if (match) {
-      return {
-        type: 'video',
-        id: match[1],
-        url: trimmed,
-        label: 'Video',
-      }
+      return { type: 'video', id: match[1], url: trimmed, label: 'Video' }
     }
   }
 
   return null
-}
-
-function buildEmbedUrl(info: PlaylistInfo): string {
-  const base =
-    info.type === 'playlist'
-      ? `https://www.youtube-nocookie.com/embed/videoseries?list=${info.id}`
-      : `https://www.youtube-nocookie.com/embed/${info.id}`
-  const url = new URL(base)
-  url.searchParams.set('enablejsapi', '1')
-  url.searchParams.set('playsinline', '1')
-  url.searchParams.set('rel', '0')
-  const origin =
-    typeof window !== 'undefined' && window.location.protocol.startsWith('http')
-      ? window.location.origin
-      : 'http://127.0.0.1:3080'
-  url.searchParams.set('origin', origin)
-  return url.toString()
 }
 
 interface HistoryEntry {
@@ -104,150 +65,49 @@ const CURATED_PLAYLISTS = [
 
 export function YouTubePlayer() {
   const { setPipPluginId } = usePlugins()
+  const engine = useYouTubeEngine()
+  const {
+    current,
+    setCurrent,
+    isPlaying,
+    setIsPlaying,
+    volume,
+    muted,
+    handleVolumeChange,
+    toggleMute,
+    sendPlayerCommand,
+  } = engine
+
   const [input, setInput] = useState('')
-  const [current, setCurrent] = useState<PlaylistInfo | null>(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      if (raw) return JSON.parse(raw)
-    } catch {}
-    return null
-  })
   const [history, setHistory] = useState<HistoryEntry[]>(loadHistory)
   const [error, setError] = useState<string | null>(null)
   const [showInput, setShowInput] = useState(false)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [volume, setVolume] = useState<number>(() => {
-    try {
-      const raw = localStorage.getItem(VOLUME_KEY)
-      if (raw) {
-        const parsed = Number(raw)
-        if (Number.isFinite(parsed)) {
-          return Math.max(0, Math.min(100, Math.round(parsed)))
-        }
-      }
-    } catch {}
-    return 70
-  })
-  const [muted, setMuted] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem(MUTED_KEY) === 'true'
-    } catch {
-      return false
-    }
-  })
   const inputRef = useRef<HTMLInputElement>(null)
-  const iframeRef = useRef<HTMLIFrameElement>(null)
 
   useEffect(() => {
-    if (current) {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(current))
-      } catch {}
-      setIsPlaying(true)
-    } else {
-      try {
-        localStorage.removeItem(STORAGE_KEY)
-      } catch {}
-      setIsPlaying(false)
+    const handler = () => {
+      setShowInput(true)
+      window.setTimeout(() => inputRef.current?.focus(), 100)
     }
-  }, [current])
-
-  useEffect(() => {
-    emit('youtube-state-changed', {
-      playing: Boolean(current) && isPlaying,
-      muted,
-      volume,
-      type: current?.type ?? '',
-      id: current?.id ?? '',
-      current: current
-        ? {
-            id: current.id,
-            label: current.label,
-            type: current.type,
-          }
-        : null,
-    })
-  }, [current, isPlaying, muted, volume])
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(VOLUME_KEY, String(volume))
-    } catch {}
-  }, [volume])
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(MUTED_KEY, String(muted))
-    } catch {}
-  }, [muted])
-
-  const playerReadyRef = useRef(false)
-  const pendingVolumeSync = useRef(false)
-
-  const sendPlayerCommand = useCallback((func: string, args: unknown[] = []) => {
-    const playerWindow = iframeRef.current?.contentWindow
-    if (!playerWindow) return
-    playerWindow.postMessage(
-      JSON.stringify({
-        event: 'command',
-        func,
-        args,
-      }),
-      '*',
-    )
+    window.addEventListener('youtube-show-input', handler)
+    return () => window.removeEventListener('youtube-show-input', handler)
   }, [])
-
-  const syncPlayerVolume = useCallback(() => {
-    if (!playerReadyRef.current) {
-      pendingVolumeSync.current = true
-      return
-    }
-    sendPlayerCommand('setVolume', [volume])
-    if (muted || volume === 0) {
-      sendPlayerCommand('mute')
-      return
-    }
-    sendPlayerCommand('unMute')
-  }, [sendPlayerCommand, volume, muted])
-
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (typeof event.data !== 'string') return
-      try {
-        const data = JSON.parse(event.data)
-        if (data.event === 'initialDelivery' || data.event === 'onReady') {
-          playerReadyRef.current = true
-          if (pendingVolumeSync.current) {
-            pendingVolumeSync.current = false
-            syncPlayerVolume()
-          }
-        }
-        if (data.event === 'infoDelivery' && data.info) {
-          if (typeof data.info.playerState === 'number') {
-            if (data.info.playerState === 1) setIsPlaying(true)
-            else if (data.info.playerState === 2) setIsPlaying(false)
-          }
-        }
-      } catch {}
-    }
-    window.addEventListener('message', handleMessage)
-    return () => window.removeEventListener('message', handleMessage)
-  }, [syncPlayerVolume])
-
-  useEffect(() => {
-    if (!current) {
-      playerReadyRef.current = false
-      return
-    }
-    const timer = window.setTimeout(() => {
-      syncPlayerVolume()
-    }, 200)
-    return () => window.clearTimeout(timer)
-  }, [current, volume, muted, syncPlayerVolume])
 
   const popoutPiP = useCallback(() => {
     setPipPluginId('youtube-player')
   }, [setPipPluginId])
+
+  const addToHistory = useCallback((info: PlaylistInfo) => {
+    setHistory((prev) => {
+      const filtered = prev.filter((h) => h.id !== info.id)
+      const next: HistoryEntry[] = [
+        { type: info.type, id: info.id, url: info.url, label: info.label, addedAt: Date.now() },
+        ...filtered,
+      ].slice(0, MAX_HISTORY)
+      saveHistory(next)
+      return next
+    })
+  }, [])
 
   const loadPlaylist = useCallback(
     (value?: string) => {
@@ -264,87 +124,28 @@ export function YouTubePlayer() {
       setCurrent(info)
       setInput('')
       setShowInput(false)
-
-      setHistory((prev) => {
-        const filtered = prev.filter((h) => h.id !== info.id)
-        const next: HistoryEntry[] = [
-          { type: info.type, id: info.id, url: info.url, label: info.label, addedAt: Date.now() },
-          ...filtered,
-        ].slice(0, MAX_HISTORY)
-        saveHistory(next)
-        return next
-      })
+      addToHistory(info)
     },
-    [input],
+    [input, setCurrent, addToHistory],
   )
 
-  const playCurated = useCallback((playlist: (typeof CURATED_PLAYLISTS)[number]) => {
-    const info: PlaylistInfo = {
-      type: 'playlist',
-      id: playlist.id,
-      url: `https://www.youtube.com/playlist?list=${playlist.id}`,
-      label: playlist.label,
-    }
-    setCurrent(info)
-
-    setHistory((prev) => {
-      const filtered = prev.filter((h) => h.id !== info.id)
-      const next: HistoryEntry[] = [
-        { type: info.type, id: info.id, url: info.url, label: info.label, addedAt: Date.now() },
-        ...filtered,
-      ].slice(0, MAX_HISTORY)
-      saveHistory(next)
-      return next
-    })
-  }, [])
+  const playCurated = useCallback(
+    (playlist: (typeof CURATED_PLAYLISTS)[number]) => {
+      const info: PlaylistInfo = {
+        type: 'playlist',
+        id: playlist.id,
+        url: `https://www.youtube.com/playlist?list=${playlist.id}`,
+        label: playlist.label,
+      }
+      setCurrent(info)
+      addToHistory(info)
+    },
+    [setCurrent, addToHistory],
+  )
 
   const clearCurrent = useCallback(() => {
     setCurrent(null)
-  }, [])
-
-  const handleVolumeChange = useCallback(
-    (value: number) => {
-      const next = Math.max(0, Math.min(100, Math.round(value)))
-      setVolume(next)
-      setMuted(next === 0 ? true : false)
-    },
-    [setVolume, setMuted],
-  )
-
-  const toggleMute = useCallback(() => {
-    setMuted((prev) => !prev)
-  }, [])
-
-  useEffect(() => {
-    const handler = (event: Event) => {
-      const detail = (event as CustomEvent<YouTubeCommandDetail>).detail
-      switch (detail?.type) {
-        case 'toggle-play':
-          if (!current) return
-          sendPlayerCommand(isPlaying ? 'pauseVideo' : 'playVideo')
-          setIsPlaying((prev) => !prev)
-          break
-        case 'next-video':
-          if (!current) return
-          sendPlayerCommand('nextVideo')
-          setIsPlaying(true)
-          break
-        case 'set-volume':
-          handleVolumeChange(detail.value)
-          break
-        case 'toggle-mute':
-          toggleMute()
-          break
-        case 'show-input':
-          setShowInput(true)
-          window.setTimeout(() => inputRef.current?.focus(), 100)
-          break
-      }
-    }
-
-    window.addEventListener('youtube-command', handler)
-    return () => window.removeEventListener('youtube-command', handler)
-  }, [current, handleVolumeChange, isPlaying, sendPlayerCommand, toggleMute])
+  }, [setCurrent])
 
   const removeHistoryItem = useCallback((id: string, e: React.MouseEvent) => {
     e.stopPropagation()
@@ -506,29 +307,26 @@ export function YouTubePlayer() {
         </div>
       )}
 
-      {/* Embedded player */}
+      {/* Now playing visual area */}
       <div className="flex-1 flex flex-col min-h-0">
         {current ? (
-          <div className="flex-1 min-h-0 p-2">
-            <div className="w-full h-full rounded-xl overflow-hidden bg-black/80">
-              <iframe
-                ref={iframeRef}
-                src={buildEmbedUrl(current)}
-                className="w-full h-full border-0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-                loading="lazy"
-                title={`YouTube ${current.label}`}
-                onLoad={() => {
-                  const win = iframeRef.current?.contentWindow
-                  if (!win) return
-                  win.postMessage(
-                    JSON.stringify({ event: 'listening', id: 1 }),
-                    '*',
-                  )
-                  setTimeout(syncPlayerVolume, 500)
-                }}
-              />
+          <div className="flex-1 flex items-center justify-center p-3">
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-12 h-12 rounded-xl bg-[color-mix(in_srgb,#FF0000_10%,transparent)] flex items-center justify-center">
+                <Icon
+                  icon={isPlaying ? 'lucide:music' : 'lucide:pause'}
+                  width={20}
+                  height={20}
+                  className="text-[#FF0000]"
+                />
+              </div>
+              <p className="text-[11px] font-semibold text-[var(--text-primary)] text-center truncate max-w-full">
+                {current.label}
+              </p>
+              <p className="text-[9px] text-[var(--text-disabled)]">
+                {isPlaying ? 'Playing' : 'Paused'} ·{' '}
+                {current.type === 'playlist' ? 'Playlist' : 'Video'}
+              </p>
             </div>
           </div>
         ) : (
@@ -547,26 +345,33 @@ export function YouTubePlayer() {
         )}
       </div>
 
-      {/* Footer */}
+      {/* Footer controls */}
       {current && (
         <div className="flex items-center h-8 px-2.5 border-t border-[var(--border)] shrink-0 gap-1.5">
           <button
             onClick={() => {
               sendPlayerCommand(isPlaying ? 'pauseVideo' : 'playVideo')
-              setIsPlaying((prev) => !prev)
+              setIsPlaying((prev: boolean) => !prev)
             }}
-            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,#FF0000_12%,transparent)] text-[#FF0000] transition hover:bg-[color-mix(in_srgb,#FF0000_22%,transparent)]"
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,#FF0000_12%,transparent)] text-[#FF0000] transition hover:bg-[color-mix(in_srgb,#FF0000_22%,transparent)] cursor-pointer"
             title={isPlaying ? 'Pause' : 'Play'}
             aria-label={isPlaying ? 'Pause' : 'Play'}
           >
             <Icon icon={isPlaying ? 'lucide:pause' : 'lucide:play'} width={10} height={10} />
           </button>
-          <Icon
-            icon={current.type === 'playlist' ? 'lucide:list-music' : 'lucide:film'}
-            width={9}
-            height={9}
-            className="text-[var(--text-disabled)] shrink-0"
-          />
+          {current.type === 'playlist' && (
+            <button
+              onClick={() => {
+                sendPlayerCommand('nextVideo')
+                setIsPlaying(true)
+              }}
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] cursor-pointer transition"
+              title="Next video"
+              aria-label="Next video"
+            >
+              <Icon icon="lucide:skip-forward" width={10} height={10} />
+            </button>
+          )}
           <span className="text-[8px] text-[var(--text-disabled)] truncate flex-1 min-w-0">
             {current.label}
           </span>

@@ -319,13 +319,8 @@ export function AgentPanel({ onClose }: { onClose?: () => void } = {}) {
   const { repo, tree: repoTree } = useRepo()
   const local = useLocal()
   const permissions = usePermissions()
-  const {
-    chatFontSize,
-    chatFontFamily,
-    increaseFontSize,
-    decreaseFontSize,
-    setChatFontFamily,
-  } = useChatAppearance()
+  const { chatFontSize, chatFontFamily, increaseFontSize, decreaseFontSize, setChatFontFamily } =
+    useChatAppearance()
 
   const { activeThreadId, chatStorageKey } = useThread()
   const storageKey = chatStorageKey(activeThreadId)
@@ -1373,6 +1368,19 @@ export function AgentPanel({ onClose }: { onClose?: () => void } = {}) {
         }
         return
       }
+      if (text.startsWith('/task ')) {
+        const taskTitle = text.replace(/^\/task\s+/, '').trim()
+        appendSlashCommand(text)
+        if (!taskTitle) {
+          appendErrorMessage('Usage: `/task <title>` — creates a Kanban card in Backlog.')
+          return
+        }
+        window.dispatchEvent(
+          new CustomEvent('kanban-create-card', { detail: { title: taskTitle } }),
+        )
+        appendStatusMessage(`Created Kanban card: "${taskTitle}"`)
+        return
+      }
       if (text === '/push') {
         appendSlashCommand(text)
         const localRepo = requireLocalGitRepo('Push')
@@ -1933,7 +1941,16 @@ export function AgentPanel({ onClose }: { onClose?: () => void } = {}) {
       content: `Auto-applied edits to ${fileNames}.`,
       timestamp: Date.now(),
     })
-  }, [messages, permissions, agentMode, currentApprovalTier, getFile, updateFileContent, openFile, appendMessage])
+  }, [
+    messages,
+    permissions,
+    agentMode,
+    currentApprovalTier,
+    getFile,
+    updateFileContent,
+    openFile,
+    appendMessage,
+  ])
 
   // ─── Slash command suggestions ────────────────────────────────
   // Detect picker triggers and update state in useEffect
@@ -1944,7 +1961,12 @@ export function AgentPanel({ onClose }: { onClose?: () => void } = {}) {
     }
 
     // Detect picker triggers — open on exact match OR with trailing space/query
-    if (input === '/skill' || input === '/skill ' || input.startsWith('/skill use') || input === '/skill use') {
+    if (
+      input === '/skill' ||
+      input === '/skill ' ||
+      input.startsWith('/skill use') ||
+      input === '/skill use'
+    ) {
       const query = input.replace(/^\/skill\s*(use\s*)?/, '')
       setActivePicker('skill')
       setPickerQuery(query)
@@ -1966,7 +1988,12 @@ export function AgentPanel({ onClose }: { onClose?: () => void } = {}) {
     }
 
     // Don't show suggestions when a picker is active
-    if (input === '/skill' || input === '/skill ' || input.startsWith('/skill use') || input === '/skill use') {
+    if (
+      input === '/skill' ||
+      input === '/skill ' ||
+      input.startsWith('/skill use') ||
+      input === '/skill use'
+    ) {
       return []
     }
     if (input === '/prompt' || input.startsWith('/prompt ')) {
@@ -2012,6 +2039,8 @@ export function AgentPanel({ onClose }: { onClose?: () => void } = {}) {
       { cmd: '/skill find', desc: 'Search for more skills', icon: 'lucide:search' },
       { cmd: '/skill use', desc: 'Apply a bundled skill', icon: 'lucide:play' },
       { cmd: '/prompt', desc: 'Use a prompt template', icon: 'lucide:book-open' },
+      // Kanban
+      { cmd: '/task', desc: 'Create a Kanban card', icon: 'lucide:kanban' },
     ]
     const term = input.toLowerCase()
     return cmds.filter((c) => c.cmd.startsWith(term))
@@ -2019,10 +2048,16 @@ export function AgentPanel({ onClose }: { onClose?: () => void } = {}) {
 
   // ─── Picker data sources ──────────────────────────────────────
   const skillPickerItems = useMemo<PickerItem[]>(() => {
-    const stored = typeof window !== 'undefined' ? localStorage.getItem('knot-code:skills:runtime') : null
+    const stored =
+      typeof window !== 'undefined' ? localStorage.getItem('knot-code:skills:runtime') : null
     if (stored) {
       try {
-        const skills = JSON.parse(stored) as Array<{ id: string; name: string; description?: string; enabled?: boolean }>
+        const skills = JSON.parse(stored) as Array<{
+          id: string
+          name: string
+          description?: string
+          enabled?: boolean
+        }>
         return skills.map((s) => ({
           id: s.id,
           name: s.name,
@@ -2035,43 +2070,126 @@ export function AgentPanel({ onClose }: { onClose?: () => void } = {}) {
       }
     }
     return [
-      { id: 'code-review', name: 'Code Review', description: 'Review code for bugs and improvements', icon: 'lucide:scan-eye' },
-      { id: 'refactor', name: 'Refactor', description: 'Improve code structure and readability', icon: 'lucide:refresh-cw' },
-      { id: 'test-gen', name: 'Test Generator', description: 'Generate unit tests for code', icon: 'lucide:flask-conical' },
-      { id: 'doc-gen', name: 'Documentation', description: 'Generate documentation for code', icon: 'lucide:file-text' },
-      { id: 'explain', name: 'Explain Code', description: 'Get a detailed explanation of code', icon: 'lucide:book-open' },
-      { id: 'optimize', name: 'Optimize', description: 'Optimize code for performance', icon: 'lucide:zap' },
-      { id: 'security', name: 'Security Audit', description: 'Check code for security vulnerabilities', icon: 'lucide:shield' },
-      { id: 'debug', name: 'Debug Helper', description: 'Help identify and fix bugs', icon: 'lucide:bug' },
+      {
+        id: 'code-review',
+        name: 'Code Review',
+        description: 'Review code for bugs and improvements',
+        icon: 'lucide:scan-eye',
+      },
+      {
+        id: 'refactor',
+        name: 'Refactor',
+        description: 'Improve code structure and readability',
+        icon: 'lucide:refresh-cw',
+      },
+      {
+        id: 'test-gen',
+        name: 'Test Generator',
+        description: 'Generate unit tests for code',
+        icon: 'lucide:flask-conical',
+      },
+      {
+        id: 'doc-gen',
+        name: 'Documentation',
+        description: 'Generate documentation for code',
+        icon: 'lucide:file-text',
+      },
+      {
+        id: 'explain',
+        name: 'Explain Code',
+        description: 'Get a detailed explanation of code',
+        icon: 'lucide:book-open',
+      },
+      {
+        id: 'optimize',
+        name: 'Optimize',
+        description: 'Optimize code for performance',
+        icon: 'lucide:zap',
+      },
+      {
+        id: 'security',
+        name: 'Security Audit',
+        description: 'Check code for security vulnerabilities',
+        icon: 'lucide:shield',
+      },
+      {
+        id: 'debug',
+        name: 'Debug Helper',
+        description: 'Help identify and fix bugs',
+        icon: 'lucide:bug',
+      },
     ]
   }, [])
 
   const promptPickerItems = useMemo<PickerItem[]>(() => {
     return [
-      { id: 'explain-like-5', name: 'Explain Like I\'m 5', description: 'Simple explanation of complex topics', icon: 'lucide:baby' },
-      { id: 'write-readme', name: 'Write README', description: 'Generate a project README', icon: 'lucide:file-text' },
-      { id: 'commit-message', name: 'Commit Message', description: 'Write a conventional commit message', icon: 'lucide:git-commit-horizontal' },
-      { id: 'api-docs', name: 'API Documentation', description: 'Generate API endpoint docs', icon: 'lucide:book' },
-      { id: 'code-comment', name: 'Code Comments', description: 'Add JSDoc/inline comments to code', icon: 'lucide:message-square-code' },
-      { id: 'convert-ts', name: 'Convert to TypeScript', description: 'Add types to JavaScript code', icon: 'simple-icons:typescript' },
-      { id: 'write-tests', name: 'Write Tests', description: 'Generate test cases for code', icon: 'lucide:flask-conical' },
-      { id: 'review-pr', name: 'PR Review Template', description: 'Structured PR review format', icon: 'lucide:git-pull-request' },
+      {
+        id: 'explain-like-5',
+        name: "Explain Like I'm 5",
+        description: 'Simple explanation of complex topics',
+        icon: 'lucide:baby',
+      },
+      {
+        id: 'write-readme',
+        name: 'Write README',
+        description: 'Generate a project README',
+        icon: 'lucide:file-text',
+      },
+      {
+        id: 'commit-message',
+        name: 'Commit Message',
+        description: 'Write a conventional commit message',
+        icon: 'lucide:git-commit-horizontal',
+      },
+      {
+        id: 'api-docs',
+        name: 'API Documentation',
+        description: 'Generate API endpoint docs',
+        icon: 'lucide:book',
+      },
+      {
+        id: 'code-comment',
+        name: 'Code Comments',
+        description: 'Add JSDoc/inline comments to code',
+        icon: 'lucide:message-square-code',
+      },
+      {
+        id: 'convert-ts',
+        name: 'Convert to TypeScript',
+        description: 'Add types to JavaScript code',
+        icon: 'simple-icons:typescript',
+      },
+      {
+        id: 'write-tests',
+        name: 'Write Tests',
+        description: 'Generate test cases for code',
+        icon: 'lucide:flask-conical',
+      },
+      {
+        id: 'review-pr',
+        name: 'PR Review Template',
+        description: 'Structured PR review format',
+        icon: 'lucide:git-pull-request',
+      },
     ]
   }, [])
 
   // ─── Picker handlers ──────────────────────────────────────────
-  const handlePickerSelect = useCallback((item: PickerItem) => {
-    if (activePicker === 'skill') {
-      setInput(`/skill use ${item.id} `)
-    } else if (activePicker === 'prompt') {
-      // For prompt templates, replace the command with the template name or insert it
-      setInput(`Use the "${item.name}" template: `)
-    }
-    setActivePicker(null)
-    setPickerQuery('')
-    setPickerIndex(0)
-    inputRef.current?.focus()
-  }, [activePicker])
+  const handlePickerSelect = useCallback(
+    (item: PickerItem) => {
+      if (activePicker === 'skill') {
+        setInput(`/skill use ${item.id} `)
+      } else if (activePicker === 'prompt') {
+        // For prompt templates, replace the command with the template name or insert it
+        setInput(`Use the "${item.name}" template: `)
+      }
+      setActivePicker(null)
+      setPickerQuery('')
+      setPickerIndex(0)
+      inputRef.current?.focus()
+    },
+    [activePicker],
+  )
 
   const handlePickerClose = useCallback(() => {
     setActivePicker(null)
@@ -2092,24 +2210,26 @@ export function AgentPanel({ onClose }: { onClose?: () => void } = {}) {
   }, [activePicker])
 
   const pickerEmptyHelp = useMemo(() => {
-    if (activePicker === 'skill') return {
-      icon: 'lucide:sparkles',
-      heading: 'Getting Started with Skills',
-      steps: [
-        'Open Skills view (⌘5)',
-        'Enable skills from the catalog',
-        'Skills will appear here once active',
-      ],
-    }
-    if (activePicker === 'prompt') return {
-      icon: 'lucide:book-open',
-      heading: 'Create Your First Prompt',
-      steps: [
-        'Use the prompt templates below',
-        'Customize them for your workflow',
-        'Save frequently-used prompts',
-      ],
-    }
+    if (activePicker === 'skill')
+      return {
+        icon: 'lucide:sparkles',
+        heading: 'Getting Started with Skills',
+        steps: [
+          'Open Skills view (⌘5)',
+          'Enable skills from the catalog',
+          'Skills will appear here once active',
+        ],
+      }
+    if (activePicker === 'prompt')
+      return {
+        icon: 'lucide:book-open',
+        heading: 'Create Your First Prompt',
+        steps: [
+          'Use the prompt templates below',
+          'Customize them for your workflow',
+          'Save frequently-used prompts',
+        ],
+      }
     return undefined
   }, [activePicker])
 
@@ -2207,7 +2327,17 @@ export function AgentPanel({ onClose }: { onClose?: () => void } = {}) {
         sendMessage()
       }
     },
-    [activePicker, currentPickerItems, pickerIndex, handlePickerSelect, handlePickerClose, suggestions, activeSuggestionIdx, input, sendMessage],
+    [
+      activePicker,
+      currentPickerItems,
+      pickerIndex,
+      handlePickerSelect,
+      handlePickerClose,
+      suggestions,
+      activeSuggestionIdx,
+      input,
+      sendMessage,
+    ],
   )
 
   // ─── Message actions ────────────────────────────────────────────

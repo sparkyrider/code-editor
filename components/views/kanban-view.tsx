@@ -1,18 +1,21 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Icon } from '@iconify/react'
 import { motion, AnimatePresence } from 'framer-motion'
 
-// Types
 type Priority = 'P0' | 'P1' | 'P2' | 'P3'
-type LabelId = 'bug' | 'feature' | 'docs' | 'refactor' | 'urgent'
-type ColumnId = 'backlog' | 'in-progress' | 'review' | 'done'
 
 interface Label {
-  id: LabelId | string
+  id: string
   name: string
   color: string
+}
+
+interface Subtask {
+  id: string
+  title: string
+  done: boolean
 }
 
 interface KanbanCard {
@@ -23,11 +26,15 @@ interface KanbanCard {
   priority: Priority
   assignee?: string
   createdAt: number
-  columnId: ColumnId
+  dueDate?: number
+  columnId: string
+  sortOrder: number
+  subtasks: Subtask[]
+  linkedBranch?: string
 }
 
 interface KanbanColumn {
-  id: ColumnId
+  id: string
   title: string
   icon: string
   color: string
@@ -50,10 +57,16 @@ interface KanbanData {
 const STORAGE_KEY = 'knot-code:kanban:boards'
 
 const DEFAULT_COLUMNS: KanbanColumn[] = [
-  { id: 'backlog', title: '📥 Backlog', icon: 'lucide:inbox', color: 'gray', collapsed: false },
-  { id: 'in-progress', title: '🔄 In Progress', icon: 'lucide:play', color: 'blue', collapsed: false },
-  { id: 'review', title: '👀 Review', icon: 'lucide:eye', color: 'amber', collapsed: false },
-  { id: 'done', title: '✅ Done', icon: 'lucide:check', color: 'green', collapsed: false },
+  { id: 'backlog', title: 'Backlog', icon: 'lucide:inbox', color: '#6b7280', collapsed: false },
+  {
+    id: 'in-progress',
+    title: 'In Progress',
+    icon: 'lucide:play',
+    color: '#3b82f6',
+    collapsed: false,
+  },
+  { id: 'review', title: 'Review', icon: 'lucide:eye', color: '#f59e0b', collapsed: false },
+  { id: 'done', title: 'Done', icon: 'lucide:check', color: '#22c55e', collapsed: false },
 ]
 
 const DEFAULT_LABELS: Label[] = [
@@ -89,9 +102,20 @@ function loadKanbanData(): KanbanData {
   try {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored) {
-      return JSON.parse(stored)
+      const parsed = JSON.parse(stored) as KanbanData
+      parsed.boards = parsed.boards.map((b) => ({
+        ...b,
+        cards: b.cards.map((c) => ({
+          ...c,
+          sortOrder: c.sortOrder ?? 0,
+          subtasks: c.subtasks ?? [],
+        })),
+      }))
+      return parsed
     }
-  } catch {}
+  } catch {
+    /* noop */
+  }
   return {
     boards: [
       {
@@ -109,27 +133,517 @@ function loadKanbanData(): KanbanData {
 function saveKanbanData(data: KanbanData) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
-  } catch {}
+  } catch {
+    /* noop */
+  }
 }
 
+function genId(prefix: string) {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+}
+
+function getDueDateStatus(dueDate?: number): 'overdue' | 'soon' | 'ok' | null {
+  if (!dueDate) return null
+  const now = Date.now()
+  const diff = dueDate - now
+  if (diff < 0) return 'overdue'
+  if (diff < 86400000 * 2) return 'soon'
+  return 'ok'
+}
+
+function formatDate(ts: number) {
+  return new Date(ts).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+}
+
+function formatDateInput(ts?: number) {
+  if (!ts) return ''
+  const d = new Date(ts)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+// ── Card Detail Panel ───────────────────────────────────────────
+function CardDetailPanel({
+  card,
+  columns,
+  labels,
+  onUpdate,
+  onDelete,
+  onClose,
+}: {
+  card: KanbanCard
+  columns: KanbanColumn[]
+  labels: Label[]
+  onUpdate: (id: string, updates: Partial<KanbanCard>) => void
+  onDelete: (id: string) => void
+  onClose: () => void
+}) {
+  const [title, setTitle] = useState(card.title)
+  const [description, setDescription] = useState(card.description || '')
+  const [priority, setPriority] = useState(card.priority)
+  const [assignee, setAssignee] = useState(card.assignee || '')
+  const [dueDate, setDueDate] = useState(formatDateInput(card.dueDate))
+  const [selectedLabels, setSelectedLabels] = useState<string[]>(card.labels)
+  const [subtasks, setSubtasks] = useState<Subtask[]>(card.subtasks)
+  const [newSubtask, setNewSubtask] = useState('')
+  const [columnId, setColumnId] = useState(card.columnId)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+
+  const save = useCallback(() => {
+    onUpdate(card.id, {
+      title: title.trim() || card.title,
+      description: description.trim() || undefined,
+      priority,
+      assignee: assignee.trim() || undefined,
+      dueDate: dueDate ? new Date(dueDate + 'T00:00:00').getTime() : undefined,
+      labels: selectedLabels,
+      subtasks,
+      columnId,
+    })
+  }, [
+    card.id,
+    card.title,
+    title,
+    description,
+    priority,
+    assignee,
+    dueDate,
+    selectedLabels,
+    subtasks,
+    columnId,
+    onUpdate,
+  ])
+
+  useEffect(() => {
+    save()
+  }, [save])
+
+  const toggleLabel = (labelId: string) => {
+    setSelectedLabels((prev) =>
+      prev.includes(labelId) ? prev.filter((l) => l !== labelId) : [...prev, labelId],
+    )
+  }
+
+  const addSubtask = () => {
+    if (!newSubtask.trim()) return
+    setSubtasks((prev) => [...prev, { id: genId('sub'), title: newSubtask.trim(), done: false }])
+    setNewSubtask('')
+  }
+
+  const toggleSubtask = (subId: string) => {
+    setSubtasks((prev) => prev.map((s) => (s.id === subId ? { ...s, done: !s.done } : s)))
+  }
+
+  const deleteSubtask = (subId: string) => {
+    setSubtasks((prev) => prev.filter((s) => s.id !== subId))
+  }
+
+  const dueDateStatus = getDueDateStatus(card.dueDate)
+  const subtasksDone = subtasks.filter((s) => s.done).length
+  const subtasksTotal = subtasks.length
+
+  return (
+    <motion.div
+      initial={{ x: '100%' }}
+      animate={{ x: 0 }}
+      exit={{ x: '100%' }}
+      transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+      className="fixed inset-y-0 right-0 z-50 flex w-full max-w-lg flex-col border-l border-[var(--border)] bg-[var(--bg-elevated)] shadow-2xl"
+    >
+      {/* Panel Header */}
+      <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-6 py-4">
+        <h2 className="text-lg font-semibold text-[var(--text-primary)] truncate">Card Details</h2>
+        <button
+          onClick={onClose}
+          className="rounded-lg p-2 text-[var(--text-secondary)] transition hover:bg-[var(--bg)] hover:text-[var(--text-primary)]"
+        >
+          <Icon icon="lucide:x" width={20} height={20} />
+        </button>
+      </div>
+
+      {/* Panel Body */}
+      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+        {/* Title */}
+        <div>
+          <label className="text-xs font-medium uppercase tracking-wider text-[var(--text-disabled)]">
+            Title
+          </label>
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--brand)]"
+          />
+        </div>
+
+        {/* Description */}
+        <div>
+          <label className="text-xs font-medium uppercase tracking-wider text-[var(--text-disabled)]">
+            Description
+          </label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={4}
+            placeholder="Add a description..."
+            className="mt-1 w-full resize-none rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--brand)]"
+          />
+        </div>
+
+        {/* Row: Priority + Column + Assignee */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="text-xs font-medium uppercase tracking-wider text-[var(--text-disabled)]">
+              Priority
+            </label>
+            <select
+              value={priority}
+              onChange={(e) => setPriority(e.target.value as Priority)}
+              className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--brand)]"
+            >
+              {(Object.keys(PRIORITY_CONFIG) as Priority[]).map((p) => (
+                <option key={p} value={p}>
+                  {p} — {PRIORITY_CONFIG[p].label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-medium uppercase tracking-wider text-[var(--text-disabled)]">
+              Column
+            </label>
+            <select
+              value={columnId}
+              onChange={(e) => setColumnId(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--brand)]"
+            >
+              {columns.map((col) => (
+                <option key={col.id} value={col.id}>
+                  {col.title}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="text-xs font-medium uppercase tracking-wider text-[var(--text-disabled)]">
+              Assignee
+            </label>
+            <input
+              value={assignee}
+              onChange={(e) => setAssignee(e.target.value)}
+              placeholder="Name or handle..."
+              className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--brand)]"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium uppercase tracking-wider text-[var(--text-disabled)]">
+              Due Date
+            </label>
+            <input
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              className={`mt-1 w-full rounded-lg border px-3 py-2 text-sm outline-none transition focus:border-[var(--brand)] ${
+                dueDateStatus === 'overdue'
+                  ? 'border-[#ef4444] bg-[#ef444410] text-[#ef4444]'
+                  : dueDateStatus === 'soon'
+                    ? 'border-[#f59e0b] bg-[#f59e0b10] text-[#f59e0b]'
+                    : 'border-[var(--border)] bg-[var(--bg)] text-[var(--text-primary)]'
+              }`}
+            />
+          </div>
+        </div>
+
+        {/* Labels */}
+        <div>
+          <label className="text-xs font-medium uppercase tracking-wider text-[var(--text-disabled)]">
+            Labels
+          </label>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {labels.map((label) => {
+              const active = selectedLabels.includes(label.id)
+              return (
+                <button
+                  key={label.id}
+                  onClick={() => toggleLabel(label.id)}
+                  className="rounded-full px-3 py-1 text-xs font-medium transition"
+                  style={{
+                    backgroundColor: active ? label.color : 'transparent',
+                    color: active ? '#fff' : label.color,
+                    border: `1.5px solid ${label.color}`,
+                  }}
+                >
+                  {label.name}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Linked branch */}
+        {card.linkedBranch && (
+          <div>
+            <label className="text-xs font-medium uppercase tracking-wider text-[var(--text-disabled)]">
+              Linked Branch
+            </label>
+            <div className="mt-1 flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text-primary)]">
+              <Icon
+                icon="lucide:git-branch"
+                width={14}
+                height={14}
+                className="text-[var(--brand)]"
+              />
+              <span className="font-mono text-xs">{card.linkedBranch}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Subtasks */}
+        <div>
+          <label className="text-xs font-medium uppercase tracking-wider text-[var(--text-disabled)]">
+            Subtasks {subtasksTotal > 0 && `(${subtasksDone}/${subtasksTotal})`}
+          </label>
+          {subtasksTotal > 0 && (
+            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--border)]">
+              <div
+                className="h-full rounded-full bg-[var(--brand)] transition-all"
+                style={{ width: `${(subtasksDone / subtasksTotal) * 100}%` }}
+              />
+            </div>
+          )}
+          <div className="mt-2 space-y-1">
+            {subtasks.map((sub) => (
+              <div
+                key={sub.id}
+                className="group flex items-center gap-2 rounded-lg px-2 py-1.5 transition hover:bg-[var(--bg)]"
+              >
+                <button onClick={() => toggleSubtask(sub.id)} className="shrink-0">
+                  <Icon
+                    icon={sub.done ? 'lucide:check-square' : 'lucide:square'}
+                    width={16}
+                    height={16}
+                    className={sub.done ? 'text-[var(--brand)]' : 'text-[var(--text-disabled)]'}
+                  />
+                </button>
+                <span
+                  className={`flex-1 text-sm ${sub.done ? 'text-[var(--text-disabled)] line-through' : 'text-[var(--text-primary)]'}`}
+                >
+                  {sub.title}
+                </span>
+                <button
+                  onClick={() => deleteSubtask(sub.id)}
+                  className="shrink-0 opacity-0 group-hover:opacity-100 rounded p-0.5 text-[var(--text-disabled)] hover:text-[var(--destructive)] transition"
+                >
+                  <Icon icon="lucide:x" width={12} height={12} />
+                </button>
+              </div>
+            ))}
+          </div>
+          <div className="mt-2 flex gap-2">
+            <input
+              value={newSubtask}
+              onChange={(e) => setNewSubtask(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && addSubtask()}
+              placeholder="Add subtask..."
+              className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-1.5 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--brand)]"
+            />
+            <button
+              onClick={addSubtask}
+              className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-xs font-medium text-[var(--brand-contrast)] transition hover:opacity-90"
+            >
+              Add
+            </button>
+          </div>
+        </div>
+
+        {/* Meta */}
+        <div className="text-xs text-[var(--text-disabled)]">
+          Created {formatDate(card.createdAt)}
+        </div>
+      </div>
+
+      {/* Panel Footer */}
+      <div className="shrink-0 border-t border-[var(--border)] px-6 py-4 flex items-center justify-between">
+        {confirmDelete ? (
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-[var(--destructive)]">Delete this card?</span>
+            <button
+              onClick={() => {
+                onDelete(card.id)
+                onClose()
+              }}
+              className="rounded-lg bg-[var(--destructive)] px-3 py-1.5 text-xs font-medium text-white transition hover:opacity-90"
+            >
+              Confirm
+            </button>
+            <button
+              onClick={() => setConfirmDelete(false)}
+              className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmDelete(true)}
+            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-[var(--destructive)] transition hover:bg-[var(--destructive)]/10"
+          >
+            <Icon icon="lucide:trash-2" width={14} height={14} />
+            Delete Card
+          </button>
+        )}
+        <button
+          onClick={onClose}
+          className="rounded-lg bg-[var(--brand)] px-4 py-1.5 text-sm font-medium text-[var(--brand-contrast)] transition hover:opacity-90"
+        >
+          Done
+        </button>
+      </div>
+    </motion.div>
+  )
+}
+
+// ── Column Editor Inline ────────────────────────────────────────
+function ColumnEditor({
+  column,
+  onSave,
+  onCancel,
+}: {
+  column?: KanbanColumn
+  onSave: (title: string) => void
+  onCancel: () => void
+}) {
+  const [title, setTitle] = useState(column?.title || '')
+  const inputRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    inputRef.current?.focus()
+  }, [])
+
+  return (
+    <div className="flex items-center gap-2">
+      <input
+        ref={inputRef}
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') onSave(title.trim())
+          if (e.key === 'Escape') onCancel()
+        }}
+        className="flex-1 rounded-lg border border-[var(--brand)] bg-[var(--bg)] px-2 py-1 text-sm text-[var(--text-primary)] outline-none"
+        placeholder="Column name..."
+      />
+      <button
+        onClick={() => onSave(title.trim())}
+        className="rounded p-1 text-[var(--brand)] hover:bg-[var(--bg)]"
+      >
+        <Icon icon="lucide:check" width={14} height={14} />
+      </button>
+      <button
+        onClick={onCancel}
+        className="rounded p-1 text-[var(--text-disabled)] hover:text-[var(--text-primary)]"
+      >
+        <Icon icon="lucide:x" width={14} height={14} />
+      </button>
+    </div>
+  )
+}
+
+// ── Main KanbanView ─────────────────────────────────────────────
 export function KanbanView() {
   const [data, setData] = useState<KanbanData>(loadKanbanData)
   const [draggedCard, setDraggedCard] = useState<KanbanCard | null>(null)
-  const [draggedOverColumn, setDraggedOverColumn] = useState<ColumnId | null>(null)
-  const [editingCard, setEditingCard] = useState<string | null>(null)
-  const [newCardColumn, setNewCardColumn] = useState<ColumnId | null>(null)
+  const [draggedOverColumn, setDraggedOverColumn] = useState<string | null>(null)
+  const [dragOverCardId, setDragOverCardId] = useState<string | null>(null)
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
+  const [newCardColumn, setNewCardColumn] = useState<string | null>(null)
   const [newCardTitle, setNewCardTitle] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [filterLabel, setFilterLabel] = useState<string | null>(null)
   const [filterPriority, setFilterPriority] = useState<Priority | null>(null)
+  const [editingBoardName, setEditingBoardName] = useState(false)
+  const [boardNameDraft, setBoardNameDraft] = useState('')
+  const [addingColumn, setAddingColumn] = useState(false)
+  const [editingColumnId, setEditingColumnId] = useState<string | null>(null)
+  const [boardMenuOpen, setBoardMenuOpen] = useState(false)
+  const boardMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     saveKanbanData(data)
   }, [data])
 
+  // Agent integration: listen for kanban-create-card events
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as
+        | {
+            title: string
+            description?: string
+            priority?: Priority
+            columnId?: string
+            labels?: string[]
+            assignee?: string
+            linkedBranch?: string
+          }
+        | undefined
+      if (!detail?.title) return
+      setData((prev) => {
+        const board = prev.boards.find((b) => b.id === prev.activeBoard)
+        if (!board) return prev
+        const colId =
+          detail.columnId && board.columns.some((c) => c.id === detail.columnId)
+            ? detail.columnId!
+            : board.columns[0]?.id || 'backlog'
+        const colCards = board.cards.filter((c) => c.columnId === colId)
+        const maxSort = colCards.reduce((max, c) => Math.max(max, c.sortOrder), 0)
+        const newCard: KanbanCard = {
+          id: genId('card'),
+          title: detail.title,
+          description: detail.description,
+          labels: detail.labels || [],
+          priority: detail.priority || 'P2',
+          assignee: detail.assignee,
+          createdAt: Date.now(),
+          columnId: colId,
+          sortOrder: maxSort + 1,
+          subtasks: [],
+          linkedBranch: detail.linkedBranch,
+        }
+        return {
+          ...prev,
+          boards: prev.boards.map((b) =>
+            b.id === prev.activeBoard ? { ...b, cards: [...b.cards, newCard] } : b,
+          ),
+        }
+      })
+    }
+    window.addEventListener('kanban-create-card', handler)
+    return () => window.removeEventListener('kanban-create-card', handler)
+  }, [])
+
+  // Close board menu on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (boardMenuRef.current && !boardMenuRef.current.contains(e.target as Node)) {
+        setBoardMenuOpen(false)
+      }
+    }
+    if (boardMenuOpen) document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [boardMenuOpen])
+
   const activeBoard = useMemo(() => {
     return data.boards.find((b) => b.id === data.activeBoard) || data.boards[0]
   }, [data])
+
+  const selectedCard = useMemo(() => {
+    if (!selectedCardId) return null
+    return activeBoard.cards.find((c) => c.id === selectedCardId) || null
+  }, [selectedCardId, activeBoard.cards])
 
   const filteredCards = useMemo(() => {
     let cards = activeBoard.cards
@@ -151,142 +665,266 @@ export function KanbanView() {
   }, [activeBoard.cards, searchQuery, filterLabel, filterPriority])
 
   const getColumnCards = useCallback(
-    (columnId: ColumnId) => {
-      return filteredCards.filter((card) => card.columnId === columnId)
+    (columnId: string) => {
+      return filteredCards
+        .filter((card) => card.columnId === columnId)
+        .sort((a, b) => a.sortOrder - b.sortOrder)
     },
     [filteredCards],
   )
 
-  const addCard = useCallback(
-    (columnId: ColumnId, title: string) => {
-      if (!title.trim()) return
+  const updateBoard = useCallback((updates: Partial<KanbanBoard>) => {
+    setData((prev) => ({
+      ...prev,
+      boards: prev.boards.map((b) => (b.id === prev.activeBoard ? { ...b, ...updates } : b)),
+    }))
+  }, [])
+
+  const addCard = useCallback((columnId: string, title: string) => {
+    if (!title.trim()) return
+    setData((prev) => {
+      const board = prev.boards.find((b) => b.id === prev.activeBoard)
+      const colCards = board?.cards.filter((c) => c.columnId === columnId) || []
+      const maxSort = colCards.reduce((max, c) => Math.max(max, c.sortOrder), 0)
       const newCard: KanbanCard = {
-        id: `card-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        id: genId('card'),
         title: title.trim(),
         labels: [],
         priority: 'P2',
         createdAt: Date.now(),
         columnId,
+        sortOrder: maxSort + 1,
+        subtasks: [],
       }
-      setData((prev) => ({
+      return {
         ...prev,
-        boards: prev.boards.map((board) =>
-          board.id === prev.activeBoard
-            ? { ...board, cards: [...board.cards, newCard] }
-            : board,
+        boards: prev.boards.map((b) =>
+          b.id === prev.activeBoard ? { ...b, cards: [...b.cards, newCard] } : b,
         ),
-      }))
-      setNewCardColumn(null)
-      setNewCardTitle('')
+      }
+    })
+    setNewCardColumn(null)
+    setNewCardTitle('')
+  }, [])
+
+  const moveCard = useCallback(
+    (cardId: string, toColumnId: string, insertBeforeCardId?: string) => {
+      setData((prev) => {
+        const board = prev.boards.find((b) => b.id === prev.activeBoard)
+        if (!board) return prev
+
+        const card = board.cards.find((c) => c.id === cardId)
+        if (!card) return prev
+
+        const targetCards = board.cards
+          .filter((c) => c.columnId === toColumnId && c.id !== cardId)
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+
+        let newOrder: number
+        if (insertBeforeCardId) {
+          const idx = targetCards.findIndex((c) => c.id === insertBeforeCardId)
+          if (idx === 0) {
+            newOrder = targetCards[0].sortOrder - 1
+          } else if (idx > 0) {
+            newOrder = (targetCards[idx - 1].sortOrder + targetCards[idx].sortOrder) / 2
+          } else {
+            newOrder =
+              targetCards.length > 0 ? targetCards[targetCards.length - 1].sortOrder + 1 : 0
+          }
+        } else {
+          newOrder = targetCards.length > 0 ? targetCards[targetCards.length - 1].sortOrder + 1 : 0
+        }
+
+        return {
+          ...prev,
+          boards: prev.boards.map((b) =>
+            b.id === prev.activeBoard
+              ? {
+                  ...b,
+                  cards: b.cards.map((c) =>
+                    c.id === cardId ? { ...c, columnId: toColumnId, sortOrder: newOrder } : c,
+                  ),
+                }
+              : b,
+          ),
+        }
+      })
     },
     [],
   )
-
-  const moveCard = useCallback((cardId: string, toColumnId: ColumnId) => {
-    setData((prev) => ({
-      ...prev,
-      boards: prev.boards.map((board) =>
-        board.id === prev.activeBoard
-          ? {
-              ...board,
-              cards: board.cards.map((card) =>
-                card.id === cardId ? { ...card, columnId: toColumnId } : card,
-              ),
-            }
-          : board,
-      ),
-    }))
-  }, [])
 
   const deleteCard = useCallback((cardId: string) => {
     setData((prev) => ({
       ...prev,
-      boards: prev.boards.map((board) =>
-        board.id === prev.activeBoard
-          ? { ...board, cards: board.cards.filter((card) => card.id !== cardId) }
-          : board,
+      boards: prev.boards.map((b) =>
+        b.id === prev.activeBoard ? { ...b, cards: b.cards.filter((c) => c.id !== cardId) } : b,
       ),
     }))
   }, [])
 
-  const updateCard = useCallback(
-    (cardId: string, updates: Partial<KanbanCard>) => {
-      setData((prev) => ({
-        ...prev,
-        boards: prev.boards.map((board) =>
-          board.id === prev.activeBoard
-            ? {
-                ...board,
-                cards: board.cards.map((card) =>
-                  card.id === cardId ? { ...card, ...updates } : card,
-                ),
-              }
-            : board,
-        ),
-      }))
-    },
-    [],
-  )
-
-  const toggleColumn = useCallback((columnId: ColumnId) => {
+  const updateCard = useCallback((cardId: string, updates: Partial<KanbanCard>) => {
     setData((prev) => ({
       ...prev,
-      boards: prev.boards.map((board) =>
-        board.id === prev.activeBoard
+      boards: prev.boards.map((b) =>
+        b.id === prev.activeBoard
+          ? { ...b, cards: b.cards.map((c) => (c.id === cardId ? { ...c, ...updates } : c)) }
+          : b,
+      ),
+    }))
+  }, [])
+
+  const toggleColumn = useCallback((columnId: string) => {
+    setData((prev) => ({
+      ...prev,
+      boards: prev.boards.map((b) =>
+        b.id === prev.activeBoard
           ? {
-              ...board,
-              columns: board.columns.map((col) =>
+              ...b,
+              columns: b.columns.map((col) =>
                 col.id === columnId ? { ...col, collapsed: !col.collapsed } : col,
               ),
             }
-          : board,
+          : b,
       ),
     }))
   }, [])
 
+  // ── Board management ──────────────────────────────────────────
   const createBoard = useCallback(() => {
     const newBoard: KanbanBoard = {
-      id: `board-${Date.now()}`,
+      id: genId('board'),
       name: 'New Board',
       cards: [],
-      columns: DEFAULT_COLUMNS,
-      labels: DEFAULT_LABELS,
+      columns: DEFAULT_COLUMNS.map((c) => ({ ...c })),
+      labels: DEFAULT_LABELS.map((l) => ({ ...l })),
     }
     setData((prev) => ({
       boards: [...prev.boards, newBoard],
       activeBoard: newBoard.id,
     }))
+    setBoardMenuOpen(false)
   }, [])
 
+  const switchBoard = useCallback((boardId: string) => {
+    setData((prev) => ({ ...prev, activeBoard: boardId }))
+    setBoardMenuOpen(false)
+    setSelectedCardId(null)
+  }, [])
+
+  const deleteBoard = useCallback((boardId: string) => {
+    setData((prev) => {
+      const remaining = prev.boards.filter((b) => b.id !== boardId)
+      if (remaining.length === 0) return prev
+      return {
+        boards: remaining,
+        activeBoard: prev.activeBoard === boardId ? remaining[0].id : prev.activeBoard,
+      }
+    })
+  }, [])
+
+  const renameBoardInline = useCallback(() => {
+    if (!boardNameDraft.trim()) {
+      setEditingBoardName(false)
+      return
+    }
+    updateBoard({ name: boardNameDraft.trim() })
+    setEditingBoardName(false)
+  }, [boardNameDraft, updateBoard])
+
+  // ── Column management ─────────────────────────────────────────
+  const addColumn = useCallback(
+    (title: string) => {
+      if (!title) {
+        setAddingColumn(false)
+        return
+      }
+      const newCol: KanbanColumn = {
+        id: genId('col'),
+        title,
+        icon: 'lucide:layout-list',
+        color: '#6b7280',
+        collapsed: false,
+      }
+      updateBoard({ columns: [...activeBoard.columns, newCol] })
+      setAddingColumn(false)
+    },
+    [activeBoard.columns, updateBoard],
+  )
+
+  const renameColumn = useCallback(
+    (columnId: string, newTitle: string) => {
+      if (!newTitle) {
+        setEditingColumnId(null)
+        return
+      }
+      updateBoard({
+        columns: activeBoard.columns.map((c) =>
+          c.id === columnId ? { ...c, title: newTitle } : c,
+        ),
+      })
+      setEditingColumnId(null)
+    },
+    [activeBoard.columns, updateBoard],
+  )
+
+  const deleteColumn = useCallback(
+    (columnId: string) => {
+      if (activeBoard.columns.length <= 1) return
+      const fallback = activeBoard.columns.find((c) => c.id !== columnId)!.id
+      setData((prev) => ({
+        ...prev,
+        boards: prev.boards.map((b) =>
+          b.id === prev.activeBoard
+            ? {
+                ...b,
+                columns: b.columns.filter((c) => c.id !== columnId),
+                cards: b.cards.map((c) =>
+                  c.columnId === columnId ? { ...c, columnId: fallback } : c,
+                ),
+              }
+            : b,
+        ),
+      }))
+    },
+    [activeBoard.columns],
+  )
+
+  // ── Drag handlers ─────────────────────────────────────────────
   const handleDragStart = useCallback((card: KanbanCard) => {
     setDraggedCard(card)
   }, [])
 
-  const handleDragOver = useCallback((e: React.DragEvent, columnId: ColumnId) => {
+  const handleDragOver = useCallback((e: React.DragEvent, columnId: string) => {
     e.preventDefault()
     setDraggedOverColumn(columnId)
   }, [])
 
   const handleDrop = useCallback(
-    (columnId: ColumnId) => {
+    (columnId: string) => {
       if (draggedCard) {
-        moveCard(draggedCard.id, columnId)
+        moveCard(draggedCard.id, columnId, dragOverCardId || undefined)
         setDraggedCard(null)
         setDraggedOverColumn(null)
+        setDragOverCardId(null)
       }
     },
-    [draggedCard, moveCard],
+    [draggedCard, dragOverCardId, moveCard],
   )
 
   const handleDragEnd = useCallback(() => {
     setDraggedCard(null)
     setDraggedOverColumn(null)
+    setDragOverCardId(null)
+  }, [])
+
+  const handleCardDragOver = useCallback((e: React.DragEvent, cardId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragOverCardId(cardId)
   }, [])
 
   const getLabelById = useCallback(
-    (labelId: string) => {
-      return activeBoard.labels.find((l) => l.id === labelId)
-    },
+    (labelId: string) => activeBoard.labels.find((l) => l.id === labelId),
     [activeBoard.labels],
   )
 
@@ -297,10 +935,89 @@ export function KanbanView() {
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Icon icon="lucide:kanban" width={24} height={24} className="text-[var(--brand)]" />
-            <h1 className="text-xl font-semibold text-[var(--text-primary)]">
-              {activeBoard.name}
-            </h1>
+
+            {/* Board name — editable */}
+            {editingBoardName ? (
+              <input
+                autoFocus
+                value={boardNameDraft}
+                onChange={(e) => setBoardNameDraft(e.target.value)}
+                onBlur={renameBoardInline}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') renameBoardInline()
+                  if (e.key === 'Escape') setEditingBoardName(false)
+                }}
+                className="rounded-lg border border-[var(--brand)] bg-[var(--bg)] px-2 py-1 text-xl font-semibold text-[var(--text-primary)] outline-none"
+              />
+            ) : (
+              <h1
+                className="text-xl font-semibold text-[var(--text-primary)] cursor-pointer hover:text-[var(--brand)] transition"
+                onDoubleClick={() => {
+                  setBoardNameDraft(activeBoard.name)
+                  setEditingBoardName(true)
+                }}
+              >
+                {activeBoard.name}
+              </h1>
+            )}
+
+            {/* Board switcher */}
+            {data.boards.length > 1 && (
+              <div className="relative" ref={boardMenuRef}>
+                <button
+                  onClick={() => setBoardMenuOpen((v) => !v)}
+                  className="rounded-lg p-1.5 text-[var(--text-secondary)] transition hover:bg-[var(--bg)] hover:text-[var(--text-primary)]"
+                >
+                  <Icon icon="lucide:chevron-down" width={16} height={16} />
+                </button>
+                {boardMenuOpen && (
+                  <div className="absolute left-0 top-full z-50 mt-1 w-64 rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] shadow-xl py-1">
+                    {data.boards.map((b) => (
+                      <div
+                        key={b.id}
+                        className={`flex items-center justify-between px-3 py-2 text-sm transition hover:bg-[var(--bg)] ${
+                          b.id === data.activeBoard
+                            ? 'text-[var(--brand)] font-medium'
+                            : 'text-[var(--text-primary)]'
+                        }`}
+                      >
+                        <button
+                          onClick={() => switchBoard(b.id)}
+                          className="flex-1 text-left truncate"
+                        >
+                          {b.name}
+                          <span className="ml-2 text-xs text-[var(--text-disabled)]">
+                            ({b.cards.length})
+                          </span>
+                        </button>
+                        {data.boards.length > 1 && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              deleteBoard(b.id)
+                            }}
+                            className="shrink-0 rounded p-1 text-[var(--text-disabled)] hover:text-[var(--destructive)] transition"
+                          >
+                            <Icon icon="lucide:trash-2" width={12} height={12} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <div className="border-t border-[var(--border)] mt-1 pt-1">
+                      <button
+                        onClick={createBoard}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[var(--text-secondary)] transition hover:bg-[var(--bg)] hover:text-[var(--text-primary)]"
+                      >
+                        <Icon icon="lucide:plus" width={14} height={14} />
+                        New Board
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
+
           <div className="flex items-center gap-2">
             <button
               onClick={createBoard}
@@ -335,9 +1052,9 @@ export function KanbanView() {
             className="rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--brand)]"
           >
             <option value="">All Priorities</option>
-            {Object.keys(PRIORITY_CONFIG).map((p) => (
+            {(Object.keys(PRIORITY_CONFIG) as Priority[]).map((p) => (
               <option key={p} value={p}>
-                {p} - {PRIORITY_CONFIG[p as Priority].label}
+                {p} - {PRIORITY_CONFIG[p].label}
               </option>
             ))}
           </select>
@@ -388,96 +1105,200 @@ export function KanbanView() {
                 onDrop={() => handleDrop(column.id)}
               >
                 {/* Column Header */}
-                <button
-                  onClick={() => toggleColumn(column.id)}
-                  className="flex items-center justify-between gap-2 px-4 py-3 text-left"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-base font-semibold text-[var(--text-primary)]">
-                      {column.title}
-                    </span>
-                    <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-[var(--bg)] px-2 text-xs font-bold text-[var(--text-secondary)]">
-                      {cards.length}
-                    </span>
+                <div className="flex items-center justify-between gap-2 px-4 py-3">
+                  {editingColumnId === column.id ? (
+                    <div className="flex-1">
+                      <ColumnEditor
+                        column={column}
+                        onSave={(title) => renameColumn(column.id, title)}
+                        onCancel={() => setEditingColumnId(null)}
+                      />
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => toggleColumn(column.id)}
+                      className="flex flex-1 items-center gap-2 text-left"
+                    >
+                      <span
+                        className="h-3 w-3 rounded-full shrink-0"
+                        style={{ backgroundColor: column.color }}
+                      />
+                      <span className="text-base font-semibold text-[var(--text-primary)]">
+                        {column.title}
+                      </span>
+                      <span className="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-[var(--bg)] px-2 text-xs font-bold text-[var(--text-secondary)]">
+                        {cards.length}
+                      </span>
+                    </button>
+                  )}
+
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => {
+                        setEditingColumnId(column.id)
+                      }}
+                      className="rounded p-1 text-[var(--text-disabled)] hover:text-[var(--text-primary)] transition"
+                      title="Rename column"
+                    >
+                      <Icon icon="lucide:edit-2" width={12} height={12} />
+                    </button>
+                    {activeBoard.columns.length > 1 && (
+                      <button
+                        onClick={() => deleteColumn(column.id)}
+                        className="rounded p-1 text-[var(--text-disabled)] hover:text-[var(--destructive)] transition"
+                        title="Delete column"
+                      >
+                        <Icon icon="lucide:trash-2" width={12} height={12} />
+                      </button>
+                    )}
+                    <Icon
+                      icon={isCollapsed ? 'lucide:chevron-right' : 'lucide:chevron-down'}
+                      width={16}
+                      height={16}
+                      className="text-[var(--text-disabled)] cursor-pointer"
+                      onClick={() => toggleColumn(column.id)}
+                    />
                   </div>
-                  <Icon
-                    icon={isCollapsed ? 'lucide:chevron-right' : 'lucide:chevron-down'}
-                    width={16}
-                    height={16}
-                    className="text-[var(--text-disabled)]"
-                  />
-                </button>
+                </div>
 
                 {!isCollapsed && (
                   <>
                     {/* Cards */}
                     <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-2">
                       <AnimatePresence>
-                        {cards.map((card) => (
-                          <motion.div
-                            key={card.id}
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            draggable
-                            onDragStart={() => handleDragStart(card)}
-                            onDragEnd={handleDragEnd}
-                            className="group relative rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3 cursor-move transition hover:border-[var(--brand)]/60 hover:shadow-sm"
-                            style={{
-                              borderLeftColor: PRIORITY_CONFIG[card.priority].color,
-                              borderLeftWidth: '3px',
-                            }}
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              <h3 className="text-sm font-medium text-[var(--text-primary)] break-words flex-1">
-                                {card.title}
-                              </h3>
-                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
-                                <button
-                                  onClick={() => setEditingCard(card.id)}
-                                  className="rounded p-1 text-[var(--text-disabled)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
-                                >
-                                  <Icon icon="lucide:edit-2" width={12} height={12} />
-                                </button>
-                                <button
-                                  onClick={() => deleteCard(card.id)}
-                                  className="rounded p-1 text-[var(--text-disabled)] hover:bg-[var(--bg-elevated)] hover:text-[var(--destructive)]"
-                                >
-                                  <Icon icon="lucide:trash-2" width={12} height={12} />
-                                </button>
+                        {cards.map((card) => {
+                          const dueDateStatus = getDueDateStatus(card.dueDate)
+                          const subtasksDone = card.subtasks.filter((s) => s.done).length
+                          const subtasksTotal = card.subtasks.length
+
+                          return (
+                            <motion.div
+                              key={card.id}
+                              layout
+                              initial={{ opacity: 0, y: -10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, scale: 0.95 }}
+                              draggable
+                              onDragStart={() => handleDragStart(card)}
+                              onDragOver={(e) => handleCardDragOver(e, card.id)}
+                              onDragEnd={handleDragEnd}
+                              onClick={() => setSelectedCardId(card.id)}
+                              className={`group relative rounded-xl border bg-[var(--bg)] p-3 cursor-pointer transition hover:border-[var(--brand)]/60 hover:shadow-sm ${
+                                dragOverCardId === card.id
+                                  ? 'border-t-2 border-t-[var(--brand)] border-[var(--border)]'
+                                  : 'border-[var(--border)]'
+                              }`}
+                              style={{
+                                borderLeftColor: PRIORITY_CONFIG[card.priority].color,
+                                borderLeftWidth: '3px',
+                              }}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <h3 className="text-sm font-medium text-[var(--text-primary)] break-words flex-1">
+                                  {card.title}
+                                </h3>
+                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setSelectedCardId(card.id)
+                                    }}
+                                    className="rounded p-1 text-[var(--text-disabled)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
+                                  >
+                                    <Icon icon="lucide:edit-2" width={12} height={12} />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      deleteCard(card.id)
+                                    }}
+                                    className="rounded p-1 text-[var(--text-disabled)] hover:bg-[var(--bg-elevated)] hover:text-[var(--destructive)]"
+                                  >
+                                    <Icon icon="lucide:trash-2" width={12} height={12} />
+                                  </button>
+                                </div>
                               </div>
-                            </div>
 
-                            {card.description && (
-                              <p className="mt-2 text-xs text-[var(--text-secondary)] line-clamp-2">
-                                {card.description}
-                              </p>
-                            )}
+                              {card.description && (
+                                <p className="mt-2 text-xs text-[var(--text-secondary)] line-clamp-2">
+                                  {card.description}
+                                </p>
+                              )}
 
-                            {card.labels.length > 0 && (
-                              <div className="mt-2 flex flex-wrap gap-1">
-                                {card.labels.map((labelId) => {
-                                  const label = getLabelById(labelId)
-                                  if (!label) return null
-                                  return (
-                                    <span
-                                      key={labelId}
-                                      className="rounded-full px-2 py-0.5 text-[10px] font-medium text-white"
-                                      style={{ backgroundColor: label.color }}
-                                    >
-                                      {label.name}
+                              {card.labels.length > 0 && (
+                                <div className="mt-2 flex flex-wrap gap-1">
+                                  {card.labels.map((labelId) => {
+                                    const label = getLabelById(labelId)
+                                    if (!label) return null
+                                    return (
+                                      <span
+                                        key={labelId}
+                                        className="rounded-full px-2 py-0.5 text-[10px] font-medium text-white"
+                                        style={{ backgroundColor: label.color }}
+                                      >
+                                        {label.name}
+                                      </span>
+                                    )
+                                  })}
+                                </div>
+                              )}
+
+                              {/* Subtask progress */}
+                              {subtasksTotal > 0 && (
+                                <div className="mt-2 flex items-center gap-2">
+                                  <div className="flex-1 h-1 rounded-full bg-[var(--border)] overflow-hidden">
+                                    <div
+                                      className="h-full rounded-full bg-[var(--brand)] transition-all"
+                                      style={{ width: `${(subtasksDone / subtasksTotal) * 100}%` }}
+                                    />
+                                  </div>
+                                  <span className="text-[10px] text-[var(--text-disabled)]">
+                                    {subtasksDone}/{subtasksTotal}
+                                  </span>
+                                </div>
+                              )}
+
+                              <div className="mt-2 flex items-center justify-between text-[10px] text-[var(--text-disabled)]">
+                                <div className="flex items-center gap-2">
+                                  <span>{PRIORITY_CONFIG[card.priority].label}</span>
+                                  {card.assignee && (
+                                    <span className="flex items-center gap-1">
+                                      <Icon icon="lucide:user" width={10} height={10} />
+                                      {card.assignee}
                                     </span>
-                                  )
-                                })}
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {card.linkedBranch && (
+                                    <span className="flex items-center gap-0.5">
+                                      <Icon
+                                        icon="lucide:git-branch"
+                                        width={10}
+                                        height={10}
+                                        className="text-[var(--brand)]"
+                                      />
+                                    </span>
+                                  )}
+                                  {card.dueDate && (
+                                    <span
+                                      className={`flex items-center gap-0.5 ${
+                                        dueDateStatus === 'overdue'
+                                          ? 'text-[#ef4444] font-medium'
+                                          : dueDateStatus === 'soon'
+                                            ? 'text-[#f59e0b] font-medium'
+                                            : ''
+                                      }`}
+                                    >
+                                      <Icon icon="lucide:calendar" width={10} height={10} />
+                                      {formatDate(card.dueDate)}
+                                    </span>
+                                  )}
+                                  {!card.dueDate && <span>{formatDate(card.createdAt)}</span>}
+                                </div>
                               </div>
-                            )}
-
-                            <div className="mt-2 flex items-center justify-between text-[10px] text-[var(--text-disabled)]">
-                              <span>{PRIORITY_CONFIG[card.priority].label}</span>
-                              <span>{new Date(card.createdAt).toLocaleDateString()}</span>
-                            </div>
-                          </motion.div>
-                        ))}
+                            </motion.div>
+                          )
+                        })}
                       </AnimatePresence>
 
                       {newCardColumn === column.id && (
@@ -488,9 +1309,8 @@ export function KanbanView() {
                             value={newCardTitle}
                             onChange={(e) => setNewCardTitle(e.target.value)}
                             onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                addCard(column.id, newCardTitle)
-                              } else if (e.key === 'Escape') {
+                              if (e.key === 'Enter') addCard(column.id, newCardTitle)
+                              else if (e.key === 'Escape') {
                                 setNewCardColumn(null)
                                 setNewCardTitle('')
                               }
@@ -501,7 +1321,7 @@ export function KanbanView() {
                           <div className="mt-2 flex gap-2">
                             <button
                               onClick={() => addCard(column.id, newCardTitle)}
-                              className="rounded-lg bg-[var(--brand)] px-3 py-1 text-xs font-medium text-white transition hover:opacity-90"
+                              className="rounded-lg bg-[var(--brand)] px-3 py-1 text-xs font-medium text-[var(--brand-contrast)] transition hover:opacity-90"
                             >
                               Add
                             </button>
@@ -534,8 +1354,50 @@ export function KanbanView() {
               </div>
             )
           })}
+
+          {/* Add Column */}
+          <div className="flex w-80 shrink-0 flex-col items-center justify-start pt-3">
+            {addingColumn ? (
+              <div className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] p-4">
+                <ColumnEditor onSave={addColumn} onCancel={() => setAddingColumn(false)} />
+              </div>
+            ) : (
+              <button
+                onClick={() => setAddingColumn(true)}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-3 text-sm text-[var(--text-secondary)] transition hover:border-[var(--brand)] hover:text-[var(--text-primary)]"
+              >
+                <Icon icon="lucide:plus" width={16} height={16} />
+                Add Column
+              </button>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Card Detail Side Panel */}
+      <AnimatePresence>
+        {selectedCard && (
+          <>
+            <motion.div
+              key="overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.4 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black"
+              onClick={() => setSelectedCardId(null)}
+            />
+            <CardDetailPanel
+              key="detail"
+              card={selectedCard}
+              columns={activeBoard.columns}
+              labels={activeBoard.labels}
+              onUpdate={updateCard}
+              onDelete={deleteCard}
+              onClose={() => setSelectedCardId(null)}
+            />
+          </>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

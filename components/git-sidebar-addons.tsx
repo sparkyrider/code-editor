@@ -187,30 +187,6 @@ function SpotifyCompactControls({ pipActive }: { pipActive: boolean }) {
           disabled={!hasControls}
         />
       </div>
-
-      <label className="flex items-center gap-2">
-        <span className="text-[9px] font-medium uppercase tracking-wide text-[var(--text-disabled)]">
-          Vol
-        </span>
-        <input
-          type="range"
-          min={0}
-          max={100}
-          value={volumePercent}
-          onChange={(event) =>
-            dispatchPluginCommand('spotify-command', {
-              type: 'set-volume',
-              value: Number(event.target.value) / 100,
-            })
-          }
-          disabled={!hasControls}
-          className="h-1 flex-1 cursor-pointer accent-[#1DB954]"
-          aria-label="Spotify volume"
-        />
-        <span className="w-8 text-right text-[9px] font-mono text-[var(--text-disabled)]">
-          {volumePercent}%
-        </span>
-      </label>
     </div>
   )
 }
@@ -510,18 +486,18 @@ export function GitSidebarAddons() {
               </div>
               <div className="min-w-0 flex-1">
                 {/* <div className="flex items-center gap-2"> */}
-                  <h3 className="truncate text-[12px] font-semibold text-[var(--text-primary)]">
-                    {label}
-                  </h3>
-                  <span
-                    className={`rounded-full px-1.5 py-0.5 text-[8px] font-medium uppercase tracking-wide ${
-                      enabled
-                        ? 'bg-[color-mix(in_srgb,var(--color-additions)_12%,transparent)] text-[var(--color-additions)]'
-                        : 'bg-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] text-[var(--text-disabled)]'
-                    }`}
-                  >
-                    {enabled ? 'On' : 'Off'}
-                  </span>
+                <h3 className="truncate text-[12px] font-semibold text-[var(--text-primary)]">
+                  {label}
+                </h3>
+                <span
+                  className={`rounded-full px-1.5 py-0.5 text-[8px] font-medium uppercase tracking-wide ${
+                    enabled
+                      ? 'bg-[color-mix(in_srgb,var(--color-additions)_12%,transparent)] text-[var(--color-additions)]'
+                      : 'bg-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] text-[var(--text-disabled)]'
+                  }`}
+                >
+                  {enabled ? 'On' : 'Off'}
+                </span>
                 {/* </div> */}
                 {/* <p className="mt-1 text-[10px] leading-4 text-[var(--text-tertiary)]">
                   {enabled ? activeMeta?.hint : `Enable ${label} to pin it beneath your changes.`}

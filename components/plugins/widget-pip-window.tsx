@@ -235,7 +235,7 @@ export function WidgetPipWindow() {
 
         {/* Plugin content */}
         <div
-          className="w-full overflow-y-auto bg-[var(--bg)]"
+          className="w-full overflow-y-auto bg-[var(--bg)] pip-scroll"
           style={{
             height: size.h - 28,
             pointerEvents: isDragging || isResizing ? 'none' : 'auto',

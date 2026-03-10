@@ -603,7 +603,7 @@ export function WorkshopView() {
   if (workshopMode === 'testing') {
     return (
       <div className="h-full w-full min-h-0 min-w-0 overflow-x-hidden overflow-y-auto bg-[var(--sidebar-bg)]">
-        <div className="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-6 px-4 py-5 lg:px-6 2xl:px-8">
+        <div className="mx-auto flex w-full min-w-0 max-w-[1680px] flex-col gap-6 px-4 py-5 lg:px-6 2xl:px-8">
           <div className="flex items-center justify-between">
             <button
               onClick={() => setWorkshopMode('wizard')}

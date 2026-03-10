@@ -168,7 +168,7 @@ interface TemplateGalleryProps {
 export function TemplateGallery({ onSelectTemplate }: TemplateGalleryProps) {
   return (
     <div className="h-full w-full min-h-0 min-w-0 overflow-x-hidden overflow-y-auto bg-[var(--sidebar-bg)]">
-      <div className="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-8 px-4 py-8 lg:px-6 2xl:px-8">
+      <div className="mx-auto flex w-full min-w-0 max-w-[1680px] flex-col gap-8 px-4 py-8 lg:px-6 2xl:px-8">
         {/* Hero Section */}
         <div className="text-center">
           <motion.div
@@ -215,7 +215,9 @@ export function TemplateGallery({ onSelectTemplate }: TemplateGalleryProps) {
                   onClick={() => onSelectTemplate(template.id)}
                 >
                   <div className="flex flex-col gap-4 h-full">
-                    <div className={`flex items-center justify-center w-14 h-14 rounded-2xl ${colors.bg} border ${colors.border}`}>
+                    <div
+                      className={`flex items-center justify-center w-14 h-14 rounded-2xl ${colors.bg} border ${colors.border}`}
+                    >
                       <Icon icon={template.icon} width={24} height={24} className={colors.text} />
                     </div>
                     <div className="flex-1">

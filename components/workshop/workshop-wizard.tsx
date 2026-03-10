@@ -205,7 +205,7 @@ export function WorkshopWizard({
     <div className="h-full w-full min-h-0 min-w-0 flex flex-col bg-[var(--sidebar-bg)]">
       {/* Progress Bar */}
       <div className="shrink-0 border-b border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-4">
-        <div className="mx-auto max-w-5xl">
+        <div className="mx-auto max-w-[1680px]">
           {/* Undo/Redo Toolbar */}
           <div className="flex items-center justify-end gap-2 mb-3">
             <button
@@ -284,7 +284,7 @@ export function WorkshopWizard({
 
       {/* Content Area */}
       <div className="flex-1 min-h-0 overflow-y-auto">
-        <div className="mx-auto max-w-5xl px-4 py-6">
+        <div className="mx-auto max-w-[1680px] px-4 py-6">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentStep}
@@ -490,7 +490,7 @@ export function WorkshopWizard({
 
       {/* Navigation Bar */}
       <div className="shrink-0 border-t border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-4">
-        <div className="mx-auto max-w-5xl flex items-center justify-between gap-4">
+        <div className="mx-auto max-w-[1680px] flex items-center justify-between gap-4">
           <button
             onClick={handleBack}
             disabled={isFirstStep}

@@ -1,5 +1,87 @@
 # Changelog
 
+## [1.10.0] — 2026-03-10
+
+### ✨ Highlights
+
+**The World-Class Polish Release** — every surface refined, every interaction considered, every pixel intentional. Kanban gets board + card templates, and every component receives micro-interaction polish for an award-worthy experience.
+
+### 📋 Kanban Templates
+- **9 Board Templates** — Create boards instantly from: Empty, Sprint Planning, Bug Triage, Security Audit, Test Coverage, Release Checklist, Feature Development, DevOps Pipeline, Research & Spike
+- **8 Card Templates** — Quick-add: Bug Report, Feature Request, Test Case, Security Issue, Refactor, Documentation, Code Review, Hotfix — each with priority, labels, and subtasks
+- **Smart Recommendations** — Board health score, WIP warnings, hygiene checks, productivity tips
+- **Template Picker** — Glass card grid with icons, descriptions, hover effects
+
+### 🏠 Chat Home Polish
+- **Particle animation** — Subtle floating dots drifting in the background
+- **Gradient hover borders** — Suggestion cards glow with gradient border on hover
+- **Recent Chats** — Last 3 conversations shown below suggestions
+- **Composer glow** — Clean brand-color box-shadow on focus
+
+### 💬 Agent Panel Refinements
+- **Message hover** — Micro-scale interaction on user message bubbles
+- **Code copy button** — Hover overlay on code blocks with clipboard copy + checkmark feedback
+- **Scroll-to-bottom FAB** — Floating button appears when scrolled up
+- **Date separators** — Centered day pills between messages from different days
+
+### 🧭 Sidebar Improvements
+- **Group separators** — Subtle dividers between navigation sections
+- **Active animation** — Smooth background fill on active item
+- **User avatar** — Mini circle with initials at bottom of collapsed sidebar
+
+### ⏱️ Status Bar Upgrade
+- **Line/column count** — Shows current cursor position
+- **Live clock** — Real-time HH:MM display, updates every minute
+- **Encoding indicator** — UTF-8 badge
+- **Clickable segments** — Hover feedback on all status bar items
+
+### 🎨 Global CSS Enhancements
+- **Custom scrollbars** — Thin, brand-colored, rounded
+- **Selection color** — Brand accent at 25% opacity
+- **Focus-visible rings** — Consistent 2px accent outline on keyboard focus
+- **Reduced motion** — Respects prefers-reduced-motion
+- **Print styles** — Clean content-only print output
+- **Universal feedback** — All buttons scale(0.98) on active
+
+### 🖥️ Terminal Polish
+- **Connection indicator** — Green/red dot showing gateway status
+- **Clear button** — One-click terminal clear in header
+
+### 🔔 Toast Upgrades
+- **Variant colors** — Success (green), Error (red), Warning (amber), Info (blue)
+- **Progress bar** — Auto-dismiss countdown visualization
+
+### 📊 Diff Viewer
+- **Line hover highlights** — Each line highlights on hover
+- **Tinted backgrounds** — Green for additions, red for removals at 10% opacity
+
+### 🔌 MCP Library Polish
+- **Install counts** — Mock download badges on server cards
+- **Category counts** — Badge numbers on filter pills
+- **Featured carousel** — Top row highlighting popular servers
+- **Empty search state** — Friendly "no results" with icon
+
+### ⚙️ Settings Panel
+- **Collapsible sections** — Accordion animation for setting groups
+- **Search filter** — Find settings quickly
+- **Styled toggles** — Custom pill-style toggle switches
+
+### 💻 Code Editor
+- **Skeleton loading** — Shimmer animation while Monaco initializes
+- **Welcome state** — Centered empty state with keyboard shortcut hints
+
+### 🗺️ Breadcrumbs
+- **File icon** — Code file icon on the active segment
+- **Chevron separators** — Clean arrow separators replacing slashes
+- **Bold active segment** — Last breadcrumb visually emphasized
+
+### 📊 By the Numbers
+- **14 files polished** in a single pass
+- **~750 lines** of refinements
+- **Every component** received attention
+- **0 TypeScript errors**
+- **Desktop + iOS versions aligned** at 1.10.0
+
 ## [1.9.0] — 2026-03-10
 
 ### ✨ Highlights

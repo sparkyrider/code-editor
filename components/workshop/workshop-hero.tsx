@@ -30,6 +30,10 @@ interface WorkshopHeroProps {
   onSave: () => void
   onToggleCompare: () => void
   compareMode: boolean
+  onExport?: () => void
+  onImport?: () => void
+  onCopyPrompt?: () => void
+  onShareLink?: () => void
 }
 
 export function WorkshopHero({
@@ -45,6 +49,10 @@ export function WorkshopHero({
   onSave,
   onToggleCompare,
   compareMode,
+  onExport,
+  onImport,
+  onCopyPrompt,
+  onShareLink,
 }: WorkshopHeroProps) {
   return (
     <section className="relative min-w-0 overflow-hidden rounded-[28px] border border-[var(--border)] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--brand)_18%,var(--bg-elevated)),var(--bg-elevated)_42%,color-mix(in_srgb,var(--text-primary)_6%,transparent))] p-6 shadow-[var(--shadow-sm)]">
@@ -132,6 +140,46 @@ export function WorkshopHero({
               <Icon icon={compareMode ? 'lucide:layers-2' : 'lucide:git-compare'} width={16} height={16} />
               {compareMode ? 'Disable Compare' : 'Create Challenger'}
             </button>
+            {onExport && (
+              <button
+                type="button"
+                onClick={onExport}
+                className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_72%,transparent)] px-4 py-2.5 text-sm font-semibold text-[var(--text-primary)] transition hover:border-[var(--brand)]"
+              >
+                <Icon icon="lucide:download" width={16} height={16} />
+                Export
+              </button>
+            )}
+            {onImport && (
+              <button
+                type="button"
+                onClick={onImport}
+                className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_72%,transparent)] px-4 py-2.5 text-sm font-semibold text-[var(--text-primary)] transition hover:border-[var(--brand)]"
+              >
+                <Icon icon="lucide:upload" width={16} height={16} />
+                Import
+              </button>
+            )}
+            {onCopyPrompt && (
+              <button
+                type="button"
+                onClick={onCopyPrompt}
+                className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_72%,transparent)] px-4 py-2.5 text-sm font-semibold text-[var(--text-primary)] transition hover:border-[var(--brand)]"
+              >
+                <Icon icon="lucide:copy" width={16} height={16} />
+                Copy Prompt
+              </button>
+            )}
+            {onShareLink && (
+              <button
+                type="button"
+                onClick={onShareLink}
+                className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_72%,transparent)] px-4 py-2.5 text-sm font-semibold text-[var(--text-primary)] transition hover:border-[var(--brand)]"
+              >
+                <Icon icon="lucide:share-2" width={16} height={16} />
+                Share
+              </button>
+            )}
           </div>
         </div>
 

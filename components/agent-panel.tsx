@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo, type DragEvent } from 'react'
 import { Icon } from '@iconify/react'
-import { ModeSelector } from '@/components/mode-selector'
 import { ChatHome } from '@/components/chat-home'
 import { ChatHeader } from '@/components/chat-header'
 import type { AgentMode } from '@/components/mode-selector'
@@ -25,7 +24,6 @@ import {
 } from '@/lib/github-api'
 import { DiffViewer } from '@/components/diff-viewer'
 import { parseEditProposals, type EditProposal } from '@/lib/edit-parser'
-import { showInlineDiff, type InlineDiffResult } from '@/lib/inline-diff'
 import { diffEngine } from '@/lib/streaming-diff'
 import { handleChatEvent, type ChatMessage, type StreamState } from '@/lib/chat-stream'
 import { isTauri } from '@/lib/tauri'
@@ -38,17 +36,13 @@ import { MessageList } from '@/components/chat/message-list'
 import { ChatInputBar } from '@/components/chat/chat-input-bar'
 import type { PickerItem } from '@/components/chat/inline-picker'
 import { emit, on } from '@/lib/events'
-import { copyToClipboard } from '@/lib/clipboard'
 import { formatShortcut } from '@/lib/platform'
-import type { PlanStep } from '@/components/plan-view'
-import { navigateToLine } from '@/lib/line-links'
 import { useChatAppearance, FONT_OPTIONS } from '@/context/chat-appearance-context'
 import { useThread } from '@/context/thread-context'
 import {
   CODE_EDITOR_SESSION_KEY,
   SESSION_INIT_STORAGE_KEY,
   CODE_EDITOR_SYSTEM_PROMPT_VERSION,
-  CODE_EDITOR_SYSTEM_PROMPT,
   buildEditorContext,
   getEffectiveSystemPrompt,
   getAgentConfig,
@@ -319,7 +313,7 @@ function formatPullRequestDetails(
   return lines.join('\n')
 }
 
-export function AgentPanel() {
+export function AgentPanel({ onClose }: { onClose?: () => void } = {}) {
   const { sendRequest, onEvent, status } = useGateway()
   const { files, activeFile, getFile, openFile, updateFileContent } = useEditor()
   const { repo, tree: repoTree } = useRepo()
@@ -328,7 +322,6 @@ export function AgentPanel() {
   const {
     chatFontSize,
     chatFontFamily,
-    chatFontCss,
     increaseFontSize,
     decreaseFontSize,
     setChatFontFamily,
@@ -350,6 +343,7 @@ export function AgentPanel() {
         return true
       })
     } catch {
+      // Ignore parse errors, return empty array
       return []
     }
   }
@@ -375,13 +369,8 @@ export function AgentPanel() {
     current: '',
     available: [],
   })
-  const [modelMenuOpen, setModelMenuOpen] = useState(false)
-  const [modelMenuPos, setModelMenuPos] = useState<{ left: number; bottom: number } | null>(null)
-  const modelBtnRef = useRef<HTMLButtonElement>(null)
   const [agentMode, setAgentMode] = useState<AgentMode>('ask')
-  const [planSteps, setPlanSteps] = useState<PlanStep[]>([])
   const [contextTokens, setContextTokens] = useState(0)
-  const inlineDiffRef = useRef<InlineDiffResult | null>(null)
   const [activeSuggestionIdx, setActiveSuggestionIdx] = useState(-1)
   const [confirmClear, setConfirmClear] = useState(false)
 
@@ -408,7 +397,6 @@ export function AgentPanel() {
   const sessionInitRef = useRef(false)
   const sentKeysRef = useRef(new Set<string>())
   const handledKeysRef = useRef(new Set<string>())
-  const lastFinalRef = useRef<{ content: string; ts: number } | null>(null)
   const sendingRef = useRef(false)
   const sessionKeyRef = useRef(sessionKey)
   const [streamBuffer, setStreamBuffer] = useState('')
@@ -497,7 +485,7 @@ export function AgentPanel() {
         setModelInfo({ current: 'claude-sonnet-4-5', available: ['claude-sonnet-4-5'] })
       }
     })()
-  }, [isConnected, sendRequest])
+  }, [isConnected, sendRequest, sessionKey])
 
   // ─── Lazy session initialization (only on first message) ──────
   const ensureSessionInit = useCallback(async () => {
@@ -533,14 +521,16 @@ export function AgentPanel() {
 
   // ─── Stream state for chat-stream handler ──────────────────────
   const streamStateRef = useRef<StreamState>({
-    sentKeys: sentKeysRef.current,
-    handledKeys: handledKeysRef.current,
+    sentKeys: new Set<string>(),
+    handledKeys: new Set<string>(),
     lastFinal: null,
     sessionKey,
     isSending: false,
   })
   // Keep stream state in sync
   useEffect(() => {
+    streamStateRef.current.sentKeys = sentKeysRef.current
+    streamStateRef.current.handledKeys = handledKeysRef.current
     streamStateRef.current.sessionKey = sessionKey
   }, [sessionKey])
   useEffect(() => {
@@ -603,7 +593,7 @@ export function AgentPanel() {
         const cursor = textarea.selectionStart ?? input.length
         const before = input.slice(0, cursor)
         const after = input.slice(cursor)
-        const newBefore = before.replace(/@[\w./\-]*$/, '')
+        const newBefore = before.replace(/@[\w./-]*$/, '')
         setInput(newBefore + after)
       }
 
@@ -940,7 +930,9 @@ export function AgentPanel() {
       try {
         localStorage.setItem(storageKey, JSON.stringify(messages.slice(-50)))
         emit('threads-updated')
-      } catch {}
+      } catch {
+        // Ignore storage errors
+      }
     }
   }, [messages, storageKey])
 
@@ -1125,7 +1117,9 @@ export function AgentPanel() {
           if (!patch && hasStaged) {
             patch = await local.getDiff(statusEntry.path, true)
           }
-        } catch {}
+        } catch {
+          // Ignore diff errors, continue without patch
+        }
 
         const summaryBits: string[] = []
         if (statusEntry.status === '??') summaryBits.push('untracked')
@@ -1719,10 +1713,12 @@ export function AgentPanel() {
       collectCommitChangesForGeneration,
       logChatDebug,
       enforceSkillFirstPolicy,
-      modelInfo.current,
+      modelInfo,
       requireGithubRepo,
       requireLocalGitRepo,
       sendStructuredGatewayMessage,
+      contextAttachments.length,
+      imageAttachments,
     ],
   )
 
@@ -1913,7 +1909,7 @@ export function AgentPanel() {
     } catch {
       return 'ask-all' as const
     }
-  }, [messages.length]) // re-check when messages change
+  }, [])
   useEffect(() => {
     const tierAllows = currentApprovalTier === 'auto-edits' || currentApprovalTier === 'auto-all'
     if (permissions !== 'full' && agentMode !== 'agent' && !tierAllows) return
@@ -1937,13 +1933,14 @@ export function AgentPanel() {
       content: `Auto-applied edits to ${fileNames}.`,
       timestamp: Date.now(),
     })
-  }, [messages, permissions, agentMode, getFile, updateFileContent, openFile, appendMessage])
+  }, [messages, permissions, agentMode, currentApprovalTier, getFile, updateFileContent, openFile, appendMessage])
 
   // ─── Slash command suggestions ────────────────────────────────
-  const suggestions = useMemo(() => {
+  // Detect picker triggers and update state in useEffect
+  useEffect(() => {
     if (!input.startsWith('/')) {
       setActivePicker(null)
-      return []
+      return
     }
 
     // Detect picker triggers — open on exact match OR with trailing space/query
@@ -1951,22 +1948,40 @@ export function AgentPanel() {
       const query = input.replace(/^\/skill\s*(use\s*)?/, '')
       setActivePicker('skill')
       setPickerQuery(query)
-      return []
+      return
     }
     if (input === '/mcp' || input.startsWith('/mcp ')) {
       const query = input.replace(/^\/mcp\s*/, '')
       setActivePicker('mcp')
       setPickerQuery(query)
-      return []
+      return
     }
     if (input === '/prompt' || input.startsWith('/prompt ')) {
       const query = input.replace(/^\/prompt\s*/, '')
       setActivePicker('prompt')
       setPickerQuery(query)
-      return []
+      return
     }
 
     setActivePicker(null)
+  }, [input])
+
+  const suggestions = useMemo(() => {
+    if (!input.startsWith('/')) {
+      return []
+    }
+
+    // Don't show suggestions when a picker is active
+    if (input === '/skill' || input === '/skill ' || input.startsWith('/skill use') || input === '/skill use') {
+      return []
+    }
+    if (input === '/mcp' || input.startsWith('/mcp ')) {
+      return []
+    }
+    if (input === '/prompt' || input.startsWith('/prompt ')) {
+      return []
+    }
+
     const cmds = [
       // Coding
       { cmd: '/edit', desc: 'Edit current file', icon: 'lucide:pencil' },
@@ -2025,7 +2040,9 @@ export function AgentPanel() {
           icon: 'lucide:sparkles',
           enabled: s.enabled ?? true,
         }))
-      } catch {}
+      } catch {
+        // Ignore parse errors, fall through to defaults
+      }
     }
     return [
       { id: 'code-review', name: 'Code Review', description: 'Review code for bugs and improvements', icon: 'lucide:scan-eye' },
@@ -2051,7 +2068,9 @@ export function AgentPanel() {
           icon: 'lucide:plug',
           enabled: s.enabled,
         }))
-      } catch {}
+      } catch {
+        // Ignore parse errors, return empty array
+      }
     }
     return []
   }, [])
@@ -2108,36 +2127,31 @@ export function AgentPanel() {
   const pickerEmptyHelp = useMemo(() => {
     if (activePicker === 'skill') return {
       icon: 'lucide:sparkles',
-      heading: 'No skills configured yet',
+      heading: 'Getting Started with Skills',
       steps: [
-        'Open Settings → Skills to browse available skills',
-        'Install a skill from the marketplace (e.g. obra/superpowers)',
-        'Use /skill find <query> to search for skills by name',
-        'Skills run code-gen, refactoring, testing, and more via your gateway',
+        'Open Skills view (⌘6)',
+        'Enable skills from the catalog',
+        'Skills will appear here once active',
       ],
-      hint: 'Tip: Use ⌘6 to jump to the Skills view, or type /skill find to search.',
     }
     if (activePicker === 'mcp') return {
       icon: 'lucide:plug',
-      heading: 'No MCP servers configured',
+      heading: 'Getting Started with MCP',
       steps: [
-        'Open the MCP Library (⌘5) to browse available servers',
-        'Click "Install" on any server to add it (e.g. GitHub, Postgres, Notion)',
-        'Or add a custom server: /mcp add <name> --command "npx @mcp/server"',
-        'MCP servers give your agent access to external tools and data sources',
+        'Open MCP Library (⌘5)',
+        'Browse and install a server',
+        'Configure API keys if needed',
+        'Come back here to use it',
       ],
-      hint: 'Tip: Popular servers — GitHub (PRs/issues), Postgres (queries), Brave Search (web).',
     }
     if (activePicker === 'prompt') return {
       icon: 'lucide:book-open',
-      heading: 'Getting started with prompts',
+      heading: 'Create Your First Prompt',
       steps: [
-        'Prompts are reusable templates for common tasks',
-        'Type /prompt followed by keywords to search templates',
-        'Create custom prompts in Settings → Prompts',
-        'Prompts can include {variables} that get filled in when used',
+        'Use the prompt templates below',
+        'Customize them for your workflow',
+        'Save frequently-used prompts',
       ],
-      hint: 'Tip: Try /prompt readme, /prompt review, or /prompt explain.',
     }
     return undefined
   }, [activePicker])
@@ -2236,7 +2250,7 @@ export function AgentPanel() {
         sendMessage()
       }
     },
-    [activePicker, currentPickerItems, pickerIndex, handlePickerSelect, handlePickerClose, suggestions, activeSuggestionIdx, sendMessage],
+    [activePicker, currentPickerItems, pickerIndex, handlePickerSelect, handlePickerClose, suggestions, activeSuggestionIdx, input, sendMessage],
   )
 
   // ─── Message actions ────────────────────────────────────────────
@@ -2291,7 +2305,6 @@ export function AgentPanel() {
     setInput('')
     setContextAttachments([])
     setImageAttachments([])
-    setPlanSteps([])
     setActiveDiff(null)
     setConfirmClear(false)
     diffEngine.clear()
@@ -2299,12 +2312,16 @@ export function AgentPanel() {
     try {
       localStorage.removeItem(storageKey)
       emit('threads-updated')
-    } catch {}
+    } catch {
+      // Ignore storage errors
+    }
     try {
       sessionStorage.removeItem(
         `${SESSION_INIT_STORAGE_KEY}:${sessionKey}:v${CODE_EDITOR_SYSTEM_PROMPT_VERSION}`,
       )
-    } catch {}
+    } catch {
+      // Ignore storage errors
+    }
   }, [confirmClear, sessionKey, storageKey])
 
   // ─── Diff overlay ─────────────────────────────────────────────
@@ -2378,6 +2395,7 @@ export function AgentPanel() {
               return acc
             }, new Set<string>()).size
         }
+        onClose={onClose}
       />
       {messages.length > 0 && (
         <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--bg-elevated)] px-2.5 py-0.5 shrink-0">

@@ -78,15 +78,16 @@ function findFileLinksInLine(
   return results
 }
 
-function buildXtermTheme(hasBgImage?: boolean) {
+function buildXtermTheme(hasBgImage?: boolean, bgColor?: string | null) {
   const s = getComputedStyle(document.documentElement)
   const v = (name: string) => s.getPropertyValue(name).trim()
   const dark = document.documentElement.classList.contains('dark')
+  const solidBg = bgColor || SOLID_TERMINAL_BG
   return {
-    background: hasBgImage ? 'transparent' : SOLID_TERMINAL_BG,
+    background: hasBgImage ? 'transparent' : solidBg,
     foreground: hasBgImage ? v('--text-primary') || (dark ? '#e5e5e5' : '#171717') : SOLID_TERMINAL_FG,
     cursor: v('--brand') || '#a855f7',
-    cursorAccent: hasBgImage ? 'transparent' : SOLID_TERMINAL_BG,
+    cursorAccent: hasBgImage ? 'transparent' : solidBg,
     selectionBackground: (v('--brand') || '#a855f7') + '40',
     black: dark ? '#1e1e1e' : '#d4d4d4',
     red: dark ? '#f87171' : '#dc2626',
@@ -241,6 +242,8 @@ interface TerminalPaneProps {
   startupCommand?: string
   terminalBg?: string | null
   terminalBgOpacity?: number
+  terminalBgColor?: string | null
+  onChangeBgColor?: (color: string | null) => void
 }
 
 function TerminalPane({
@@ -258,8 +261,11 @@ function TerminalPane({
   startupCommand,
   terminalBg,
   terminalBgOpacity = 15,
+  terminalBgColor,
+  onChangeBgColor,
 }: TerminalPaneProps) {
   const hasBgImage = !!terminalBg
+  const [showBgPicker, setShowBgPicker] = useState(false)
   const [activeId, setActiveId] = useState<number | null>(session.terminalId)
   const [terminalError, setTerminalError] = useState<string | null>(null)
   const termRef = useRef<HTMLDivElement>(null)
@@ -380,7 +386,7 @@ function TerminalPane({
         scrollback: 10000,
         allowProposedApi: true,
         allowTransparency: hasBgImage,
-        theme: buildXtermTheme(hasBgImage),
+        theme: buildXtermTheme(hasBgImage, terminalBgColor),
       })
       term.attachCustomKeyEventHandler((e: KeyboardEvent) => {
         const meta = e.metaKey || e.ctrlKey
@@ -515,10 +521,10 @@ function TerminalPane({
     if (!term) return
     const id = requestAnimationFrame(() => {
       term.options.allowTransparency = hasBgImage
-      term.options.theme = buildXtermTheme(hasBgImage)
+      term.options.theme = buildXtermTheme(hasBgImage, terminalBgColor)
     })
     return () => cancelAnimationFrame(id)
-  }, [themeVersion, hasBgImage])
+  }, [themeVersion, hasBgImage, terminalBgColor])
 
   // Fit terminal on size or active tab change
   useEffect(() => {
@@ -568,6 +574,63 @@ function TerminalPane({
             </button>
           )}
 
+          {onChangeBgColor && (
+            <div className="relative">
+              <button
+                onClick={() => setShowBgPicker((v) => !v)}
+                className="p-1 rounded-md hover:bg-[var(--bg-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors shrink-0"
+                title="Terminal background color"
+              >
+                <Icon icon="lucide:palette" width={13} height={13} />
+              </button>
+              {showBgPicker && (
+                <>
+                  <button
+                    type="button"
+                    className="fixed inset-0 z-[99]"
+                    onClick={() => setShowBgPicker(false)}
+                    aria-label="Close picker"
+                  />
+                  <div className="absolute right-0 top-full mt-1 z-[100] rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] shadow-xl p-3 w-[200px]">
+                    <p className="text-[10px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider mb-2">Background</p>
+                    <div className="grid grid-cols-6 gap-1.5 mb-2">
+                      {['#000000', '#0a0a0a', '#1a1a2e', '#0d1117', '#1e1e2e', '#2d1b2e', '#0b132b', '#1b2a1b', '#2a1a0b', '#1a0a0a', '#0a1a2a', '#2a2a1a'].map((c) => (
+                        <button
+                          key={c}
+                          onClick={() => { onChangeBgColor(c); setShowBgPicker(false) }}
+                          className={`w-6 h-6 rounded-md border transition-all hover:scale-110 ${terminalBgColor === c ? 'border-[var(--brand)] ring-1 ring-[var(--brand)]' : 'border-[var(--border)]'}`}
+                          style={{ backgroundColor: c }}
+                          title={c}
+                        />
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={terminalBgColor || '#000000'}
+                        onChange={(e) => onChangeBgColor(e.target.value)}
+                        className="w-6 h-6 rounded cursor-pointer border border-[var(--border)] bg-transparent p-0"
+                        title="Custom color"
+                      />
+                      <span className="text-[10px] text-[var(--text-disabled)] font-mono flex-1">
+                        {terminalBgColor || '#000000'}
+                      </span>
+                      {terminalBgColor && (
+                        <button
+                          onClick={() => { onChangeBgColor(null); setShowBgPicker(false) }}
+                          className="text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+                          title="Reset to default"
+                        >
+                          Reset
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
           {onToggleFloating && (
             <button
               onClick={onToggleFloating}
@@ -581,7 +644,10 @@ function TerminalPane({
       )}
 
       {/* Terminal viewport */}
-      <div className={`flex-1 overflow-hidden relative ${hasBgImage ? '' : 'bg-black'}`}>
+      <div
+        className="flex-1 overflow-hidden relative"
+        style={{ backgroundColor: hasBgImage ? undefined : (terminalBgColor || '#000000') }}
+      >
         {hasBgImage && (
           <>
             <div
@@ -637,7 +703,7 @@ export function TerminalPanel({
   refreshToken,
   startupCommand,
 }: TerminalPanelProps) {
-  const { version: themeVersion, terminalBg, terminalBgOpacity } = useTheme()
+  const { version: themeVersion, terminalBg, terminalBgOpacity, terminalBgColor, setTerminalBgColor } = useTheme()
   const local = useLocal()
   const [isDesktop, setIsDesktop] = useState(false)
   const resizing = useRef(false)
@@ -716,6 +782,8 @@ export function TerminalPanel({
           startupCommand={startupCommand}
           terminalBg={terminalBg}
           terminalBgOpacity={terminalBgOpacity}
+          terminalBgColor={terminalBgColor}
+          onChangeBgColor={setTerminalBgColor}
         />
       </div>
     </div>

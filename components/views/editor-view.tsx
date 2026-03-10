@@ -312,19 +312,28 @@ export function EditorView() {
             style={chatPanelResize.resizing ? { width: chatPanelWidth } : undefined}
             className="shrink-0 overflow-hidden border-l border-[var(--border)] bg-[var(--sidebar-bg)]"
           >
-            <AgentPanel />
+            <AgentPanel onClose={() => layout.hide('chat')} />
           </motion.div>
         )}
       </AnimatePresence>
 
       {!chatPanelVisible && !isMobile && !chatFloating && (
-        <button
-          onClick={() => layout.show('chat')}
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-5 h-12 flex items-center justify-center bg-[var(--bg-elevated)] border border-r-0 border-[var(--border)] rounded-l-lg hover:bg-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] text-[var(--text-disabled)] hover:text-[var(--text-tertiary)] cursor-pointer"
-          title={`Show chat (${formatShortcut('meta+I')})`}
-        >
-          <Icon icon="lucide:chevron-left" width={14} height={14} />
-        </button>
+        <div className="absolute right-0 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-1">
+          <button
+            onClick={() => layout.show('chat')}
+            className="w-5 h-12 flex items-center justify-center bg-[var(--bg-elevated)] border border-r-0 border-[var(--border)] rounded-l-lg hover:bg-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] text-[var(--text-disabled)] hover:text-[var(--text-tertiary)] cursor-pointer"
+            title={`Show chat (${formatShortcut('meta+I')})`}
+          >
+            <Icon icon="lucide:message-square" width={12} height={12} />
+          </button>
+          <button
+            onClick={() => layout.toggle('terminal')}
+            className="w-5 h-12 flex items-center justify-center bg-[var(--bg-elevated)] border border-r-0 border-[var(--border)] rounded-l-lg hover:bg-[color-mix(in_srgb,var(--text-primary)_6%,transparent)] text-[var(--text-disabled)] hover:text-[var(--text-tertiary)] cursor-pointer"
+            title={`Toggle terminal (${formatShortcut('meta+J')})`}
+          >
+            <Icon icon="lucide:terminal" width={12} height={12} />
+          </button>
+        </div>
       )}
 
       <AnimatePresence initial={false}>

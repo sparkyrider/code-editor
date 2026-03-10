@@ -57,8 +57,10 @@ interface ThemeContextValue {
   setBgTint: (t: number) => void
   terminalBg: string | null
   terminalBgOpacity: number
+  terminalBgColor: string | null
   setTerminalBg: (url: string | null) => void
   setTerminalBgOpacity: (v: number) => void
+  setTerminalBgColor: (color: string | null) => void
   editorBgStyle: EditorBgStyle
   editorBgOpacity: number
   setEditorBgStyle: (s: EditorBgStyle) => void
@@ -74,6 +76,7 @@ const STORAGE_MODE = 'code-editor:mode'
 const STORAGE_BG_TINT = 'code-editor:bg-tint'
 const STORAGE_TERMINAL_BG = 'code-editor:terminal-bg'
 const STORAGE_TERMINAL_BG_OPACITY = 'code-editor:terminal-bg-opacity'
+const STORAGE_TERMINAL_BG_COLOR = 'code-editor:terminal-bg-color'
 
 const LEGACY_DEFAULT_TERMINAL_BG = '/terminal-bg-default.png'
 
@@ -137,6 +140,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [bgTint, setBgTintState] = useState(6)
   const [terminalBg, setTerminalBgState] = useState<string | null>(null)
   const [terminalBgOpacity, setTerminalBgOpacityState] = useState(15)
+  const [terminalBgColor, setTerminalBgColorState] = useState<string | null>(null)
   const [editorBgStyle, setEditorBgStyleState] = useState<EditorBgStyle>('grid')
   const [editorBgOpacity, setEditorBgOpacityState] = useState(4)
   const [version, setVersion] = useState(0)
@@ -166,6 +170,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         }
       }
       if (savedTermBgOpacity !== null) setTerminalBgOpacityState(Number(savedTermBgOpacity))
+      const savedTermBgColor = localStorage.getItem(STORAGE_TERMINAL_BG_COLOR)
+      if (savedTermBgColor) setTerminalBgColorState(savedTermBgColor)
       const savedEdBg = localStorage.getItem('code-editor:editor-bg-style') as EditorBgStyle | null
       const savedEdBgOp = localStorage.getItem('code-editor:editor-bg-opacity')
       if (savedEdBg) setEditorBgStyleState(savedEdBg)
@@ -239,6 +245,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     } catch {}
   }, [])
 
+  const setTerminalBgColor = useCallback((color: string | null) => {
+    setTerminalBgColorState(color)
+    try {
+      localStorage.setItem(STORAGE_TERMINAL_BG_COLOR, color ?? '')
+    } catch {}
+  }, [])
+
   const setEditorBgStyle = useCallback((s: EditorBgStyle) => {
     setEditorBgStyleState(s)
     try { localStorage.setItem('code-editor:editor-bg-style', s) } catch {}
@@ -261,8 +274,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       setBgTint,
       terminalBg,
       terminalBgOpacity,
+      terminalBgColor,
       setTerminalBg,
       setTerminalBgOpacity,
+      setTerminalBgColor,
       editorBgStyle,
       editorBgOpacity,
       setEditorBgStyle,
@@ -280,8 +295,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       setBgTint,
       terminalBg,
       terminalBgOpacity,
+      terminalBgColor,
       setTerminalBg,
       setTerminalBgOpacity,
+      setTerminalBgColor,
       editorBgStyle,
       editorBgOpacity,
       setEditorBgStyle,

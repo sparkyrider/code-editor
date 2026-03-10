@@ -140,7 +140,7 @@ export function ChatInputBar({
   inputRef,
   sending,
   isStreaming,
-  isConnected,
+  isConnected: _isConnected,
   suggestions,
   agentMode,
   setAgentMode,
@@ -528,7 +528,7 @@ export function ChatInputBar({
                 setActiveSuggestionIdx(-1)
                 const cursor = e.target.selectionStart ?? val.length
                 const before = val.slice(0, cursor)
-                const atMatch = before.match(/@([\w./\-]*)$/)
+                const atMatch = before.match(/@([\w./-]*)$/)
                 if (atMatch) {
                   setAtMenuOpen(true)
                   setAtQuery(atMatch[1])

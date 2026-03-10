@@ -8,6 +8,8 @@ import { WorkshopEvaluationLab } from '@/components/workshop/eval-lab'
 import { ModuleCanvas } from '@/components/workshop/module-canvas'
 import { PythonAgentLab } from '@/components/workshop/python-agent-lab'
 import { WorkshopHero } from '@/components/workshop/workshop-hero'
+import { AgentFlow } from '@/components/workshop/agent-flow'
+import { AgentTestPanel } from '@/components/workshop/agent-test-panel'
 import {
   WORKSHOP_AUTOMATION_CATALOG,
   WORKSHOP_GUARDRAIL_PROFILES,
@@ -441,6 +443,54 @@ export function WorkshopView() {
     })
   }, [])
 
+  const handleExport = useCallback(() => {
+    const exportData = {
+      version: '1.0',
+      blueprint: primaryBlueprint,
+      exportedAt: Date.now(),
+    }
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${primaryBlueprint.identity.name.toLowerCase().replace(/\s+/g, '-') || 'agent'}-blueprint.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }, [primaryBlueprint])
+
+  const handleImport = useCallback(() => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.json'
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (!file) return
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        try {
+          const data = JSON.parse(event.target?.result as string)
+          if (data.blueprint) {
+            setPrimaryBlueprint(data.blueprint)
+          }
+        } catch (error) {
+          console.error('Failed to import blueprint:', error)
+        }
+      }
+      reader.readAsText(file)
+    }
+    input.click()
+  }, [setPrimaryBlueprint])
+
+  const handleCopyPrompt = useCallback(() => {
+    navigator.clipboard.writeText(systemPromptPreview)
+  }, [systemPromptPreview])
+
+  const handleShareLink = useCallback(() => {
+    const encoded = btoa(JSON.stringify(primaryBlueprint))
+    const url = `${window.location.origin}${window.location.pathname}#blueprint=${encoded}`
+    navigator.clipboard.writeText(url)
+  }, [primaryBlueprint])
+
   return (
     <div className="h-full w-full min-h-0 min-w-0 overflow-x-hidden overflow-y-auto bg-[var(--sidebar-bg)]">
       <div className="mx-auto flex w-full min-w-0 max-w-none flex-col gap-6 px-4 py-5 lg:px-6 2xl:px-8">
@@ -457,6 +507,10 @@ export function WorkshopView() {
           onSave={handleSaveBlueprint}
           onToggleCompare={toggleCompareMode}
           compareMode={documentState.compareMode}
+          onExport={handleExport}
+          onImport={handleImport}
+          onCopyPrompt={handleCopyPrompt}
+          onShareLink={handleShareLink}
         />
 
         <div className="grid min-w-0 items-start gap-6 2xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]">
@@ -969,7 +1023,7 @@ export function WorkshopView() {
           </div>
 
           <div className="grid min-w-0 gap-6 2xl:sticky 2xl:top-4 2xl:self-start">
-            <ModuleCanvas
+            <AgentFlow
               blueprint={primaryBlueprint}
               activeStage={activeStage}
               onFocusStage={setActiveStage}
@@ -1046,6 +1100,21 @@ export function WorkshopView() {
               </pre>
             </section>
           </div>
+        </div>
+
+        <div className="min-w-0">
+          <section className="rounded-3xl border border-[var(--border)] bg-[var(--bg-elevated)] p-6 shadow-[var(--shadow-sm)]">
+            <div className="mb-6">
+              <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--text-disabled)]">
+                Test & Validation
+              </div>
+              <h2 className="mt-2 text-lg font-semibold text-[var(--text-primary)]">Agent Test Panel</h2>
+              <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">
+                Test your agent configuration with real prompts before deploying
+              </p>
+            </div>
+            <AgentTestPanel blueprint={primaryBlueprint} />
+          </section>
         </div>
 
         <div ref={evalLabRef} className="min-w-0">

@@ -13,6 +13,7 @@ interface Props {
   maxContextTokens?: number
   activityCount?: number
   filesChanged?: number
+  onClose?: () => void
 }
 
 export function ChatHeader({
@@ -24,6 +25,7 @@ export function ChatHeader({
   maxContextTokens = 128000,
   activityCount = 0,
   filesChanged = 0,
+  onClose,
 }: Props) {
   const { repo } = useRepo()
   const local = useLocal()
@@ -118,6 +120,15 @@ export function ChatHeader({
           <span className="whitespace-nowrap text-[11px] text-[var(--text-disabled)]">
             {messageCount} msg
           </span>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--text-disabled)] hover:text-[var(--text-secondary)] hover:bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] transition-colors cursor-pointer"
+              title="Close panel"
+            >
+              <Icon icon="lucide:panel-right-close" width={14} height={14} />
+            </button>
+          )}
         </div>
       </div>
 

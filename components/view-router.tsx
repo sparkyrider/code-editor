@@ -13,6 +13,10 @@ const EditorView = dynamic(
 const GitView = dynamic(() => import('@/components/views/git-view').then((m) => m.GitView), {
   ssr: false,
 })
+const KanbanView = dynamic(
+  () => import('@/components/views/kanban-view').then((m) => m.KanbanView),
+  { ssr: false },
+)
 const SkillsView = dynamic(
   () => import('@/components/views/skills-view').then((m) => m.SkillsView),
   { ssr: false },
@@ -50,6 +54,7 @@ const VIEW_ICONS: Record<string, { label: string }> = {
   editor: { label: 'Editor' },
   preview: { label: 'Preview' },
   git: { label: 'Git' },
+  kanban: { label: 'Kanban' },
   skills: { label: 'Skills' },
   prompts: { label: 'Prompts' },
   mcp: { label: 'MCP Library' },
@@ -128,6 +133,7 @@ export function ViewRouter() {
                 {activeView === 'editor' && <EditorView />}
                 {activeView === 'preview' && <PreviewPanel />}
                 {activeView === 'git' && <GitView />}
+                {activeView === 'kanban' && <KanbanView />}
                 {activeView === 'skills' && <SkillsView />}
                 {activeView === 'prompts' && <PromptLibraryView />}
                 {activeView === 'mcp' && <McpLibraryView />}

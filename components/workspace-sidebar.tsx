@@ -214,6 +214,14 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
             <Icon icon="lucide:book-open" width={24} height={24} />
           </button>
 
+          <button
+            onClick={() => setView('kanban')}
+            className={`activity-bar-btn ${activeView === 'kanban' ? 'activity-bar-btn--active' : ''}`}
+            title="Kanban (⌘8)"
+          >
+            <Icon icon="lucide:kanban" width={24} height={24} />
+          </button>
+
           {/* Divider */}
           <div className="flex-1" />
           <div className="activity-bar-divider" />
@@ -291,6 +299,7 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
                 { id: 'mcp' as const, icon: 'lucide:plug', label: 'MCP', shortcut: '⌘5' },
                 { id: 'skills' as const, icon: 'lucide:wand-2', label: 'Skills', shortcut: '⌘6' },
                 { id: 'prompts' as const, icon: 'lucide:book-open', label: 'Prompts', shortcut: '⌘7' },
+                { id: 'kanban' as const, icon: 'lucide:kanban', label: 'Kanban', shortcut: '⌘8' },
               ] as const).map((item) => (
                 <button
                   key={item.id}

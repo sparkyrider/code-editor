@@ -28,6 +28,8 @@ export function YouTubeStatusBar() {
         label: detail.current?.label ?? '',
         playing: detail.playing ?? false,
         hasCurrent: Boolean(detail.current),
+        muted: detail.muted ?? false,
+        volume: detail.volume ?? 100,
       })
     }
     window.addEventListener('youtube-state-changed', handler)

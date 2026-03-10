@@ -830,6 +830,14 @@ export function AgentPanel() {
     })
   }, [])
 
+  // ─── Listen for prompt-use events (from prompt library) ────
+  useEffect(() => {
+    return on('prompt-use', (detail) => {
+      if (detail.text) setInput(detail.text)
+      inputRef.current?.focus()
+    })
+  }, [])
+
   // ─── Listen for focus-agent-input (⌘L from anywhere) ──────
   useEffect(() => {
     return on('focus-agent-input', () => inputRef.current?.focus())

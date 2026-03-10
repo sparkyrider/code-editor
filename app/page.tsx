@@ -70,10 +70,6 @@ const WidgetPipWindow = dynamic(
   () => import('@/components/plugins/widget-pip-window').then((m) => m.WidgetPipWindow),
   { ssr: false },
 )
-const SettingsPanel = dynamic(
-  () => import('@/components/settings-panel').then((m) => m.SettingsPanel),
-  { ssr: false },
-)
 const OnboardingTour = dynamic(
   () => import('@/components/onboarding-tour').then((m) => m.OnboardingTour),
   { ssr: false },
@@ -90,6 +86,7 @@ const VIEW_ICONS: Record<string, { icon: string; label: string }> = {
   diff: { icon: 'lucide:git-compare', label: 'Diff' },
   git: { icon: 'lucide:git-branch', label: 'Git' },
   skills: { icon: 'lucide:sparkles', label: 'Skills' },
+  prompts: { icon: 'lucide:book-open', label: 'Prompts' },
   mcp: { icon: 'lucide:plug', label: 'MCP' },
   settings: { icon: 'lucide:settings', label: 'Settings' },
   terminal: { icon: 'lucide:terminal', label: 'Terminal' },
@@ -135,7 +132,9 @@ export default function EditorLayout() {
   const terminalStartupCommand = useCenteredTerminal ? 'openclaw tui' : undefined
   const mobileViewTabs = useMemo(() => {
     // On mobile, curate tabs to useful views + always include settings
-    const mobile = visibleViews.filter((v) => !['preview', 'diff', 'skills', 'mcp'].includes(v))
+    const mobile = visibleViews.filter(
+      (v) => !['preview', 'diff', 'skills', 'prompts', 'mcp'].includes(v),
+    )
     if (!mobile.includes('terminal')) mobile.push('terminal')
     return mobile.slice(0, 5)
   }, [visibleViews])
@@ -167,10 +166,6 @@ export default function EditorLayout() {
   const [globalSearchVisible, setGlobalSearchVisible] = useState(false)
   const [commandPaletteVisible, setCommandPaletteVisible] = useState(false)
   const [shortcutsVisible, setShortcutsVisible] = useState(false)
-  const [settingsVisible, setSettingsVisible] = useState(false)
-  const [settingsTab, setSettingsTab] = useState<
-    'general' | 'editor' | 'agent' | 'keybindings' | 'plugins' | undefined
-  >(undefined)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [onboardingOpen, setOnboardingOpen] = useState(false)
 
@@ -307,12 +302,10 @@ export default function EditorLayout() {
   useEffect(() => {
     const unsubs = [
       on('open-settings', () => {
-        setSettingsTab(undefined)
-        setSettingsVisible(true)
+        setView('settings')
       }),
       on('open-agent-settings', () => {
-        setSettingsTab('agent')
-        setSettingsVisible(true)
+        setView('settings')
       }),
       on('open-folder', () => localOpenFolder()),
       on('open-recent', (detail) => {
@@ -547,10 +540,7 @@ export default function EditorLayout() {
 
               <button
                 type="button"
-                onClick={() => {
-                  setSettingsTab(undefined)
-                  setSettingsVisible(true)
-                }}
+                onClick={() => setView('settings')}
                 className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_92%,transparent)] text-[var(--text-secondary)] transition hover:bg-[color-mix(in_srgb,var(--text-primary)_5%,transparent)] hover:text-[var(--text-primary)]"
                 title="Settings"
               >
@@ -905,6 +895,9 @@ export default function EditorLayout() {
             case 'view-skills':
               setView('skills')
               break
+            case 'view-prompts':
+              setView('prompts')
+              break
             case 'find-files':
               setQuickOpenVisible(true)
               break
@@ -939,16 +932,7 @@ export default function EditorLayout() {
         }}
       />
       <ShortcutsOverlay open={shortcutsVisible} onClose={() => setShortcutsVisible(false)} />
-      {settingsVisible && activeView !== 'settings' && (
-        <SettingsPanel
-          open={settingsVisible}
-          onClose={() => {
-            setSettingsVisible(false)
-            setSettingsTab(undefined)
-          }}
-          initialTab={settingsTab}
-        />
-      )}
+
       <OnboardingTour open={onboardingOpen} onClose={() => setOnboardingOpen(false)} />
     </div>
   )

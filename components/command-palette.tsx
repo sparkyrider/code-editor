@@ -30,6 +30,7 @@ type CommandId =
   | 'view-preview'
   | 'view-git'
   | 'view-skills'
+  | 'view-prompts'
   | 'view-settings'
   | 'open-onboarding'
   | 'open-new-window'
@@ -229,6 +230,14 @@ const COMMANDS: CommandItem[] = [
     icon: 'lucide:sparkles',
     group: 'navigate',
   },
+  {
+    id: 'view-prompts',
+    label: 'Go to Prompt Library',
+    hint: 'Browse curated prompt templates',
+    keywords: ['prompts', 'templates', 'library', 'recipes'],
+    icon: 'lucide:book-open',
+    group: 'navigate',
+  },
 
   {
     id: 'open-new-window',
@@ -349,6 +358,7 @@ const VIEW_CONTEXT_COMMANDS: Partial<Record<ViewId, CommandId[]>> = {
   ],
   git: ['git-commit', 'toggle-git-panel', 'git-push', 'git-pull', 'git-stash', 'toggle-terminal'],
   skills: ['view-skills', 'open-new-window', 'view-editor'],
+  prompts: ['view-prompts', 'view-editor', 'open-new-window'],
 
   preview: ['preview-refresh', 'view-editor'],
 }

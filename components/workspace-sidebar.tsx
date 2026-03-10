@@ -198,6 +198,14 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
             <Icon icon="lucide:wand-2" width={24} height={24} />
           </button>
 
+          <button
+            onClick={() => setView('prompts')}
+            className={`activity-bar-btn ${activeView === 'prompts' ? 'activity-bar-btn--active' : ''}`}
+            title="Prompt Library"
+          >
+            <Icon icon="lucide:book-open" width={24} height={24} />
+          </button>
+
           {/* Divider */}
           <div className="flex-1" />
           <div className="activity-bar-divider" />
@@ -211,7 +219,11 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
             <Icon icon="lucide:settings" width={24} height={24} />
           </button>
 
-          <button onClick={onToggle} className="activity-bar-btn" title={`Expand sidebar (${formatShortcut('meta+\\')})`}>
+          <button
+            onClick={onToggle}
+            className="activity-bar-btn"
+            title={`Expand sidebar (${formatShortcut('meta+\\')})`}
+          >
             <Icon icon="lucide:panel-left" width={24} height={24} />
           </button>
         </>
@@ -303,14 +315,19 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
                 <Icon icon="lucide:wand-2" width={18} height={18} />
                 Skills
               </button>
+              <button
+                onClick={() => setView('prompts')}
+                className={`sidebar-view-nav ${activeView === 'prompts' ? 'sidebar-view-nav--active' : ''}`}
+              >
+                <Icon icon="lucide:book-open" width={18} height={18} />
+                Prompts
+              </button>
             </div>
           </div>
 
           {/* Threads section */}
           <div className="mt-3 px-3 flex-1 overflow-y-auto min-h-0">
-            <p className="codex-sidebar-section-label">
-              Threads
-            </p>
+            <p className="codex-sidebar-section-label">Threads</p>
 
             {workspaceLabel && (
               <div className="mb-2">
@@ -388,8 +405,12 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
           {/* Bottom section */}
           <div className="px-3 pb-3 pt-2 border-t border-[var(--border)] shrink-0 space-y-0.5">
             <button
-              onClick={() => emit('open-settings')}
-              className="codex-sidebar-nav-item flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all cursor-pointer w-full"
+              onClick={() => setView('settings')}
+              className={`codex-sidebar-nav-item flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] transition-all cursor-pointer w-full ${
+                activeView === 'settings'
+                  ? 'text-[var(--text-primary)] bg-[var(--bg-subtle)]'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              }`}
             >
               <Icon icon="lucide:settings" width={18} height={18} />
               Settings

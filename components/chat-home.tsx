@@ -13,6 +13,7 @@ import { useLocal } from '@/context/local-context'
 import { useGateway } from '@/context/gateway-context'
 import { useGitHubAuth } from '@/context/github-auth-context'
 import { useEditor } from '@/context/editor-context'
+import { useView } from '@/context/view-context'
 import { emit } from '@/lib/events'
 import { getRecentFolders } from '@/context/local-context'
 import { getAgentConfig } from '@/lib/agent-session'
@@ -118,6 +119,7 @@ export const ChatHome = memo(function ChatHome({
   const { repo, setRepo } = useRepo()
   const local = useLocal()
   const { status } = useGateway()
+  const { setView } = useView()
   const { files: openFiles } = useEditor()
   const { token: ghToken, authenticated: ghAuthenticated } = useGitHubAuth()
 
@@ -533,8 +535,15 @@ export const ChatHome = memo(function ChatHome({
           )}
         </div>
 
-        {/* "Explore more" link — desktop only */}
-        <div className="hidden sm:flex justify-end mb-2">
+        {/* Quick links — desktop only */}
+        <div className="hidden sm:flex justify-end gap-4 mb-2">
+          <button
+            onClick={() => setView('prompts')}
+            className="inline-flex items-center gap-1 text-[12px] text-[var(--text-disabled)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
+          >
+            <Icon icon="lucide:book-open" width={11} height={11} />
+            Browse prompt library
+          </button>
           <button
             onClick={() => emit('open-folder')}
             className="text-[12px] text-[var(--text-disabled)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer"

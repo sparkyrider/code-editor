@@ -20,6 +20,10 @@ const McpLibraryView = dynamic(
   () => import('@/components/views/mcp-library-view').then((m) => m.McpLibraryView),
   { ssr: false },
 )
+const PromptLibraryView = dynamic(
+  () => import('@/components/views/prompt-library-view').then((m) => m.PromptLibraryView),
+  { ssr: false },
+)
 const SettingsPanel = dynamic(
   () => import('@/components/settings-panel').then((m) => m.SettingsPanel),
   { ssr: false },
@@ -42,6 +46,7 @@ const VIEW_ICONS: Record<string, { label: string }> = {
   preview: { label: 'Preview' },
   git: { label: 'Git' },
   skills: { label: 'Skills' },
+  prompts: { label: 'Prompts' },
   mcp: { label: 'MCP Library' },
   settings: { label: 'Settings' },
   terminal: { label: 'Terminal' },
@@ -85,12 +90,9 @@ export function ViewRouter() {
             {activeView === 'preview' && <PreviewPanel />}
             {activeView === 'git' && <GitView />}
             {activeView === 'skills' && <SkillsView />}
+            {activeView === 'prompts' && <PromptLibraryView />}
             {activeView === 'mcp' && <McpLibraryView />}
-            {activeView === 'settings' && (
-              <div className="flex-1 flex items-center justify-center">
-                <SettingsPanel open={true} onClose={() => setView('editor')} />
-              </div>
-            )}
+            {activeView === 'settings' && <SettingsPanel onBack={() => setView('chat')} />}
             {activeView === 'terminal' && (
               <div className="flex-1 flex min-h-0 min-w-0 overflow-hidden">
                 <GatewayTerminal />

@@ -12,7 +12,7 @@ import {
 
 export type ThemeMode = 'light' | 'dark' | 'system'
 export type ResolvedMode = 'light' | 'dark'
-export type ThemeId = 'obsidian' | 'neon' | 'catppuccin-mocha' | 'bone' | 'supreme' | string
+export type ThemeId = 'obsidian' | 'neon' | 'catppuccin-mocha' | 'bone' | 'supreme' | 'claude' | string
 
 export interface ThemePreset {
   id: ThemeId
@@ -22,6 +22,7 @@ export interface ThemePreset {
 }
 
 export const THEME_PRESETS: ThemePreset[] = [
+  { id: 'claude', label: 'Claude', color: '#3b82f6', group: 'core' },
   { id: 'supreme', label: 'Supreme', color: '#d2a34f', group: 'core' },
   { id: 'codex', label: 'Codex', color: '#1f1f1f', group: 'core' },
   { id: 'obsidian', label: 'Obsidian', color: '#ca3a29', group: 'core' },
@@ -98,7 +99,7 @@ function applyToDOM(themeId: string, resolved: ResolvedMode) {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [themeId, setThemeIdState] = useState<ThemeId>('supreme')
+  const [themeId, setThemeIdState] = useState<ThemeId>('claude')
   const [mode, setModeState] = useState<ThemeMode>('dark')
   const [resolvedMode, setResolvedMode] = useState<ResolvedMode>('dark')
   const [bgTint, setBgTintState] = useState(6)
@@ -112,7 +113,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     try {
       const savedTheme = localStorage.getItem(STORAGE_THEME)
       const savedMode = localStorage.getItem(STORAGE_MODE) as ThemeMode | null
-      const tid = savedTheme || 'supreme'
+      const tid = savedTheme || 'claude'
       const md = savedMode || 'dark'
       const rm = resolveMode(md)
       const savedTint = localStorage.getItem(STORAGE_BG_TINT)

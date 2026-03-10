@@ -338,6 +338,218 @@
 }
 
 /* ══════════════════════════════════════════════════════════════════
+   Theme: Claude — Premium ultra-modern aesthetic
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Claude Dark ──────────────────────────────────────────────── */
+.dark[data-theme='claude'] {
+  /* True black canvas with deep purple undertones */
+  --bg: #000000;
+  --bg-elevated: #0a0a0a;
+  --bg-subtle: #111111;
+  --bg-secondary: #080808;
+  --bg-tertiary: #141414;
+  --sidebar-bg: #000000;
+  --foreground: #f0f0f0;
+  --subtle: #555;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+
+  /* Blue primary accent (instead of red) */
+  --brand: #3b82f6;
+  --brand-hover: #2563eb;
+  --brand-muted: rgba(59, 130, 246, 0.10);
+  --brand-deep: #1d4ed8;
+  --brand-chat: #3b82f6;
+  --brand-contrast: #ffffff;
+  --brand-glow: rgba(59, 130, 246, 0.12);
+  --brand-glow-subtle: rgba(59, 130, 246, 0.04);
+
+  /* Status colors */
+  --success: #22c55e;
+  --warning: #eab308;
+  --error: #ef4444;
+  --info: #3b82f6;
+
+  /* Text hierarchy */
+  --text-primary: #f0f0f0;
+  --text-secondary: #888;
+  --text-tertiary: #555;
+  --text-disabled: #444;
+
+  /* Syntax tokens (refined for true black) */
+  --syntax-comment: #555555;
+  --syntax-keyword: #a78bfa;
+  --syntax-string: #6ee7b7;
+  --syntax-string-escape: #34d399;
+  --syntax-number: #fbbf24;
+  --syntax-regexp: #f87171;
+  --syntax-type: #67e8f9;
+  --syntax-function: #93c5fd;
+  --syntax-variable: #e2e8f0;
+  --syntax-variable-predefined: #fca5a5;
+  --syntax-constant: #fbbf24;
+  --syntax-tag: #f87171;
+  --syntax-attribute-name: #a78bfa;
+  --syntax-attribute-value: #6ee7b7;
+  --syntax-delimiter: #666666;
+  --syntax-operator: #888888;
+
+  /* Subtle borders (barely visible) */
+  --border: rgba(255, 255, 255, 0.06);
+  --border-hover: rgba(255, 255, 255, 0.10);
+  --border-focus: #3b82f6;
+
+  /* Glass (less blur, more subtle) */
+  --glass-bg: rgba(0, 0, 0, 0.95);
+  --glass-bg-hover: rgba(10, 10, 10, 0.95);
+  --glass-bg-elevated: rgba(14, 14, 14, 0.95);
+  --glass-border: rgba(255, 255, 255, 0.06);
+  --glass-border-hover: rgba(255, 255, 255, 0.10);
+  --glass-shadow: rgba(0, 0, 0, 0.8);
+
+  /* Larger radius (squircle feel) */
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+
+  /* Premium shadows (soft, large radius, low opacity) */
+  --shadow-2xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-xs: 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 6px 24px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.6);
+  --shadow-xl: 0 24px 64px rgba(0, 0, 0, 0.7);
+  --shadow-2xl: 0 32px 80px rgba(0, 0, 0, 0.8), 0 0 40px rgba(59, 130, 246, 0.06);
+
+  /* VSCode-like tokens */
+  --kn-claw: var(--brand);
+  --vscode-text: var(--text-primary);
+  --vscode-subtle: var(--text-tertiary);
+  --vscode-muted: var(--text-secondary);
+
+  /* Overlays and misc */
+  --overlay: rgba(0, 0, 0, 0.6);
+  --logo-filter: none;
+
+  /* Scrollbar */
+  --scrollbar-thumb: rgba(255, 255, 255, 0.08);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.15);
+
+  /* Header */
+  --header-glass-bg: rgba(0, 0, 0, 0.95);
+
+  /* Shimmer effects */
+  --shimmer-from: var(--bg-elevated);
+  --shimmer-via: var(--bg-subtle);
+}
+
+/* ── Claude Light ─────────────────────────────────────────────── */
+[data-theme='claude']:not(.dark) {
+  /* Clean, bright light variant */
+  --bg: #ffffff;
+  --bg-elevated: #fafafa;
+  --bg-subtle: #f5f5f5;
+  --bg-secondary: #f8f8f8;
+  --bg-tertiary: #f0f0f0;
+  --sidebar-bg: #ffffff;
+  --foreground: #0a0a0a;
+  --subtle: #a3a3a3;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+
+  /* Blue primary accent */
+  --brand: #3b82f6;
+  --brand-hover: #2563eb;
+  --brand-muted: rgba(59, 130, 246, 0.08);
+  --brand-deep: #1d4ed8;
+  --brand-chat: #eff6ff;
+  --brand-contrast: #ffffff;
+  --brand-glow: rgba(59, 130, 246, 0.10);
+  --brand-glow-subtle: rgba(59, 130, 246, 0.03);
+
+  /* Status colors */
+  --success: #16a34a;
+  --warning: #ca8a04;
+  --error: #dc2626;
+  --info: #2563eb;
+
+  /* Text hierarchy */
+  --text-primary: #0a0a0a;
+  --text-secondary: #525252;
+  --text-tertiary: #a3a3a3;
+  --text-disabled: #d4d4d4;
+
+  /* Syntax tokens */
+  --syntax-comment: #a3a3a3;
+  --syntax-keyword: #7c3aed;
+  --syntax-string: #16a34a;
+  --syntax-string-escape: #15803d;
+  --syntax-number: #b45309;
+  --syntax-regexp: #dc2626;
+  --syntax-type: #0891b2;
+  --syntax-function: #2563eb;
+  --syntax-variable: #0a0a0a;
+  --syntax-variable-predefined: #dc2626;
+  --syntax-constant: #b45309;
+  --syntax-tag: #dc2626;
+  --syntax-attribute-name: #7c3aed;
+  --syntax-attribute-value: #16a34a;
+  --syntax-delimiter: #525252;
+  --syntax-operator: #525252;
+
+  /* Borders */
+  --border: rgba(0, 0, 0, 0.08);
+  --border-hover: rgba(0, 0, 0, 0.12);
+  --border-focus: #3b82f6;
+
+  /* Glass */
+  --glass-bg: rgba(255, 255, 255, 0.95);
+  --glass-bg-hover: rgba(250, 250, 250, 0.95);
+  --glass-bg-elevated: rgba(245, 245, 245, 0.95);
+  --glass-border: rgba(0, 0, 0, 0.06);
+  --glass-border-hover: rgba(0, 0, 0, 0.10);
+  --glass-shadow: rgba(0, 0, 0, 0.05);
+
+  /* Radius */
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+
+  /* Shadows */
+  --shadow-2xs: 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-xs: 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.10);
+  --shadow-xl: 0 16px 40px rgba(0, 0, 0, 0.08), 0 0 20px rgba(59, 130, 246, 0.04);
+  --shadow-2xl: 0 24px 60px rgba(0, 0, 0, 0.10), 0 0 40px rgba(59, 130, 246, 0.05);
+
+  /* VSCode-like tokens */
+  --kn-claw: var(--brand);
+  --vscode-text: var(--text-primary);
+  --vscode-subtle: var(--text-tertiary);
+  --vscode-muted: var(--text-secondary);
+
+  /* Overlays and misc */
+  --overlay: rgba(0, 0, 0, 0.35);
+  --logo-filter: none;
+
+  /* Scrollbar */
+  --scrollbar-thumb: rgba(0, 0, 0, 0.12);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.20);
+
+  /* Header */
+  --header-glass-bg: rgba(255, 255, 255, 0.95);
+
+  /* Shimmer effects */
+  --shimmer-from: #f5f5f5;
+  --shimmer-via: #ffffff;
+}
+
+/* ══════════════════════════════════════════════════════════════════
    Theme: Bone — Pure black & white, stark monochrome
    ══════════════════════════════════════════════════════════════════ */
 
@@ -1009,6 +1221,68 @@
   --color-ai-border: rgba(72, 72, 72, 0.15);
   --color-ai-hover: #000000;
   --color-ai-hover-bg: rgba(0, 0, 0, 0.04);
+}
+
+/* Dark semantic colors (Claude — blue accent) */
+.dark[data-theme='claude'] {
+  --color-additions: #3fb950;
+  --color-deletions: #f85149;
+  --on-additions: #ffffff;
+  --on-deletions: #ffffff;
+  --color-stage-review: #60a5fa;
+  --color-stage-review-bg: rgba(96, 165, 250, 0.1);
+  --color-stage-review-border: rgba(96, 165, 250, 0.3);
+  --color-stage-prepare: #fbbf24;
+  --color-stage-prepare-bg: rgba(251, 191, 36, 0.1);
+  --color-stage-prepare-border: rgba(251, 191, 36, 0.3);
+  --color-stage-merge: #34d399;
+  --color-stage-merge-bg: rgba(52, 211, 153, 0.1);
+  --color-stage-merge-border: rgba(52, 211, 153, 0.3);
+  --color-prereq-met: #34d399;
+  --color-prereq-unmet: #fbbf24;
+  --color-conflict: #f87171;
+  --color-stale: #fbbf24;
+  --color-merged: #3b82f6;
+  --color-merged-muted: rgba(59, 130, 246, 0.12);
+  --color-merged-border: rgba(59, 130, 246, 0.3);
+  --color-closed: #f87171;
+  --color-action-default: var(--text-secondary);
+  --color-ai: #93c5fd;
+  --color-ai-muted: rgba(147, 197, 253, 0.12);
+  --color-ai-border: rgba(147, 197, 253, 0.3);
+  --color-ai-hover: #bfdbfe;
+  --color-ai-hover-bg: rgba(147, 197, 253, 0.1);
+}
+
+/* Light semantic colors (Claude — blue accent) */
+[data-theme='claude']:not(.dark) {
+  --color-additions: #16a34a;
+  --color-deletions: #dc2626;
+  --on-additions: #ffffff;
+  --on-deletions: #ffffff;
+  --color-stage-review: #2563eb;
+  --color-stage-review-bg: rgba(37, 99, 235, 0.08);
+  --color-stage-review-border: rgba(37, 99, 235, 0.25);
+  --color-stage-prepare: #b45309;
+  --color-stage-prepare-bg: rgba(180, 83, 9, 0.08);
+  --color-stage-prepare-border: rgba(180, 83, 9, 0.25);
+  --color-stage-merge: #16a34a;
+  --color-stage-merge-bg: rgba(22, 163, 74, 0.08);
+  --color-stage-merge-border: rgba(22, 163, 74, 0.25);
+  --color-prereq-met: #16a34a;
+  --color-prereq-unmet: #b45309;
+  --color-conflict: #dc2626;
+  --color-stale: #b45309;
+  --color-merged: #3b82f6;
+  --color-merged-muted: rgba(59, 130, 246, 0.08);
+  --color-merged-border: rgba(59, 130, 246, 0.25);
+  --color-closed: #dc2626;
+  --color-action-default: var(--text-secondary);
+  --color-ai: #2563eb;
+  --color-ai-muted: rgba(37, 99, 235, 0.08);
+  --color-ai-border: rgba(37, 99, 235, 0.25);
+  --color-ai-hover: #1d4ed8;
+  --color-ai-hover-bg: rgba(37, 99, 235, 0.08);
 }
 
 /* Light-mode .prose-chat overrides no longer needed — base rules use theme vars */

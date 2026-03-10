@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react'
 import { Icon } from '@iconify/react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { KnotLogo } from '@/components/knot-logo'
 import { KnotBackground } from '@/components/knot-background'
 import { ModeSelector } from '@/components/mode-selector'
@@ -19,6 +19,13 @@ import { getRecentFolders } from '@/context/local-context'
 import { getAgentConfig } from '@/lib/agent-session'
 import { fetchRepoByName, fetchAuthenticatedUser, type GitHubUser } from '@/lib/github-api'
 import { getFavorites, getRecents, addRecent, type SavedRepo } from '@/lib/github-repos-store'
+
+// Mock recent chats data
+const MOCK_RECENT_CHATS = [
+  { id: 1, title: 'Refactor authentication flow', timestamp: '2h ago' },
+  { id: 2, title: 'Add dark mode toggle', timestamp: 'Yesterday' },
+  { id: 3, title: 'Fix navigation bug', timestamp: '3d ago' },
+]
 
 const STATIC_SUGGESTIONS = [
   {

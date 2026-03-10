@@ -23,7 +23,6 @@ import {
 import { usePlugins } from '@/context/plugin-context'
 import { SpotifyPlugin } from '@/components/plugins/spotify/spotify-plugin'
 import { YouTubePlugin } from '@/components/plugins/youtube/youtube-plugin'
-import { isOnboardingComplete } from '@/components/onboarding-tour'
 import { PreviewProvider } from '@/context/preview-context'
 import { ViewRouter } from '@/components/view-router'
 import { StatusBar } from '@/components/status-bar'
@@ -70,10 +69,6 @@ const WidgetPipWindow = dynamic(
   () => import('@/components/plugins/widget-pip-window').then((m) => m.WidgetPipWindow),
   { ssr: false },
 )
-const OnboardingTour = dynamic(
-  () => import('@/components/onboarding-tour').then((m) => m.OnboardingTour),
-  { ssr: false },
-)
 const PluginSlotRenderer = dynamic(
   () => import('@/context/plugin-context').then((m) => m.PluginSlotRenderer),
   { ssr: false },
@@ -92,7 +87,6 @@ const VIEW_ICONS: Record<string, { icon: string; label: string }> = {
   kanban: { icon: 'lucide:kanban', label: 'Kanban' },
   mcp: { icon: 'lucide:plug', label: 'MCP' },
   workshop: { icon: 'lucide:hammer', label: 'Workshop' },
-  'agent-builder': { icon: 'lucide:bot', label: 'Agent Builder' },
 }
 
 /** Primary view cycle: Chat → Editor → Terminal */
@@ -172,8 +166,6 @@ export default function EditorLayout() {
   const [commandPaletteVisible, setCommandPaletteVisible] = useState(false)
   const [shortcutsVisible, setShortcutsVisible] = useState(false)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
-  const [onboardingOpen, setOnboardingOpen] = useState(false)
-
   const dirtyCount = useMemo(() => files.filter((f) => f.dirty).length, [files])
   const ensureTuiTerminalVisible = useCallback(() => {
     layout.setFloating('terminal', false)
@@ -210,15 +202,6 @@ export default function EditorLayout() {
     vv.addEventListener('resize', onResize)
     return () => vv.removeEventListener('resize', onResize)
   }, [isMobile])
-
-  // ─── Onboarding ────────────────────────────────────────
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    if (!isOnboardingComplete()) setOnboardingOpen(true)
-    return on('open-onboarding' as keyof import('@/lib/events').AppEvents, () =>
-      setOnboardingOpen(true),
-    )
-  }, [])
 
   // ─── Auto-populate RepoContext from local git remote ───
   useEffect(() => {
@@ -951,9 +934,6 @@ export default function EditorLayout() {
             case 'preview-refresh':
               emit('preview-refresh')
               break
-            case 'open-onboarding':
-              setOnboardingOpen(true)
-              break
             case 'open-new-window':
               openNewEditorInstance().catch((err) =>
                 console.error('Failed to open new window:', err),
@@ -963,8 +943,6 @@ export default function EditorLayout() {
         }}
       />
       <ShortcutsOverlay open={shortcutsVisible} onClose={() => setShortcutsVisible(false)} />
-
-      <OnboardingTour open={onboardingOpen} onClose={() => setOnboardingOpen(false)} />
     </div>
   )
 }

@@ -222,14 +222,6 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
             <Icon icon="lucide:hammer" width={24} height={24} />
           </button>
 
-          <button
-            onClick={() => setView('agent-builder')}
-            className={`activity-bar-btn ${activeView === 'agent-builder' ? 'activity-bar-btn--active' : ''}`}
-            title="Agent Builder"
-          >
-            <Icon icon="lucide:bot" width={24} height={24} />
-          </button>
-
           {/* Divider */}
           <div className="flex-1" />
           <div className="activity-bar-divider" />
@@ -323,12 +315,6 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
                     icon: 'lucide:hammer',
                     label: 'Workshop',
                     shortcut: '⌘9',
-                  },
-                  {
-                    id: 'agent-builder' as const,
-                    icon: 'lucide:bot',
-                    label: 'Agent Builder',
-                    shortcut: '',
                   },
                 ] as const
               ).map((item) => (

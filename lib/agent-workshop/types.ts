@@ -1,4 +1,5 @@
 import { PERSONA_PRESETS } from '@/lib/agent-personas'
+import { DEFAULT_BEHAVIORS } from '@/lib/agent-session'
 import { PLAYGROUND_SCENARIOS } from '@/lib/playground/data'
 
 export const AGENT_WORKSHOP_SCHEMA_VERSION = 1
@@ -7,6 +8,8 @@ export const MAX_SAVED_WORKSHOP_BLUEPRINTS = 4
 
 export type WorkshopStageId =
   | 'identity'
+  | 'system-prompt'
+  | 'behaviors'
   | 'skills'
   | 'tools'
   | 'workflow'
@@ -23,17 +26,8 @@ export type WorkshopToolId =
   | 'git-operator'
   | 'doc-research'
   | 'verification-loop'
-export type WorkshopWorkflowId =
-  | 'discover'
-  | 'plan'
-  | 'execute'
-  | 'review'
-  | 'handoff'
-export type WorkshopAutomationId =
-  | 'preflight'
-  | 'post-change'
-  | 'release-gate'
-  | 'follow-through'
+export type WorkshopWorkflowId = 'discover' | 'plan' | 'execute' | 'review' | 'handoff'
+export type WorkshopAutomationId = 'preflight' | 'post-change' | 'release-gate' | 'follow-through'
 
 export interface WorkshopBlueprintIdentity {
   name: string
@@ -64,6 +58,9 @@ export interface WorkshopBlueprint {
   createdAt: number
   updatedAt: number
   identity: WorkshopBlueprintIdentity
+  systemPrompt: string
+  behaviors: Record<string, boolean>
+  modelPreference: string
   skillIds: string[]
   toolIds: WorkshopToolId[]
   workflowIds: WorkshopWorkflowId[]
@@ -113,6 +110,9 @@ export function createDefaultWorkshopBlueprint(
       toneId: 'decisive',
       customPrompt: '',
     },
+    systemPrompt: '',
+    behaviors: { ...DEFAULT_BEHAVIORS },
+    modelPreference: '',
     skillIds: ['writing-plans', 'verification-before-completion'],
     toolIds: ['repo-context', 'editor-refactor', 'verification-loop'],
     workflowIds: ['discover', 'plan', 'review'],
@@ -138,6 +138,11 @@ export function createDefaultWorkshopBlueprint(
     identity: { ...base.identity, ...(overrides.identity ?? {}) },
     guardrails: { ...base.guardrails, ...(overrides.guardrails ?? {}) },
     evaluation: { ...base.evaluation, ...(overrides.evaluation ?? {}) },
+    systemPrompt: overrides.systemPrompt ?? base.systemPrompt,
+    behaviors: overrides.behaviors
+      ? { ...base.behaviors, ...overrides.behaviors }
+      : { ...base.behaviors },
+    modelPreference: overrides.modelPreference ?? base.modelPreference,
     skillIds: overrides.skillIds ? [...overrides.skillIds] : base.skillIds,
     toolIds: overrides.toolIds ? [...overrides.toolIds] : base.toolIds,
     workflowIds: overrides.workflowIds ? [...overrides.workflowIds] : base.workflowIds,
@@ -149,6 +154,7 @@ export function cloneWorkshopBlueprint(blueprint: WorkshopBlueprint): WorkshopBl
   return {
     ...blueprint,
     identity: { ...blueprint.identity },
+    behaviors: { ...blueprint.behaviors },
     skillIds: [...blueprint.skillIds],
     toolIds: [...blueprint.toolIds],
     workflowIds: [...blueprint.workflowIds],
@@ -201,6 +207,13 @@ function normalizeBlueprint(input: unknown, fallback: WorkshopBlueprint): Worksh
       ...fallback.identity,
       ...(raw.identity ?? {}),
     },
+    systemPrompt: typeof raw.systemPrompt === 'string' ? raw.systemPrompt : fallback.systemPrompt,
+    behaviors:
+      raw.behaviors && typeof raw.behaviors === 'object'
+        ? { ...fallback.behaviors, ...raw.behaviors }
+        : fallback.behaviors,
+    modelPreference:
+      typeof raw.modelPreference === 'string' ? raw.modelPreference : fallback.modelPreference,
     skillIds: Array.isArray(raw.skillIds)
       ? raw.skillIds.filter((value): value is string => typeof value === 'string')
       : fallback.skillIds,
@@ -211,7 +224,9 @@ function normalizeBlueprint(input: unknown, fallback: WorkshopBlueprint): Worksh
       ? raw.workflowIds.filter((value): value is WorkshopWorkflowId => typeof value === 'string')
       : fallback.workflowIds,
     automationIds: Array.isArray(raw.automationIds)
-      ? raw.automationIds.filter((value): value is WorkshopAutomationId => typeof value === 'string')
+      ? raw.automationIds.filter(
+          (value): value is WorkshopAutomationId => typeof value === 'string',
+        )
       : fallback.automationIds,
     guardrails: {
       ...fallback.guardrails,
@@ -246,8 +261,7 @@ export function normalizeWorkshopDocument(input: unknown): WorkshopDocument {
     : []
 
   return {
-    version:
-      typeof raw.version === 'number' ? raw.version : AGENT_WORKSHOP_SCHEMA_VERSION,
+    version: typeof raw.version === 'number' ? raw.version : AGENT_WORKSHOP_SCHEMA_VERSION,
     updatedAt: typeof raw.updatedAt === 'number' ? raw.updatedAt : fallback.updatedAt,
     lastSavedAt: typeof raw.lastSavedAt === 'number' ? raw.lastSavedAt : null,
     compareMode: Boolean(raw.compareMode),

@@ -32,7 +32,6 @@ type CommandId =
   | 'view-skills'
   | 'view-prompts'
   | 'view-settings'
-  | 'open-onboarding'
   | 'open-new-window'
   // Git operations
   | 'git-commit'
@@ -254,14 +253,6 @@ const COMMANDS: CommandItem[] = [
     hint: 'Open settings panel',
     keywords: ['settings', 'preferences', 'config'],
     icon: 'lucide:settings',
-    group: 'navigate',
-  },
-  {
-    id: 'open-onboarding',
-    label: 'Onboarding: Show tour',
-    hint: 'Reopen the first-run tour',
-    keywords: ['onboarding', 'tour', 'help', 'shortcuts'],
-    icon: 'lucide:sparkles',
     group: 'navigate',
   },
 

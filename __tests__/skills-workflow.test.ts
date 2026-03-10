@@ -9,7 +9,7 @@ import {
 
 describe('skills workflow', () => {
   it('seeds the bundled catalog with superpowers plus find-skills', () => {
-    expect(SKILLS_CATALOG).toHaveLength(15)
+    expect(SKILLS_CATALOG).toHaveLength(32)
     expect(getSkillBySlug('brainstorming')?.installCommand).toBe(
       'pnpm dlx skills add https://github.com/obra/superpowers --skill brainstorming -g -y',
     )

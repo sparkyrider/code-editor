@@ -54,6 +54,9 @@ export interface WorkshopTemplate {
   tagline: string
   mission: string
   toneId: WorkshopToneId
+  systemPrompt?: string
+  behaviors?: Record<string, boolean>
+  modelPreference?: string
   skillIds: string[]
   toolIds: WorkshopToolId[]
   workflowIds: WorkshopWorkflowId[]
@@ -63,6 +66,8 @@ export interface WorkshopTemplate {
 
 export const WORKSHOP_STAGE_LABELS: Record<WorkshopStageId, string> = {
   identity: 'Identity',
+  'system-prompt': 'System Prompt',
+  behaviors: 'Behaviors',
   skills: 'Skills',
   tools: 'Tools',
   workflow: 'Workflow',
@@ -212,7 +217,8 @@ export const WORKSHOP_AUTOMATION_CATALOG: WorkshopAutomationDescriptor[] = [
   {
     id: 'post-change',
     label: 'Post-Change Sweep',
-    description: 'After edits, surface verification steps, likely regressions, and polish opportunities.',
+    description:
+      'After edits, surface verification steps, likely regressions, and polish opportunities.',
     icon: 'lucide:wand-sparkles',
     promptInstruction:
       'After changes, summarize what shifted, what still needs verification, and where quality could still improve.',
@@ -254,10 +260,12 @@ export const WORKSHOP_GUARDRAIL_PROFILES: WorkshopGuardrailProfile[] = [
 ]
 
 export const WORKSHOP_TEMPLATE_CATALOG: WorkshopTemplate[] = [
+  // ─── Original Workshop Templates ──────────────────────────────
   {
     id: 'launch-captain',
     label: 'Launch Captain',
-    description: 'A release-minded builder that plans carefully, executes cleanly, and verifies before shipping.',
+    description:
+      'A release-minded builder that plans carefully, executes cleanly, and verifies before shipping.',
     badge: 'Ship with confidence',
     personaId: 'fullstack',
     tagline: 'Build the thing. Prove the thing. Ship the thing.',
@@ -273,7 +281,8 @@ export const WORKSHOP_TEMPLATE_CATALOG: WorkshopTemplate[] = [
   {
     id: 'security-sentinel',
     label: 'Security Sentinel',
-    description: 'A defense-first reviewer that threat-models every change and protects the repo from silent risk.',
+    description:
+      'A defense-first reviewer that threat-models every change and protects the repo from silent risk.',
     badge: 'Defend by default',
     personaId: 'security',
     tagline: 'Find the sharp edges before they find production.',
@@ -289,7 +298,8 @@ export const WORKSHOP_TEMPLATE_CATALOG: WorkshopTemplate[] = [
   {
     id: 'vision-studio',
     label: 'Vision Studio',
-    description: 'A strategy-heavy agent for designing systems, roadmaps, and high-quality UX concepts.',
+    description:
+      'A strategy-heavy agent for designing systems, roadmaps, and high-quality UX concepts.',
     badge: 'Think bigger',
     personaId: 'architect',
     tagline: 'Design the system behind the experience.',
@@ -301,6 +311,213 @@ export const WORKSHOP_TEMPLATE_CATALOG: WorkshopTemplate[] = [
     workflowIds: ['discover', 'plan', 'review'],
     automationIds: ['preflight', 'follow-through'],
     guardrailProfileId: 'balanced',
+  },
+  // ─── Gallery Templates ────────────────────────────────────────
+  {
+    id: 'code-reviewer',
+    label: 'Code Reviewer',
+    description:
+      'Thorough code review agent that catches bugs, suggests improvements, and enforces standards.',
+    badge: 'Review with rigor',
+    personaId: 'fullstack',
+    tagline: 'Every line deserves a second pair of eyes.',
+    mission:
+      'Perform thorough, opinionated code reviews that catch bugs, enforce style, and raise the quality bar.',
+    toneId: 'rigorous',
+    skillIds: ['receiving-code-review', 'requesting-code-review', 'verification-before-completion'],
+    toolIds: ['repo-context', 'editor-refactor', 'verification-loop', 'git-operator'],
+    workflowIds: ['discover', 'review', 'handoff'],
+    automationIds: ['preflight', 'post-change'],
+    guardrailProfileId: 'balanced',
+  },
+  {
+    id: 'pr-agent',
+    label: 'PR Agent',
+    description: 'Automated PR creation, review, and merge-readiness assessment.',
+    badge: 'Ship PRs faster',
+    personaId: 'fullstack',
+    tagline: 'From branch to merge, handled.',
+    mission:
+      'Automate PR creation, write clear descriptions, review changes, and ensure merge readiness.',
+    toneId: 'decisive',
+    skillIds: ['writing-plans', 'requesting-code-review', 'verification-before-completion'],
+    toolIds: ['repo-context', 'editor-refactor', 'git-operator', 'verification-loop'],
+    workflowIds: ['discover', 'plan', 'execute', 'review', 'handoff'],
+    automationIds: ['preflight', 'post-change', 'follow-through'],
+    guardrailProfileId: 'balanced',
+  },
+  {
+    id: 'devops-bot',
+    label: 'DevOps Bot',
+    description: 'CI/CD pipelines, deployment automation, and infrastructure configuration.',
+    badge: 'Automate everything',
+    personaId: 'fullstack',
+    tagline: 'Infrastructure as conversation.',
+    mission:
+      'Design, configure, and troubleshoot CI/CD pipelines, deployments, and infrastructure.',
+    toneId: 'decisive',
+    skillIds: ['writing-plans', 'executing-plans', 'systematic-debugging'],
+    toolIds: ['repo-context', 'terminal-runner', 'git-operator', 'doc-research'],
+    workflowIds: ['discover', 'plan', 'execute', 'handoff'],
+    automationIds: ['preflight', 'post-change', 'release-gate'],
+    guardrailProfileId: 'balanced',
+    behaviors: {
+      proposeEdits: true,
+      fullFileContent: true,
+      flagSecurity: true,
+      explainReasoning: true,
+      generateTests: false,
+    },
+  },
+  {
+    id: 'doc-writer',
+    label: 'Doc Writer',
+    description: 'Generate and maintain technical documentation with precision.',
+    badge: 'Docs that last',
+    personaId: 'fullstack',
+    tagline: 'If it is not documented, it does not exist.',
+    mission:
+      'Generate, update, and maintain clear technical documentation that stays in sync with the codebase.',
+    toneId: 'empathetic',
+    skillIds: ['writing-plans', 'brainstorming'],
+    toolIds: ['repo-context', 'editor-refactor', 'doc-research'],
+    workflowIds: ['discover', 'plan', 'execute'],
+    automationIds: ['post-change', 'follow-through'],
+    guardrailProfileId: 'safe',
+  },
+  {
+    id: 'test-engineer',
+    label: 'Test Engineer',
+    description: 'Write and maintain comprehensive test suites across all layers.',
+    badge: 'Test everything',
+    personaId: 'fullstack',
+    tagline: 'Confidence ships with coverage.',
+    mission:
+      'Write, maintain, and improve test suites for unit, integration, and end-to-end testing.',
+    toneId: 'rigorous',
+    skillIds: ['test-driven-development', 'systematic-debugging', 'verification-before-completion'],
+    toolIds: ['repo-context', 'editor-refactor', 'terminal-runner', 'verification-loop'],
+    workflowIds: ['discover', 'plan', 'execute', 'review'],
+    automationIds: ['preflight', 'post-change'],
+    guardrailProfileId: 'balanced',
+    behaviors: {
+      proposeEdits: true,
+      fullFileContent: true,
+      flagSecurity: true,
+      explainReasoning: true,
+      generateTests: true,
+    },
+  },
+  {
+    id: 'security-auditor',
+    label: 'Security Auditor',
+    description: 'Find vulnerabilities, assess risk, and suggest hardened alternatives.',
+    badge: 'Secure by default',
+    personaId: 'security',
+    tagline: 'Trust nothing. Verify everything.',
+    mission:
+      'Audit code for security vulnerabilities, assess risk, and provide actionable remediation guidance.',
+    toneId: 'rigorous',
+    skillIds: ['systematic-debugging', 'verification-before-completion', 'requesting-code-review'],
+    toolIds: ['repo-context', 'doc-research', 'verification-loop', 'git-operator'],
+    workflowIds: ['discover', 'review', 'handoff'],
+    automationIds: ['preflight', 'release-gate'],
+    guardrailProfileId: 'safe',
+  },
+  {
+    id: 'refactoring-expert',
+    label: 'Refactoring Expert',
+    description: 'Improve code structure, reduce complexity, and enforce clean patterns.',
+    badge: 'Clean code',
+    personaId: 'architect',
+    tagline: 'Better structure. Same behavior.',
+    mission:
+      'Refactor code to improve readability, reduce complexity, and enforce consistent patterns.',
+    toneId: 'decisive',
+    skillIds: ['writing-plans', 'executing-plans', 'verification-before-completion'],
+    toolIds: ['repo-context', 'editor-refactor', 'verification-loop'],
+    workflowIds: ['discover', 'plan', 'execute', 'review'],
+    automationIds: ['preflight', 'post-change'],
+    guardrailProfileId: 'balanced',
+  },
+  {
+    id: 'api-designer',
+    label: 'API Designer',
+    description: 'Design clean, well-documented RESTful and GraphQL APIs.',
+    badge: 'API excellence',
+    personaId: 'architect',
+    tagline: 'Interfaces that developers love.',
+    mission:
+      'Design, document, and review APIs with clear contracts, proper validation, and excellent developer experience.',
+    toneId: 'visionary',
+    skillIds: ['writing-plans', 'brainstorming', 'verification-before-completion'],
+    toolIds: ['repo-context', 'editor-refactor', 'doc-research', 'verification-loop'],
+    workflowIds: ['discover', 'plan', 'review'],
+    automationIds: ['preflight', 'follow-through'],
+    guardrailProfileId: 'balanced',
+  },
+  {
+    id: 'blank-canvas',
+    label: 'Blank Canvas',
+    description: 'Start from scratch with a minimal agent configuration.',
+    badge: 'Your rules',
+    personaId: 'custom',
+    tagline: '',
+    mission: '',
+    toneId: 'decisive',
+    skillIds: [],
+    toolIds: ['repo-context', 'editor-refactor'],
+    workflowIds: [],
+    automationIds: [],
+    guardrailProfileId: 'balanced',
+  },
+  {
+    id: 'data-engineer',
+    label: 'Data Engineer',
+    description: 'ETL pipelines, data modeling, and database optimization.',
+    badge: 'Data at scale',
+    personaId: 'fullstack',
+    tagline: 'Clean data in. Smart decisions out.',
+    mission:
+      'Design ETL pipelines, optimize database schemas, and build reliable data infrastructure.',
+    toneId: 'rigorous',
+    skillIds: ['writing-plans', 'executing-plans', 'systematic-debugging'],
+    toolIds: ['repo-context', 'editor-refactor', 'terminal-runner', 'verification-loop'],
+    workflowIds: ['discover', 'plan', 'execute', 'review'],
+    automationIds: ['preflight', 'post-change', 'release-gate'],
+    guardrailProfileId: 'balanced',
+  },
+  {
+    id: 'frontend-specialist',
+    label: 'Frontend Specialist',
+    description: 'React, CSS, accessibility, and pixel-perfect UIs.',
+    badge: 'Pixel perfect',
+    personaId: 'frontend',
+    tagline: 'Beautiful, accessible, fast.',
+    mission:
+      'Build responsive, accessible UIs with pixel-perfect precision and excellent performance.',
+    toneId: 'empathetic',
+    skillIds: ['writing-plans', 'executing-plans', 'verification-before-completion'],
+    toolIds: ['repo-context', 'editor-refactor', 'doc-research', 'verification-loop'],
+    workflowIds: ['discover', 'plan', 'execute', 'review'],
+    automationIds: ['preflight', 'post-change', 'follow-through'],
+    guardrailProfileId: 'balanced',
+  },
+  {
+    id: 'cli-builder',
+    label: 'CLI Builder',
+    description: 'Command-line tools, scripts, and developer utilities.',
+    badge: 'Terminal power',
+    personaId: 'fullstack',
+    tagline: 'Power at your fingertips.',
+    mission:
+      'Build robust CLI tools, shell scripts, and developer utilities with excellent ergonomics.',
+    toneId: 'decisive',
+    skillIds: ['writing-plans', 'executing-plans', 'systematic-debugging'],
+    toolIds: ['repo-context', 'editor-refactor', 'terminal-runner', 'verification-loop'],
+    workflowIds: ['discover', 'plan', 'execute', 'handoff'],
+    automationIds: ['preflight', 'post-change', 'follow-through'],
+    guardrailProfileId: 'autonomous',
   },
 ]
 

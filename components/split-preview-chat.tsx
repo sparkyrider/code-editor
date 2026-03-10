@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { Icon } from '@iconify/react'
-import { emit } from '@/lib/events'
 
 const AgentPanel = dynamic(() => import('@/components/agent-panel').then((m) => m.AgentPanel), {
   ssr: false,
@@ -14,7 +13,10 @@ interface SplitPreviewChatProps {
   onClose?: () => void
 }
 
-export function SplitPreviewChat({ previewUrl = 'http://localhost:3000', onClose }: SplitPreviewChatProps) {
+export function SplitPreviewChat({
+  previewUrl = 'http://localhost:3000',
+  onClose,
+}: SplitPreviewChatProps) {
   const [splitRatio, setSplitRatio] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('knot-code:preview-split-ratio')
@@ -71,15 +73,18 @@ export function SplitPreviewChat({ previewUrl = 'http://localhost:3000', onClose
   }, [isDragging])
 
   const handleRefresh = useCallback(() => {
-    if (iframeRef.current) {
-      iframeRef.current.src = iframeRef.current.src
+    if (iframeRef.current?.contentWindow) {
+      iframeRef.current.contentWindow.location.reload()
     }
   }, [])
 
-  const handleUrlSubmit = useCallback((e: React.FormEvent) => {
-    e.preventDefault()
-    setUrl(inputUrl)
-  }, [inputUrl])
+  const handleUrlSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault()
+      setUrl(inputUrl)
+    },
+    [inputUrl],
+  )
 
   const handlePopOut = useCallback(() => {
     window.open(url, '_blank', 'width=1200,height=800')
@@ -91,7 +96,10 @@ export function SplitPreviewChat({ previewUrl = 'http://localhost:3000', onClose
   return (
     <div ref={containerRef} className="flex flex-col h-full w-full overflow-hidden bg-[var(--bg)]">
       {/* Preview Section */}
-      <div style={{ height: previewHeight, minHeight: '150px' }} className="flex flex-col border-b border-[var(--border)]">
+      <div
+        style={{ height: previewHeight, minHeight: '150px' }}
+        className="flex flex-col border-b border-[var(--border)]"
+      >
         {/* Toolbar */}
         <div className="h-10 flex items-center gap-2 px-3 border-b border-[var(--border)] bg-[var(--bg-elevated)] shrink-0">
           <button

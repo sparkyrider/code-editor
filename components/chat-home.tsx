@@ -331,7 +331,6 @@ export const ChatHome = memo(function ChatHome({
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
             className="mb-3"
-            style={{ animation: 'logo-glow 4s ease-in-out infinite' }}
           >
             <KnotLogo size={40} color="var(--brand)" />
           </motion.div>

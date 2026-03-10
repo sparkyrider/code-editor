@@ -21,6 +21,18 @@ const WIZARD_STEPS: WizardStep[] = [
     description: 'Name, tagline, persona, mission, tone',
   },
   {
+    id: 'system-prompt',
+    label: 'Prompt',
+    icon: 'lucide:file-text',
+    description: 'Customize the system prompt that shapes how your agent thinks',
+  },
+  {
+    id: 'behaviors',
+    label: 'Behavior',
+    icon: 'lucide:sliders-horizontal',
+    description: 'Fine-tune behavior toggles and model preference',
+  },
+  {
     id: 'skills',
     label: 'Skills',
     icon: 'lucide:sparkles',
@@ -94,20 +106,23 @@ export function WorkshopWizard({
   const systemPrompt = useMemo(() => buildWorkshopSystemPrompt(blueprint), [blueprint])
 
   const canProceed = useMemo(() => {
-    // Basic validation for each step
     switch (currentStage.id) {
       case 'identity':
         return blueprint.identity.name.trim().length > 0
+      case 'system-prompt':
+        return true
+      case 'behaviors':
+        return true
       case 'skills':
         return blueprint.skillIds.length > 0
       case 'tools':
         return blueprint.toolIds.length > 0
       case 'workflow':
-        return true // Optional
+        return true
       case 'automation':
-        return true // Optional
+        return true
       case 'guardrails':
-        return true // Always has default
+        return true
       case 'evaluation':
         return true
       default:
@@ -137,14 +152,17 @@ export function WorkshopWizard({
     [completedSteps, currentStep],
   )
 
-  const saveToHistory = useCallback((newBlueprint: WorkshopBlueprint) => {
-    setHistory((prev) => {
-      const newHistory = prev.slice(0, historyIndex + 1)
-      newHistory.push(newBlueprint)
-      return newHistory.slice(-20) // Keep last 20 states
-    })
-    setHistoryIndex((prev) => Math.min(prev + 1, 19))
-  }, [historyIndex])
+  const saveToHistory = useCallback(
+    (newBlueprint: WorkshopBlueprint) => {
+      setHistory((prev) => {
+        const newHistory = prev.slice(0, historyIndex + 1)
+        newHistory.push(newBlueprint)
+        return newHistory.slice(-20) // Keep last 20 states
+      })
+      setHistoryIndex((prev) => Math.min(prev + 1, 19))
+    },
+    [historyIndex],
+  )
 
   const handleUndo = useCallback(() => {
     if (historyIndex > 0) {
@@ -243,9 +261,7 @@ export function WorkshopWizard({
                     <div className="hidden lg:block text-center min-w-0">
                       <div
                         className={`text-xs font-medium truncate ${
-                          isCurrent
-                            ? 'text-[var(--text-primary)]'
-                            : 'text-[var(--text-secondary)]'
+                          isCurrent ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'
                         }`}
                       >
                         {step.label}
@@ -370,9 +386,7 @@ export function WorkshopWizard({
                         className="h-full bg-[var(--brand)]"
                       />
                     </div>
-                    <p className="mt-3 text-sm text-[var(--text-secondary)]">
-                      {readiness.callout}
-                    </p>
+                    <p className="mt-3 text-sm text-[var(--text-secondary)]">{readiness.callout}</p>
                     {onRunEvaluation && (
                       <button
                         onClick={onRunEvaluation}
@@ -416,7 +430,12 @@ export function WorkshopWizard({
                   {/* Share Section */}
                   <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)] p-5">
                     <div className="flex items-center gap-2 mb-3">
-                      <Icon icon="lucide:share-2" width={18} height={18} className="text-[var(--brand)]" />
+                      <Icon
+                        icon="lucide:share-2"
+                        width={18}
+                        height={18}
+                        className="text-[var(--brand)]"
+                      />
                       <h3 className="text-sm font-semibold text-[var(--text-primary)]">
                         Share Blueprint
                       </h3>

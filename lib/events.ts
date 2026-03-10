@@ -13,7 +13,6 @@ export interface AppEvents {
   'open-recent': { path: string }
   'open-settings': void
   'open-agent-settings': void
-  'open-onboarding': void
   'open-git-panel': void
   'open-changes-panel': void
   'open-side-chat': void

@@ -307,7 +307,9 @@ function CardDetailPanel({
     const newLabel: Label = {
       id: genId('label'),
       name: newLabelName.trim(),
-      color: `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`,
+      color: `#${Math.floor(Math.random() * 16777215)
+        .toString(16)
+        .padStart(6, '0')}`,
     }
     labels.push(newLabel)
     setSelectedLabels((prev) => [...prev, newLabel.id])
@@ -415,7 +417,9 @@ function CardDetailPanel({
           <div className="flex items-center gap-2 mb-3">
             <Icon icon="lucide:user" width={16} height={16} className="text-[var(--brand)]" />
             <Icon icon="lucide:calendar" width={16} height={16} className="text-[var(--brand)]" />
-            <h3 className="text-sm font-semibold text-[var(--text-primary)]">Assignee & Due Date</h3>
+            <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+              Assignee & Due Date
+            </h3>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -510,12 +514,24 @@ function CardDetailPanel({
         {card.linkedBranch && (
           <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4 backdrop-blur-sm">
             <div className="flex items-center gap-2 mb-2">
-              <Icon icon="lucide:git-branch" width={16} height={16} className="text-[var(--brand)]" />
+              <Icon
+                icon="lucide:git-branch"
+                width={16}
+                height={16}
+                className="text-[var(--brand)]"
+              />
               <h3 className="text-sm font-semibold text-[var(--text-primary)]">Linked Branch</h3>
             </div>
             <div className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2">
-              <Icon icon="lucide:git-branch" width={14} height={14} className="text-[var(--brand)]" />
-              <span className="font-mono text-xs text-[var(--text-primary)]">{card.linkedBranch}</span>
+              <Icon
+                icon="lucide:git-branch"
+                width={14}
+                height={14}
+                className="text-[var(--brand)]"
+              />
+              <span className="font-mono text-xs text-[var(--text-primary)]">
+                {card.linkedBranch}
+              </span>
             </div>
           </div>
         )}
@@ -524,7 +540,12 @@ function CardDetailPanel({
         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4 backdrop-blur-sm">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <Icon icon="lucide:list-checks" width={16} height={16} className="text-[var(--brand)]" />
+              <Icon
+                icon="lucide:list-checks"
+                width={16}
+                height={16}
+                className="text-[var(--brand)]"
+              />
               <h3 className="text-sm font-semibold text-[var(--text-primary)]">
                 Subtasks {subtasksTotal > 0 && `(${subtasksDone}/${subtasksTotal})`}
               </h3>
@@ -573,7 +594,9 @@ function CardDetailPanel({
                     backgroundColor: sub.done ? 'var(--brand)' : 'transparent',
                   }}
                 >
-                  {sub.done && <Icon icon="lucide:check" width={12} height={12} className="text-white" />}
+                  {sub.done && (
+                    <Icon icon="lucide:check" width={12} height={12} className="text-white" />
+                  )}
                 </button>
                 <span
                   className={`flex-1 text-sm transition ${sub.done ? 'text-[var(--text-disabled)] line-through opacity-60' : 'text-[var(--text-primary)]'}`}
@@ -609,7 +632,12 @@ function CardDetailPanel({
         {/* Comments Section */}
         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4 backdrop-blur-sm">
           <div className="flex items-center gap-2 mb-3">
-            <Icon icon="lucide:message-square" width={16} height={16} className="text-[var(--brand)]" />
+            <Icon
+              icon="lucide:message-square"
+              width={16}
+              height={16}
+              className="text-[var(--brand)]"
+            />
             <h3 className="text-sm font-semibold text-[var(--text-primary)]">
               Comments ({comments.length})
             </h3>
@@ -654,7 +682,12 @@ function CardDetailPanel({
           </div>
           <div className="space-y-2">
             <div className="flex items-start gap-2 text-xs">
-              <Icon icon="lucide:circle" width={8} height={8} className="text-[var(--brand)] mt-1" />
+              <Icon
+                icon="lucide:circle"
+                width={8}
+                height={8}
+                className="text-[var(--brand)] mt-1"
+              />
               <div>
                 <span className="text-[var(--text-secondary)]">Created </span>
                 <span className="text-[var(--text-disabled)]">{formatDate(card.createdAt)}</span>
@@ -662,10 +695,17 @@ function CardDetailPanel({
             </div>
             {card.activity?.map((activity) => (
               <div key={activity.id} className="flex items-start gap-2 text-xs">
-                <Icon icon="lucide:circle" width={8} height={8} className="text-[var(--brand)] mt-1" />
+                <Icon
+                  icon="lucide:circle"
+                  width={8}
+                  height={8}
+                  className="text-[var(--brand)] mt-1"
+                />
                 <div>
                   <span className="text-[var(--text-secondary)]">{activity.action} </span>
-                  <span className="text-[var(--text-disabled)]">{formatDate(activity.timestamp)}</span>
+                  <span className="text-[var(--text-disabled)]">
+                    {formatDate(activity.timestamp)}
+                  </span>
                 </div>
               </div>
             ))}
@@ -775,7 +815,6 @@ export function KanbanView() {
   const [filterPriority, setFilterPriority] = useState<Priority | null>(null)
   const [editingBoardName, setEditingBoardName] = useState(false)
   const [boardNameDraft, setBoardNameDraft] = useState('')
-  const [addingColumn, setAddingColumn] = useState(false)
   const [editingColumnId, setEditingColumnId] = useState<string | null>(null)
   const [boardMenuOpen, setBoardMenuOpen] = useState(false)
   const boardMenuRef = useRef<HTMLDivElement>(null)
@@ -1056,25 +1095,6 @@ export function KanbanView() {
   }, [boardNameDraft, updateBoard])
 
   // ── Column management ─────────────────────────────────────────
-  const addColumn = useCallback(
-    (title: string) => {
-      if (!title) {
-        setAddingColumn(false)
-        return
-      }
-      const newCol: KanbanColumn = {
-        id: genId('col'),
-        title,
-        icon: 'lucide:layout-list',
-        color: '#6b7280',
-        collapsed: false,
-      }
-      updateBoard({ columns: [...activeBoard.columns, newCol] })
-      setAddingColumn(false)
-    },
-    [activeBoard.columns, updateBoard],
-  )
-
   const renameColumn = useCallback(
     (columnId: string, newTitle: string) => {
       if (!newTitle) {
@@ -1484,8 +1504,15 @@ export function KanbanView() {
 
                               <div className="mt-2 flex items-center justify-between text-[10px] text-[var(--text-disabled)]">
                                 <div className="flex items-center gap-2">
-                                  <span className="flex items-center gap-0.5" style={{ color: PRIORITY_CONFIG[card.priority].color }}>
-                                    <Icon icon={PRIORITY_CONFIG[card.priority].icon} width={10} height={10} />
+                                  <span
+                                    className="flex items-center gap-0.5"
+                                    style={{ color: PRIORITY_CONFIG[card.priority].color }}
+                                  >
+                                    <Icon
+                                      icon={PRIORITY_CONFIG[card.priority].icon}
+                                      width={10}
+                                      height={10}
+                                    />
                                     {PRIORITY_CONFIG[card.priority].label}
                                   </span>
                                   {card.assignee && (
@@ -1581,23 +1608,6 @@ export function KanbanView() {
               </div>
             )
           })}
-
-          {/* Add Column */}
-          <div className="flex w-80 shrink-0 flex-col items-center justify-start pt-3">
-            {addingColumn ? (
-              <div className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] p-4">
-                <ColumnEditor onSave={addColumn} onCancel={() => setAddingColumn(false)} />
-              </div>
-            ) : (
-              <button
-                onClick={() => setAddingColumn(true)}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-3 text-sm text-[var(--text-secondary)] transition hover:border-[var(--brand)] hover:text-[var(--text-primary)]"
-              >
-                <Icon icon="lucide:plus" width={16} height={16} />
-                Add Column
-              </button>
-            )}
-          </div>
         </div>
       </div>
 

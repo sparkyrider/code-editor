@@ -35,11 +35,66 @@ import {
   type WorkshopStageId,
   type WorkshopToneId,
 } from '@/lib/agent-workshop/types'
-import { PERSONA_PRESETS } from '@/lib/agent-personas'
+import { PERSONA_PRESETS, getPersonaPresetById } from '@/lib/agent-personas'
+import { DEFAULT_BEHAVIORS, saveAgentConfig } from '@/lib/agent-session'
 import { PLAYGROUND_SCENARIOS } from '@/lib/playground/data'
 import { getSkillDisplayIcon, getSkillPresentationMeta, SKILLS_CATALOG } from '@/lib/skills/catalog'
 import { mergeRuntimeState, SKILLS_RUNTIME_STORAGE_KEY } from '@/lib/skills/workflow'
 import type { SkillsRuntimeMap } from '@/lib/skills/types'
+
+const BEHAVIOR_DEFS = [
+  {
+    key: 'proposeEdits',
+    label: 'Always propose edits (never auto-apply)',
+    description: 'Agent shows diffs for your review before applying',
+  },
+  {
+    key: 'fullFileContent',
+    label: 'Include full file content in edits',
+    description: 'Complete files for accurate diff rendering',
+  },
+  {
+    key: 'flagSecurity',
+    label: 'Flag security concerns',
+    description: 'Highlight OWASP risks and vulnerabilities',
+  },
+  {
+    key: 'explainReasoning',
+    label: 'Explain reasoning for non-obvious changes',
+    description: 'Brief rationale for architectural decisions',
+  },
+  {
+    key: 'generateTests',
+    label: 'Generate tests when writing new code',
+    description: 'Auto-suggest test cases alongside implementations',
+  },
+]
+
+function extractTraits(prompt: string): string[] {
+  const traits: string[] = []
+  const text = prompt.toLowerCase()
+  const checks = [
+    { keywords: ['full-stack', 'fullstack'], label: 'Full-Stack' },
+    { keywords: ['frontend', 'front-end', 'ui quality'], label: 'Frontend' },
+    { keywords: ['security', 'vulnerab', 'owasp'], label: 'Security' },
+    { keywords: ['architect', 'scale', 'distributed'], label: 'Architecture' },
+    { keywords: ['typescript', ' ts '], label: 'TypeScript' },
+    { keywords: ['react'], label: 'React' },
+    { keywords: ['next.js', 'nextjs', 'app router'], label: 'Next.js' },
+    { keywords: ['python'], label: 'Python' },
+    { keywords: ['rust'], label: 'Rust' },
+    { keywords: ['accessibility', 'a11y', 'wcag'], label: 'Accessibility' },
+    { keywords: ['performance', 'core web vitals', 'optimiz'], label: 'Performance' },
+    { keywords: ['database', 'sql', 'postgres'], label: 'Database' },
+    { keywords: ['docker', 'kubernetes', 'devops'], label: 'DevOps' },
+    { keywords: ['test', 'testing'], label: 'Testing' },
+    { keywords: ['git'], label: 'Git' },
+  ]
+  for (const check of checks) {
+    if (check.keywords.some((k) => text.includes(k))) traits.push(check.label)
+  }
+  return traits.slice(0, 8)
+}
 
 function loadStoredWorkshopDocument() {
   if (typeof window === 'undefined') return createDefaultWorkshopDocument()
@@ -354,6 +409,7 @@ export function WorkshopView() {
     (templateId: string) => {
       const template = WORKSHOP_TEMPLATE_CATALOG.find((entry) => entry.id === templateId)
       if (!template) return
+      const personaPreset = getPersonaPresetById(template.personaId)
       updatePrimaryBlueprint((current) => ({
         ...current,
         identity: {
@@ -365,6 +421,11 @@ export function WorkshopView() {
           toneId: template.toneId,
           customPrompt: '',
         },
+        systemPrompt: template.systemPrompt ?? personaPreset?.prompt ?? '',
+        behaviors: template.behaviors
+          ? { ...DEFAULT_BEHAVIORS, ...template.behaviors }
+          : { ...DEFAULT_BEHAVIORS },
+        modelPreference: template.modelPreference ?? '',
         skillIds: [...template.skillIds],
         toolIds: [...template.toolIds],
         workflowIds: [...template.workflowIds],
@@ -508,6 +569,12 @@ export function WorkshopView() {
       deployedAt: Date.now(),
       blueprintId: primaryBlueprint.id,
     })
+    saveAgentConfig({
+      persona: primaryBlueprint.identity.personaId,
+      systemPrompt: primaryBlueprint.systemPrompt || systemPrompt,
+      behaviors: primaryBlueprint.behaviors,
+      modelPreference: primaryBlueprint.modelPreference,
+    })
     setView('chat')
   }, [primaryBlueprint, setView])
 
@@ -566,7 +633,6 @@ export function WorkshopView() {
           onCopyPrompt={handleCopyPrompt}
           onRunEvaluation={() => setWorkshopMode('testing')}
           renderStageContent={(stageId) => {
-            // Render the existing section content based on stage
             switch (stageId) {
               case 'identity':
                 return (
@@ -603,6 +669,51 @@ export function WorkshopView() {
 
                     <label className="block">
                       <span className="mb-2 block text-xs font-medium uppercase tracking-wide text-[var(--text-disabled)]">
+                        Persona
+                      </span>
+                      <div className="grid gap-2 grid-cols-1 sm:grid-cols-2">
+                        {PERSONA_PRESETS.map((preset) => (
+                          <button
+                            key={preset.id}
+                            onClick={() => {
+                              updatePrimaryIdentity({ personaId: preset.id })
+                              if (preset.prompt) {
+                                updatePrimaryBlueprint((bp) => ({
+                                  ...bp,
+                                  systemPrompt: preset.prompt,
+                                }))
+                              }
+                            }}
+                            className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-colors ${
+                              primaryBlueprint.identity.personaId === preset.id
+                                ? 'border-[var(--brand)] bg-[color-mix(in_srgb,var(--brand)_6%,var(--bg))]'
+                                : 'border-[var(--border)] bg-[var(--bg)] hover:border-[var(--brand)]/60'
+                            }`}
+                          >
+                            <span className="text-lg leading-none mt-0.5">{preset.emoji}</span>
+                            <div className="min-w-0">
+                              <div className="text-sm font-semibold text-[var(--text-primary)]">
+                                {preset.name}
+                              </div>
+                              <div className="text-xs text-[var(--text-tertiary)] mt-0.5 leading-relaxed">
+                                {preset.description}
+                              </div>
+                            </div>
+                            {primaryBlueprint.identity.personaId === preset.id && (
+                              <Icon
+                                icon="lucide:check-circle-2"
+                                width={16}
+                                height={16}
+                                className="text-[var(--brand)] shrink-0 mt-0.5"
+                              />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </label>
+
+                    <label className="block">
+                      <span className="mb-2 block text-xs font-medium uppercase tracking-wide text-[var(--text-disabled)]">
                         Mission
                       </span>
                       <textarea
@@ -615,26 +726,404 @@ export function WorkshopView() {
                     </label>
                   </div>
                 )
+
+              case 'system-prompt': {
+                const personaPreset = getPersonaPresetById(primaryBlueprint.identity.personaId)
+                const currentPrompt = primaryBlueprint.systemPrompt
+                const isModified = personaPreset
+                  ? currentPrompt !== personaPreset.prompt
+                  : currentPrompt.length > 0
+                const traits = extractTraits(currentPrompt)
+
+                return (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-[var(--text-secondary)]">
+                        Edit the system prompt to shape how your agent thinks and responds.
+                      </p>
+                      {isModified && personaPreset?.prompt && (
+                        <button
+                          onClick={() =>
+                            updatePrimaryBlueprint((bp) => ({
+                              ...bp,
+                              systemPrompt: personaPreset.prompt,
+                            }))
+                          }
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-colors"
+                        >
+                          <Icon icon="lucide:rotate-ccw" width={12} height={12} />
+                          Reset to persona default
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex gap-4 flex-col lg:flex-row">
+                      <div className="flex-1 min-w-0 space-y-1.5">
+                        <textarea
+                          value={currentPrompt}
+                          onChange={(e) =>
+                            updatePrimaryBlueprint((bp) => ({
+                              ...bp,
+                              systemPrompt: e.target.value,
+                            }))
+                          }
+                          placeholder="Describe who your agent is and how it should behave..."
+                          className="w-full min-h-[280px] max-h-[480px] rounded-2xl border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm font-mono text-[var(--text-primary)] outline-none transition focus:border-[var(--brand)] resize-y"
+                          spellCheck={false}
+                        />
+                        <div className="flex items-center justify-between text-xs text-[var(--text-disabled)]">
+                          <span>
+                            {isModified && (
+                              <span className="text-[var(--warning,#eab308)]">Modified</span>
+                            )}
+                          </span>
+                          <span>{currentPrompt.length.toLocaleString()} chars</span>
+                        </div>
+                      </div>
+
+                      <div className="w-full lg:w-[220px] shrink-0">
+                        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-4 space-y-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">{personaPreset?.emoji ?? '✨'}</span>
+                            <div>
+                              <div className="text-sm font-semibold text-[var(--text-primary)]">
+                                {personaPreset?.name ?? 'Custom'}
+                              </div>
+                              <div className="text-[10px] text-[var(--text-disabled)]">
+                                Live preview
+                              </div>
+                            </div>
+                          </div>
+                          {traits.length > 0 ? (
+                            <div className="flex flex-wrap gap-1.5">
+                              {traits.map((trait) => (
+                                <span
+                                  key={trait}
+                                  className="px-2 py-0.5 rounded-full text-[10px] font-medium border border-[var(--border)] bg-[var(--bg-subtle)] text-[var(--text-secondary)]"
+                                >
+                                  {trait}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-[var(--text-disabled)] italic">
+                              Start typing to see detected traits...
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              }
+
+              case 'behaviors':
+                return (
+                  <div className="space-y-5">
+                    <div className="space-y-1">
+                      {BEHAVIOR_DEFS.map((b) => (
+                        <button
+                          key={b.key}
+                          onClick={() =>
+                            updatePrimaryBlueprint((bp) => ({
+                              ...bp,
+                              behaviors: {
+                                ...bp.behaviors,
+                                [b.key]: !(bp.behaviors[b.key] ?? DEFAULT_BEHAVIORS[b.key]),
+                              },
+                            }))
+                          }
+                          className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer text-left"
+                        >
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium text-[var(--text-primary)]">
+                              {b.label}
+                            </div>
+                            <div className="text-xs text-[var(--text-disabled)] mt-0.5">
+                              {b.description}
+                            </div>
+                          </div>
+                          <div
+                            className="behavior-toggle shrink-0"
+                            data-checked={String(
+                              primaryBlueprint.behaviors[b.key] ??
+                                DEFAULT_BEHAVIORS[b.key] ??
+                                false,
+                            )}
+                            role="switch"
+                            aria-checked={
+                              primaryBlueprint.behaviors[b.key] ?? DEFAULT_BEHAVIORS[b.key] ?? false
+                            }
+                          />
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="pt-4 border-t border-[var(--border)]">
+                      <label className="block">
+                        <span className="mb-2 block text-xs font-medium uppercase tracking-wide text-[var(--text-disabled)]">
+                          Model Preference
+                        </span>
+                        <input
+                          type="text"
+                          value={primaryBlueprint.modelPreference}
+                          onChange={(e) =>
+                            updatePrimaryBlueprint((bp) => ({
+                              ...bp,
+                              modelPreference: e.target.value,
+                            }))
+                          }
+                          placeholder="e.g., claude-sonnet-4-5, gpt-4o"
+                          className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg)] border border-[var(--border)] text-sm font-mono text-[var(--text-primary)] placeholder:text-[var(--text-disabled)] outline-none focus:border-[var(--brand)] transition-colors"
+                        />
+                        <p className="text-xs text-[var(--text-disabled)] mt-1.5">
+                          Leave empty to use gateway default
+                        </p>
+                      </label>
+                    </div>
+                  </div>
+                )
+
               case 'skills':
                 return (
-                  <div className="text-sm text-[var(--text-secondary)]">
-                    <p className="mb-4">
-                      Skills section - {primaryBlueprint.skillIds.length} skills selected
+                  <div className="space-y-4">
+                    <div className="relative">
+                      <Icon
+                        icon="lucide:search"
+                        width={16}
+                        height={16}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-disabled)]"
+                      />
+                      <input
+                        type="text"
+                        value={skillQuery}
+                        onChange={(e) => setSkillQuery(e.target.value)}
+                        placeholder="Search skills..."
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--brand)]"
+                      />
+                    </div>
+                    <div className="grid gap-2 grid-cols-1 sm:grid-cols-2">
+                      {filteredSkills.map((skill) => {
+                        const isActive = primaryBlueprint.skillIds.includes(skill.id)
+                        return (
+                          <button
+                            key={skill.id}
+                            onClick={() => toggleSkill(skill.id)}
+                            className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-colors ${
+                              isActive
+                                ? 'border-[var(--brand)] bg-[color-mix(in_srgb,var(--brand)_6%,var(--bg))]'
+                                : 'border-[var(--border)] bg-[var(--bg)] hover:border-[var(--brand)]/60'
+                            }`}
+                          >
+                            <div
+                              className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+                                isActive
+                                  ? 'bg-[var(--brand)]/10 text-[var(--brand)]'
+                                  : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)]'
+                              }`}
+                            >
+                              <Icon
+                                icon={
+                                  isActive
+                                    ? 'lucide:check'
+                                    : (getSkillDisplayIcon(skill) ?? 'lucide:sparkles')
+                                }
+                                width={16}
+                                height={16}
+                              />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-sm font-semibold text-[var(--text-primary)]">
+                                {skill.title}
+                              </div>
+                              <div className="text-xs text-[var(--text-tertiary)] mt-0.5">
+                                {skill.shortDescription}
+                              </div>
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                    <p className="text-xs text-[var(--text-disabled)]">
+                      {primaryBlueprint.skillIds.length} skill
+                      {primaryBlueprint.skillIds.length !== 1 ? 's' : ''} selected
                     </p>
-                    <button
-                      onClick={() => setWorkshopMode('testing')}
-                      className="px-4 py-2 rounded-xl border border-[var(--border)] hover:border-[var(--brand)] transition"
-                    >
-                      Configure Skills
-                    </button>
                   </div>
                 )
+
               case 'tools':
                 return (
-                  <div className="text-sm text-[var(--text-secondary)]">
-                    <p>Tools section - {primaryBlueprint.toolIds.length} tools selected</p>
+                  <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+                    {WORKSHOP_TOOL_CATALOG.map((tool) => {
+                      const isActive = primaryBlueprint.toolIds.includes(tool.id)
+                      return (
+                        <button
+                          key={tool.id}
+                          onClick={() => toggleTool(tool.id)}
+                          className={`flex items-start gap-3 p-4 rounded-xl border text-left transition-colors ${
+                            isActive
+                              ? 'border-[var(--brand)] bg-[color-mix(in_srgb,var(--brand)_6%,var(--bg))]'
+                              : 'border-[var(--border)] bg-[var(--bg)] hover:border-[var(--brand)]/60'
+                          }`}
+                        >
+                          <div
+                            className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                              isActive
+                                ? 'bg-[var(--brand)]/10 text-[var(--brand)]'
+                                : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)]'
+                            }`}
+                          >
+                            <Icon
+                              icon={isActive ? 'lucide:check' : tool.icon}
+                              width={18}
+                              height={18}
+                            />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <div className="text-sm font-semibold text-[var(--text-primary)]">
+                                {tool.label}
+                              </div>
+                              <span
+                                className={`px-1.5 py-0.5 rounded text-[9px] font-medium uppercase ${
+                                  tool.risk === 'high'
+                                    ? 'bg-red-500/10 text-red-500'
+                                    : tool.risk === 'medium'
+                                      ? 'bg-amber-500/10 text-amber-500'
+                                      : 'bg-green-500/10 text-green-500'
+                                }`}
+                              >
+                                {tool.risk}
+                              </span>
+                            </div>
+                            <div className="text-xs text-[var(--text-tertiary)] mt-0.5">
+                              {tool.description}
+                            </div>
+                          </div>
+                        </button>
+                      )
+                    })}
                   </div>
                 )
+
+              case 'workflow':
+                return (
+                  <div className="grid gap-3 grid-cols-1">
+                    {WORKSHOP_WORKFLOW_CATALOG.map((workflow) => {
+                      const isActive = primaryBlueprint.workflowIds.includes(workflow.id)
+                      return (
+                        <button
+                          key={workflow.id}
+                          onClick={() => toggleWorkflow(workflow.id)}
+                          className={`flex items-center gap-3 p-4 rounded-xl border text-left transition-colors ${
+                            isActive
+                              ? 'border-[var(--brand)] bg-[color-mix(in_srgb,var(--brand)_6%,var(--bg))]'
+                              : 'border-[var(--border)] bg-[var(--bg)] hover:border-[var(--brand)]/60'
+                          }`}
+                        >
+                          <div
+                            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                              isActive
+                                ? 'bg-[var(--brand)]/10 text-[var(--brand)]'
+                                : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)]'
+                            }`}
+                          >
+                            <Icon
+                              icon={isActive ? 'lucide:check' : workflow.icon}
+                              width={18}
+                              height={18}
+                            />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-sm font-semibold text-[var(--text-primary)]">
+                              {workflow.label}
+                            </div>
+                            <div className="text-xs text-[var(--text-tertiary)] mt-0.5">
+                              {workflow.description}
+                            </div>
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )
+
+              case 'automation':
+                return (
+                  <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+                    {WORKSHOP_AUTOMATION_CATALOG.map((automation) => {
+                      const isActive = primaryBlueprint.automationIds.includes(automation.id)
+                      return (
+                        <button
+                          key={automation.id}
+                          onClick={() => toggleAutomation(automation.id)}
+                          className={`flex items-start gap-3 p-4 rounded-xl border text-left transition-colors ${
+                            isActive
+                              ? 'border-[var(--brand)] bg-[color-mix(in_srgb,var(--brand)_6%,var(--bg))]'
+                              : 'border-[var(--border)] bg-[var(--bg)] hover:border-[var(--brand)]/60'
+                          }`}
+                        >
+                          <div
+                            className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                              isActive
+                                ? 'bg-[var(--brand)]/10 text-[var(--brand)]'
+                                : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)]'
+                            }`}
+                          >
+                            <Icon
+                              icon={isActive ? 'lucide:check' : automation.icon}
+                              width={18}
+                              height={18}
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-sm font-semibold text-[var(--text-primary)]">
+                              {automation.label}
+                            </div>
+                            <div className="text-xs text-[var(--text-tertiary)] mt-0.5">
+                              {automation.description}
+                            </div>
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )
+
+              case 'guardrails':
+                return (
+                  <div className="space-y-4">
+                    <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
+                      {WORKSHOP_GUARDRAIL_PROFILES.map((profile) => {
+                        const isActive = primaryBlueprint.guardrails.profileId === profile.id
+                        return (
+                          <button
+                            key={profile.id}
+                            onClick={() =>
+                              updatePrimaryBlueprint((bp) => ({
+                                ...bp,
+                                guardrails: buildGuardrailsForProfile(profile.id),
+                              }))
+                            }
+                            className={`p-4 rounded-xl border text-left transition-colors ${
+                              isActive
+                                ? 'border-[var(--brand)] bg-[color-mix(in_srgb,var(--brand)_6%,var(--bg))]'
+                                : 'border-[var(--border)] bg-[var(--bg)] hover:border-[var(--brand)]/60'
+                            }`}
+                          >
+                            <div className="text-sm font-semibold text-[var(--text-primary)]">
+                              {profile.label}
+                            </div>
+                            <div className="text-xs text-[var(--text-tertiary)] mt-1">
+                              {profile.description}
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+
               default:
                 return (
                   <div className="text-sm text-[var(--text-secondary)]">
@@ -648,7 +1137,11 @@ export function WorkshopView() {
 
       {/* Live Preview - Desktop only */}
       <div className="hidden lg:block">
-        <LivePreview blueprint={primaryBlueprint} isOpen={previewOpen} onToggle={() => setPreviewOpen(!previewOpen)} />
+        <LivePreview
+          blueprint={primaryBlueprint}
+          isOpen={previewOpen}
+          onToggle={() => setPreviewOpen(!previewOpen)}
+        />
       </div>
     </div>
   )

@@ -358,7 +358,7 @@
   /* Blue primary accent (instead of red) */
   --brand: #3b82f6;
   --brand-hover: #2563eb;
-  --brand-muted: rgba(59, 130, 246, 0.10);
+  --brand-muted: rgba(59, 130, 246, 0.1);
   --brand-deep: #1d4ed8;
   --brand-chat: #3b82f6;
   --brand-contrast: #ffffff;
@@ -397,7 +397,7 @@
 
   /* Subtle borders (barely visible) */
   --border: rgba(255, 255, 255, 0.06);
-  --border-hover: rgba(255, 255, 255, 0.10);
+  --border-hover: rgba(255, 255, 255, 0.1);
   --border-focus: #3b82f6;
 
   /* Glass (less blur, more subtle) */
@@ -405,7 +405,7 @@
   --glass-bg-hover: rgba(10, 10, 10, 0.95);
   --glass-bg-elevated: rgba(14, 14, 14, 0.95);
   --glass-border: rgba(255, 255, 255, 0.06);
-  --glass-border-hover: rgba(255, 255, 255, 0.10);
+  --glass-border-hover: rgba(255, 255, 255, 0.1);
   --glass-shadow: rgba(0, 0, 0, 0.8);
 
   /* Larger radius (squircle feel) */
@@ -466,7 +466,7 @@
   --brand-deep: #1d4ed8;
   --brand-chat: #eff6ff;
   --brand-contrast: #ffffff;
-  --brand-glow: rgba(59, 130, 246, 0.10);
+  --brand-glow: rgba(59, 130, 246, 0.1);
   --brand-glow-subtle: rgba(59, 130, 246, 0.03);
 
   /* Status colors */
@@ -509,7 +509,7 @@
   --glass-bg-hover: rgba(250, 250, 250, 0.95);
   --glass-bg-elevated: rgba(245, 245, 245, 0.95);
   --glass-border: rgba(0, 0, 0, 0.06);
-  --glass-border-hover: rgba(0, 0, 0, 0.10);
+  --glass-border-hover: rgba(0, 0, 0, 0.1);
   --glass-shadow: rgba(0, 0, 0, 0.05);
 
   /* Radius */
@@ -523,9 +523,9 @@
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
   --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.10);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.1);
   --shadow-xl: 0 16px 40px rgba(0, 0, 0, 0.08), 0 0 20px rgba(59, 130, 246, 0.04);
-  --shadow-2xl: 0 24px 60px rgba(0, 0, 0, 0.10), 0 0 40px rgba(59, 130, 246, 0.05);
+  --shadow-2xl: 0 24px 60px rgba(0, 0, 0, 0.1), 0 0 40px rgba(59, 130, 246, 0.05);
 
   /* VSCode-like tokens */
   --kn-claw: var(--brand);
@@ -539,7 +539,7 @@
 
   /* Scrollbar */
   --scrollbar-thumb: rgba(0, 0, 0, 0.12);
-  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.20);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.2);
 
   /* Header */
   --header-glass-bg: rgba(255, 255, 255, 0.95);
@@ -2583,109 +2583,6 @@ p {
       transparent
     ),
     var(--bg);
-}
-
-.welcome-orb {
-  position: absolute;
-  border-radius: 50%;
-  will-change: transform, opacity;
-  animation: welcome-float 8s ease-in-out infinite;
-}
-
-.welcome-orb--primary {
-  width: 60vw;
-  height: 60vw;
-  max-width: 900px;
-  max-height: 900px;
-  top: 15%;
-  left: 50%;
-  transform: translateX(-50%);
-  background: radial-gradient(circle, var(--brand) 0%, transparent 70%);
-  opacity: 0.06;
-}
-
-.welcome-orb--secondary {
-  width: 45vw;
-  height: 45vw;
-  max-width: 700px;
-  max-height: 700px;
-  bottom: 10%;
-  right: 15%;
-  background: radial-gradient(circle, var(--brand) 0%, transparent 70%);
-  opacity: 0.035;
-  animation-delay: -4s;
-  animation-duration: 10s;
-}
-
-.welcome-grid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(color-mix(in srgb, var(--text-primary) 3%, transparent) 1px, transparent 1px),
-    linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--text-primary) 3%, transparent) 1px,
-      transparent 1px
-    );
-  background-size: 64px 64px;
-  mask-image: radial-gradient(ellipse 50% 50% at 50% 45%, rgba(0, 0, 0, 0.5), transparent);
-}
-
-@keyframes welcome-float {
-  0%,
-  100% {
-    transform: translateX(-50%) translateY(0) scale(1);
-  }
-  33% {
-    transform: translateX(-50%) translateY(-15px) scale(1.05);
-  }
-  66% {
-    transform: translateX(-50%) translateY(10px) scale(0.97);
-  }
-}
-
-.welcome-logo-spin {
-  animation: welcome-logo-idle 20s linear infinite;
-  filter: drop-shadow(0 0 30px color-mix(in srgb, var(--brand) 40%, transparent));
-}
-
-@keyframes welcome-logo-idle {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.welcome-action-card {
-  background: color-mix(in srgb, var(--bg-elevated) 70%, transparent);
-  border: 1px solid var(--border);
-  backdrop-filter: blur(12px);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.welcome-action-card:hover {
-  background: color-mix(in srgb, var(--bg-elevated) 90%, transparent);
-  border-color: color-mix(in srgb, var(--brand) 30%, var(--border));
-  box-shadow:
-    0 4px 16px color-mix(in srgb, var(--brand) 8%, transparent),
-    0 0 0 1px color-mix(in srgb, var(--brand) 6%, transparent);
-}
-
-.welcome-action-icon-wrap {
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--text-primary) 5%, transparent);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.welcome-action-card:hover .welcome-action-icon-wrap {
-  background: color-mix(in srgb, var(--brand) 12%, transparent);
 }
 
 .animate-glow-pulse {
@@ -6455,62 +6352,4 @@ p {
     radial-gradient(circle at top left, rgba(255, 255, 255, 0.03), transparent 24%),
     radial-gradient(circle at top right, rgba(255, 255, 255, 0.02), transparent 18%),
     linear-gradient(180deg, #050505 0%, #0a0a0a 100%);
-}
-
-/* ══════════════════════════════════════════════════════════════════
-   ChatHome Animations — World-class home screen effects
-   ══════════════════════════════════════════════════════════════════ */
-
-/* Logo glow pulse animation */
-@keyframes logo-glow {
-  0%, 100% {
-    filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.15));
-  }
-  50% {
-    filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.3));
-  }
-}
-
-/* Subtle floating animation */
-@keyframes subtle-float {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-4px);
-  }
-}
-
-/* Animated grain texture for background */
-@keyframes grain {
-  0%, 100% {
-    transform: translate(0, 0);
-  }
-  10% {
-    transform: translate(-5%, -10%);
-  }
-  20% {
-    transform: translate(-15%, 5%);
-  }
-  30% {
-    transform: translate(7%, -25%);
-  }
-  40% {
-    transform: translate(-5%, 25%);
-  }
-  50% {
-    transform: translate(-15%, 10%);
-  }
-  60% {
-    transform: translate(15%, 0);
-  }
-  70% {
-    transform: translate(0, 15%);
-  }
-  80% {
-    transform: translate(3%, 35%);
-  }
-  90% {
-    transform: translate(-10%, 10%);
-  }
 }

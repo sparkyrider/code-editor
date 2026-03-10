@@ -13,6 +13,13 @@ export interface PickerItem {
   enabled?: boolean
 }
 
+interface EmptyHelp {
+  icon: string
+  heading: string
+  steps: string[]
+  hint?: string
+}
+
 interface InlinePickerProps {
   items: PickerItem[]
   visible: boolean
@@ -21,7 +28,7 @@ interface InlinePickerProps {
   activeIndex: number
   setActiveIndex: (i: number) => void
   title: string
-  emptyMessage?: string
+  emptyHelp?: EmptyHelp
   searchQuery: string
 }
 
@@ -33,7 +40,7 @@ export function InlinePicker({
   activeIndex,
   setActiveIndex,
   title,
-  emptyMessage = 'No items found',
+  emptyHelp,
   searchQuery,
 }: InlinePickerProps) {
   const listRef = useRef<HTMLDivElement>(null)
@@ -85,14 +92,31 @@ export function InlinePicker({
         {/* Items list */}
         <div ref={listRef} className="max-h-[300px] overflow-y-auto py-1">
           {filteredItems.length === 0 ? (
-            <div className="px-3 py-6 text-center">
-              <Icon
-                icon="lucide:search-x"
-                width={20}
-                height={20}
-                className="mx-auto mb-2 text-[var(--text-disabled)]"
-              />
-              <p className="text-[11px] text-[var(--text-disabled)]">{emptyMessage}</p>
+            <div className="px-4 py-4">
+              {emptyHelp ? (
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-2">
+                    <Icon icon={emptyHelp.icon} width={16} height={16} className="text-[var(--brand)] shrink-0" />
+                    <span className="text-[12px] font-medium text-[var(--text-primary)]">{emptyHelp.heading}</span>
+                  </div>
+                  <ol className="space-y-1.5 pl-1">
+                    {emptyHelp.steps.map((step, i) => (
+                      <li key={i} className="flex gap-2 text-[11px] text-[var(--text-secondary)] leading-relaxed">
+                        <span className="text-[var(--brand)] font-mono shrink-0">{i + 1}.</span>
+                        <span>{step}</span>
+                      </li>
+                    ))}
+                  </ol>
+                  {emptyHelp.hint && (
+                    <p className="text-[10px] text-[var(--text-disabled)] border-t border-[var(--border)] pt-2 mt-2">{emptyHelp.hint}</p>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-2">
+                  <Icon icon="lucide:search-x" width={20} height={20} className="mx-auto mb-2 text-[var(--text-disabled)]" />
+                  <p className="text-[11px] text-[var(--text-disabled)]">No items found</p>
+                </div>
+              )}
             </div>
           ) : (
             filteredItems.map((item, i) => (

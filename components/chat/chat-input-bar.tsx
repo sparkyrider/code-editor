@@ -72,6 +72,7 @@ interface ChatInputBarProps {
   onPickerSelect: (item: PickerItem) => void
   onPickerClose: () => void
   pickerTitle: string
+  pickerEmptyHelp?: { icon: string; heading: string; steps: string[]; hint?: string }
   onSend: () => void
   onKeyDown: (e: KeyboardEvent<HTMLTextAreaElement>) => void
   onFileDrop: (e: DragEvent<HTMLTextAreaElement>) => void
@@ -165,6 +166,7 @@ export function ChatInputBar({
   onPickerSelect,
   onPickerClose,
   pickerTitle,
+  pickerEmptyHelp,
   onSend,
   onKeyDown,
   onFileDrop,
@@ -322,6 +324,7 @@ export function ChatInputBar({
               activeIndex={pickerIndex}
               setActiveIndex={setPickerIndex}
               title={pickerTitle}
+              emptyHelp={pickerEmptyHelp}
               searchQuery={pickerQuery}
             />
           )}

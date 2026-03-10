@@ -2105,6 +2105,43 @@ export function AgentPanel() {
     return ''
   }, [activePicker])
 
+  const pickerEmptyHelp = useMemo(() => {
+    if (activePicker === 'skill') return {
+      icon: 'lucide:sparkles',
+      heading: 'No skills configured yet',
+      steps: [
+        'Open Settings → Skills to browse available skills',
+        'Install a skill from the marketplace (e.g. obra/superpowers)',
+        'Use /skill find <query> to search for skills by name',
+        'Skills run code-gen, refactoring, testing, and more via your gateway',
+      ],
+      hint: 'Tip: Use ⌘6 to jump to the Skills view, or type /skill find to search.',
+    }
+    if (activePicker === 'mcp') return {
+      icon: 'lucide:plug',
+      heading: 'No MCP servers configured',
+      steps: [
+        'Open the MCP Library (⌘5) to browse available servers',
+        'Click "Install" on any server to add it (e.g. GitHub, Postgres, Notion)',
+        'Or add a custom server: /mcp add <name> --command "npx @mcp/server"',
+        'MCP servers give your agent access to external tools and data sources',
+      ],
+      hint: 'Tip: Popular servers — GitHub (PRs/issues), Postgres (queries), Brave Search (web).',
+    }
+    if (activePicker === 'prompt') return {
+      icon: 'lucide:book-open',
+      heading: 'Getting started with prompts',
+      steps: [
+        'Prompts are reusable templates for common tasks',
+        'Type /prompt followed by keywords to search templates',
+        'Create custom prompts in Settings → Prompts',
+        'Prompts can include {variables} that get filled in when used',
+      ],
+      hint: 'Tip: Try /prompt readme, /prompt review, or /prompt explain.',
+    }
+    return undefined
+  }, [activePicker])
+
   // ─── Keyboard ─────────────────────────────────────────────────
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -2483,6 +2520,7 @@ export function AgentPanel() {
           onPickerSelect={handlePickerSelect}
           onPickerClose={handlePickerClose}
           pickerTitle={pickerTitle}
+          pickerEmptyHelp={pickerEmptyHelp}
           onSend={sendMessage}
           onKeyDown={handleKeyDown}
           onFileDrop={handleFileDrop}

@@ -170,9 +170,10 @@ function AgentLoadoutCard({
   return (
     <section className="rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)] p-5">
       <div className="mb-4 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--brand)_12%,transparent)] text-lg">
-          {selectedPersona?.emoji ?? '\u{2728}'}
-        </div>
+        <span
+          className="w-3.5 h-3.5 rounded-full shrink-0"
+          style={{ backgroundColor: selectedPersona?.color ?? '#6B7280' }}
+        />
         <div>
           <h3 className="text-sm font-semibold text-[var(--text-primary)]">{title}</h3>
           <p className="text-xs text-[var(--text-tertiary)]">

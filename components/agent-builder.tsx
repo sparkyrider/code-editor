@@ -85,7 +85,7 @@ function extractTraits(prompt: string): string[] {
 export interface AgentBuilderState {
   persona: string
   presetName: string
-  presetEmoji: string
+  presetColor: string
   presetDescription: string
   systemPrompt: string
   behaviors: Record<string, boolean>
@@ -154,7 +154,7 @@ export function AgentBuilder({ onComplete, onSkip, compact, onStateChange }: Pro
     onStateChange?.({
       persona: selectedPersona,
       presetName: selectedPreset.name,
-      presetEmoji: selectedPreset.emoji,
+      presetColor: selectedPreset.color,
       presetDescription: selectedPreset.description,
       systemPrompt,
       behaviors,
@@ -163,7 +163,17 @@ export function AgentBuilder({ onComplete, onSkip, compact, onStateChange }: Pro
       step,
       isModified: isPromptModified,
     })
-  }, [selectedPersona, selectedPreset, systemPrompt, behaviors, modelPreference, traits, step, isPromptModified, onStateChange])
+  }, [
+    selectedPersona,
+    selectedPreset,
+    systemPrompt,
+    behaviors,
+    modelPreference,
+    traits,
+    step,
+    isPromptModified,
+    onStateChange,
+  ])
 
   // Scroll step into view on change
   useEffect(() => {
@@ -218,7 +228,9 @@ export function AgentBuilder({ onComplete, onSkip, compact, onStateChange }: Pro
                 Pick a starting point — you can customize everything in the next step.
               </p>
             </div>
-            <div className={`grid gap-3 ${compact ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'}`}>
+            <div
+              className={`grid gap-3 ${compact ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'}`}
+            >
               {PERSONA_PRESETS.map((preset) => (
                 <button
                   key={preset.id}
@@ -229,7 +241,10 @@ export function AgentBuilder({ onComplete, onSkip, compact, onStateChange }: Pro
                       : 'border-[var(--border)] bg-[var(--bg)] hover:border-[var(--border-hover,var(--text-disabled))] hover:shadow-sm'
                   }`}
                 >
-                  <span className="text-2xl leading-none mt-0.5">{preset.emoji}</span>
+                  <span
+                    className="w-3 h-3 rounded-full shrink-0 mt-1"
+                    style={{ backgroundColor: preset.color }}
+                  />
                   <div className="min-w-0 flex-1">
                     <div className="text-[13px] font-semibold text-[var(--text-primary)]">
                       {preset.name}
@@ -297,7 +312,10 @@ export function AgentBuilder({ onComplete, onSkip, compact, onStateChange }: Pro
               <div className="w-full lg:w-[240px] shrink-0">
                 <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4 space-y-3 lg:sticky lg:top-4">
                   <div className="flex items-center gap-2.5">
-                    <span className="text-xl">{selectedPreset.emoji}</span>
+                    <span
+                      className="w-3 h-3 rounded-full shrink-0"
+                      style={{ backgroundColor: selectedPreset.color }}
+                    />
                     <div>
                       <div className="text-[12px] font-semibold text-[var(--text-primary)]">
                         {selectedPreset.name}
@@ -399,7 +417,10 @@ export function AgentBuilder({ onComplete, onSkip, compact, onStateChange }: Pro
             <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] overflow-hidden">
               <div className="px-5 py-4 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--brand)_4%,transparent)]">
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl">{selectedPreset.emoji}</span>
+                  <span
+                    className="w-3.5 h-3.5 rounded-full shrink-0"
+                    style={{ backgroundColor: selectedPreset.color }}
+                  />
                   <div>
                     <div className="text-[14px] font-semibold text-[var(--text-primary)]">
                       {selectedPreset.name}
@@ -535,7 +556,10 @@ export function AgentSummary({ config, onReconfigure, onReset }: AgentSummaryPro
     <div className="space-y-4">
       <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] overflow-hidden">
         <div className="px-5 py-4 flex items-center gap-3">
-          <span className="text-2xl">{preset.emoji}</span>
+          <span
+            className="w-3.5 h-3.5 rounded-full shrink-0"
+            style={{ backgroundColor: preset.color }}
+          />
           <div className="flex-1 min-w-0">
             <div className="text-[14px] font-semibold text-[var(--text-primary)]">
               {preset.name}

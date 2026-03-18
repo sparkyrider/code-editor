@@ -3,7 +3,12 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { Icon } from '@iconify/react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { AgentBuilder, AgentSummary, BEHAVIOR_DEFS, type AgentBuilderState } from '@/components/agent-builder'
+import {
+  AgentBuilder,
+  AgentSummary,
+  BEHAVIOR_DEFS,
+  type AgentBuilderState,
+} from '@/components/agent-builder'
 import { getAgentConfig, clearAgentConfig, type AgentConfig } from '@/lib/agent-session'
 import { useView } from '@/context/view-context'
 
@@ -21,12 +26,8 @@ function AgentBuilderPreview({ state }: { state: AgentBuilderState | null }) {
   }
 
   const tokenEstimate = Math.ceil(state.systemPrompt.length / 4)
-  const activeBehaviors = BEHAVIOR_DEFS.filter(
-    (b) => state.behaviors[b.key] ?? b.defaultValue,
-  )
-  const inactiveBehaviors = BEHAVIOR_DEFS.filter(
-    (b) => !(state.behaviors[b.key] ?? b.defaultValue),
-  )
+  const activeBehaviors = BEHAVIOR_DEFS.filter((b) => state.behaviors[b.key] ?? b.defaultValue)
+  const inactiveBehaviors = BEHAVIOR_DEFS.filter((b) => !(state.behaviors[b.key] ?? b.defaultValue))
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-y-auto">
@@ -34,7 +35,10 @@ function AgentBuilderPreview({ state }: { state: AgentBuilderState | null }) {
         {/* Agent identity card */}
         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4">
           <div className="flex items-center gap-3 mb-3">
-            <span className="text-2xl">{state.presetEmoji}</span>
+            <span
+              className="w-3.5 h-3.5 rounded-full shrink-0"
+              style={{ backgroundColor: state.presetColor }}
+            />
             <div className="min-w-0 flex-1">
               <div className="text-sm font-semibold text-[var(--text-primary)]">
                 {state.presetName}
@@ -81,14 +85,30 @@ function AgentBuilderPreview({ state }: { state: AgentBuilderState | null }) {
           </div>
           <div className="space-y-1 rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3">
             {activeBehaviors.map((b) => (
-              <div key={b.key} className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px]">
-                <Icon icon="lucide:check" width={10} height={10} className="text-[var(--success)] shrink-0" />
+              <div
+                key={b.key}
+                className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px]"
+              >
+                <Icon
+                  icon="lucide:check"
+                  width={10}
+                  height={10}
+                  className="text-[var(--success)] shrink-0"
+                />
                 <span className="text-[var(--text-secondary)]">{b.label.split('(')[0].trim()}</span>
               </div>
             ))}
             {inactiveBehaviors.map((b) => (
-              <div key={b.key} className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px] opacity-50">
-                <Icon icon="lucide:x" width={10} height={10} className="text-[var(--text-disabled)] shrink-0" />
+              <div
+                key={b.key}
+                className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px] opacity-50"
+              >
+                <Icon
+                  icon="lucide:x"
+                  width={10}
+                  height={10}
+                  className="text-[var(--text-disabled)] shrink-0"
+                />
                 <span className="text-[var(--text-disabled)]">{b.label.split('(')[0].trim()}</span>
               </div>
             ))}
@@ -124,9 +144,11 @@ function AgentBuilderPreview({ state }: { state: AgentBuilderState | null }) {
                         : 'bg-[var(--border)]'
                   }`}
                 />
-                <span className={`text-[10px] ${
-                  i <= state.step ? 'text-[var(--text-secondary)]' : 'text-[var(--text-disabled)]'
-                }`}>
+                <span
+                  className={`text-[10px] ${
+                    i <= state.step ? 'text-[var(--text-secondary)]' : 'text-[var(--text-disabled)]'
+                  }`}
+                >
                   {label}
                 </span>
                 {i < 3 && <div className="w-3 h-px bg-[var(--border)]" />}
@@ -218,16 +240,19 @@ export function AgentBuilderView() {
     }
   }, [isDragging])
 
-  const previewToggle = useMemo(() => (
-    <button
-      onClick={() => setPreviewOpen((v) => !v)}
-      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer"
-      title={previewOpen ? 'Close preview' : 'Open preview'}
-    >
-      <Icon icon="lucide:eye" width={13} height={13} />
-      Preview
-    </button>
-  ), [previewOpen])
+  const previewToggle = useMemo(
+    () => (
+      <button
+        onClick={() => setPreviewOpen((v) => !v)}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer"
+        title={previewOpen ? 'Close preview' : 'Open preview'}
+      >
+        <Icon icon="lucide:eye" width={13} height={13} />
+        Preview
+      </button>
+    ),
+    [previewOpen],
+  )
 
   return (
     <div ref={containerRef} className="flex-1 flex min-h-0 overflow-hidden bg-[var(--sidebar-bg)]">
@@ -243,7 +268,9 @@ export function AgentBuilderView() {
               <Icon icon="lucide:arrow-left" width={16} height={16} />
             </button>
             <div>
-              <h2 className="text-[15px] font-semibold text-[var(--text-primary)]">Agent Builder</h2>
+              <h2 className="text-[15px] font-semibold text-[var(--text-primary)]">
+                Agent Builder
+              </h2>
               <p className="text-[11px] text-[var(--text-tertiary)]">
                 Configure your AI coding assistant
               </p>
@@ -279,7 +306,11 @@ export function AgentBuilderView() {
                 onStateChange={handleBuilderStateChange}
               />
             ) : config ? (
-              <AgentSummary config={config} onReconfigure={handleReconfigure} onReset={handleReset} />
+              <AgentSummary
+                config={config}
+                onReconfigure={handleReconfigure}
+                onReset={handleReset}
+              />
             ) : null}
           </div>
         </div>
@@ -298,7 +329,10 @@ export function AgentBuilderView() {
             title="Open preview panel"
           >
             <Icon icon="lucide:eye" width={18} height={18} />
-            <span className="text-[10px] font-medium tracking-wide" style={{ writingMode: 'vertical-rl' }}>
+            <span
+              className="text-[10px] font-medium tracking-wide"
+              style={{ writingMode: 'vertical-rl' }}
+            >
               Preview
             </span>
           </motion.button>
@@ -336,7 +370,9 @@ export function AgentBuilderView() {
               <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
                 <div className="flex items-center gap-2">
                   <Icon icon="lucide:eye" width={16} height={16} className="text-[var(--brand)]" />
-                  <h3 className="text-[13px] font-semibold text-[var(--text-primary)]">Live Preview</h3>
+                  <h3 className="text-[13px] font-semibold text-[var(--text-primary)]">
+                    Live Preview
+                  </h3>
                 </div>
                 <div className="flex items-center gap-1">
                   <button

@@ -69,7 +69,7 @@ export interface AppEvents {
 
   // Terminal
   'run-script-in-terminal': { name: string; cwd: string }
-  'editor-navigate': { startLine: number }
+  'editor-navigate': { startLine: number; endLine?: number }
 
   // Permissions
   'permissions-change': { permissions: string }

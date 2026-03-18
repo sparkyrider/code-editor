@@ -2,7 +2,7 @@ import { CODE_EDITOR_SYSTEM_PROMPT } from '@/lib/agent-session'
 
 export interface PersonaPreset {
   id: string
-  emoji: string
+  color: string
   name: string
   description: string
   prompt: string
@@ -11,14 +11,14 @@ export interface PersonaPreset {
 export const PERSONA_PRESETS: PersonaPreset[] = [
   {
     id: 'fullstack',
-    emoji: '\u{1F525}',
+    color: '#F97316',
     name: 'Full-Stack Engineer',
     description: 'Expert across the entire stack. Ships fast, reviews carefully.',
     prompt: CODE_EDITOR_SYSTEM_PROMPT,
   },
   {
     id: 'frontend',
-    emoji: '\u{1F3AF}',
+    color: '#3B82F6',
     name: 'Frontend Specialist',
     description: 'Pixel-perfect UI, accessibility, performance obsessed.',
     prompt: [
@@ -50,7 +50,7 @@ export const PERSONA_PRESETS: PersonaPreset[] = [
   },
   {
     id: 'security',
-    emoji: '\u{1F6E1}\u{FE0F}',
+    color: '#EF4444',
     name: 'Security Engineer',
     description: 'Defense-first. Finds vulnerabilities before attackers do.',
     prompt: [
@@ -83,7 +83,7 @@ export const PERSONA_PRESETS: PersonaPreset[] = [
   },
   {
     id: 'architect',
-    emoji: '\u{1F3D7}\u{FE0F}',
+    color: '#8B5CF6',
     name: 'Systems Architect',
     description: 'Designs for scale. Thinks in distributed systems.',
     prompt: [
@@ -115,7 +115,7 @@ export const PERSONA_PRESETS: PersonaPreset[] = [
   },
   {
     id: 'openclaw-dev',
-    emoji: '\u{1F99E}',
+    color: '#EC4899',
     name: 'OpenClaw Dev',
     description:
       'Docs-aware OpenClaw ecosystem agent. PR workflows, issue triage, architecture review.',
@@ -165,7 +165,7 @@ export const PERSONA_PRESETS: PersonaPreset[] = [
   },
   {
     id: 'custom',
-    emoji: '\u{2728}',
+    color: '#6B7280',
     name: 'Custom',
     description: 'Write your own from scratch.',
     prompt: '',

@@ -16,6 +16,7 @@ import type { AgentMode } from '@/components/mode-selector'
 import { ProviderSelector } from '@/components/provider-selector'
 import { formatShortcut } from '@/lib/platform'
 import { InlinePicker, type PickerItem } from '@/components/chat/inline-picker'
+import { emit } from '@/lib/events'
 
 export interface Suggestion {
   cmd: string
@@ -472,32 +473,52 @@ export function ChatInputBar({
                           key={i}
                           className="group/chip flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--bg-subtle)] px-2 py-1 hover:border-[color-mix(in_srgb,var(--brand)_30%,var(--border))] transition-colors"
                         >
-                          <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-[var(--bg)]">
-                            <Icon
-                              icon={
-                                isSelection ? 'lucide:text-cursor-input' : getFileTypeIcon(att.path)
-                              }
-                              width={10}
-                              height={10}
-                              className="text-[var(--text-tertiary)]"
-                            />
-                          </div>
-                          <div className="min-w-0 flex flex-col">
-                            <span className="max-w-[150px] truncate text-[11px] font-mono leading-tight text-[var(--text-secondary)]">
-                              {fileName}
-                              {lineRange && (
-                                <span className="text-[var(--text-disabled)]">:{lineRange}</span>
-                              )}
-                            </span>
-                            <span className="text-[9px] leading-tight text-[var(--text-disabled)]">
-                              {lineCount} line{lineCount !== 1 ? 's' : ''}
-                              {isSelection ? ' selected' : ''}
-                            </span>
-                          </div>
                           <button
-                            onClick={() =>
+                            onClick={() => {
+                              emit('file-select', { path: att.path })
+                              if (isSelection && att.startLine != null) {
+                                const sl = att.startLine
+                                const el = att.endLine
+                                setTimeout(() => {
+                                  emit('editor-navigate', {
+                                    startLine: sl,
+                                    endLine: el,
+                                  })
+                                }, 200)
+                              }
+                            }}
+                            className="flex items-center gap-1.5 min-w-0 cursor-pointer"
+                          >
+                            <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-[var(--bg)]">
+                              <Icon
+                                icon={
+                                  isSelection
+                                    ? 'lucide:text-cursor-input'
+                                    : getFileTypeIcon(att.path)
+                                }
+                                width={10}
+                                height={10}
+                                className="text-[var(--text-tertiary)]"
+                              />
+                            </div>
+                            <div className="min-w-0 flex flex-col text-left">
+                              <span className="max-w-[150px] truncate text-[11px] font-mono leading-tight text-[var(--text-secondary)]">
+                                {fileName}
+                                {lineRange && (
+                                  <span className="text-[var(--text-disabled)]">:{lineRange}</span>
+                                )}
+                              </span>
+                              <span className="text-[9px] leading-tight text-[var(--text-disabled)]">
+                                {lineCount} line{lineCount !== 1 ? 's' : ''}
+                                {isSelection ? ' selected' : ''}
+                              </span>
+                            </div>
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
                               setContextAttachments((prev) => prev.filter((_, j) => j !== i))
-                            }
+                            }}
                             className="w-4 h-4 rounded-full text-[var(--text-disabled)] hover:text-[var(--color-deletions)] hover:bg-[color-mix(in_srgb,var(--color-deletions)_10%,transparent)] flex items-center justify-center shrink-0 cursor-pointer transition-colors"
                           >
                             <Icon icon="lucide:x" width={8} height={8} />

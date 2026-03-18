@@ -690,7 +690,10 @@ export function WorkshopView() {
                                 : 'border-[var(--border)] bg-[var(--bg)] hover:border-[var(--brand)]/60'
                             }`}
                           >
-                            <span className="text-lg leading-none mt-0.5">{preset.emoji}</span>
+                            <span
+                              className="w-3 h-3 rounded-full shrink-0 mt-1"
+                              style={{ backgroundColor: preset.color }}
+                            />
                             <div className="min-w-0">
                               <div className="text-sm font-semibold text-[var(--text-primary)]">
                                 {preset.name}
@@ -784,7 +787,10 @@ export function WorkshopView() {
                       <div className="w-full lg:w-[220px] shrink-0">
                         <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-4 space-y-3">
                           <div className="flex items-center gap-2">
-                            <span className="text-lg">{personaPreset?.emoji ?? '✨'}</span>
+                            <span
+                              className="w-3 h-3 rounded-full shrink-0"
+                              style={{ backgroundColor: personaPreset?.color ?? '#6B7280' }}
+                            />
                             <div>
                               <div className="text-sm font-semibold text-[var(--text-primary)]">
                                 {personaPreset?.name ?? 'Custom'}

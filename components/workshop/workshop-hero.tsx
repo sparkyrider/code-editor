@@ -76,8 +76,8 @@ export function WorkshopHero({
               Build agents that feel intentional, modular, and ready for the real world.
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--text-secondary)] md:text-[15px]">
-              Shape identity, connect skills and tools, choreograph workflows, then pressure-test the result
-              before it ever reaches a real task.
+              Shape identity, connect skills and tools, choreograph workflows, then pressure-test
+              the result before it ever reaches a real task.
             </p>
           </div>
 
@@ -99,7 +99,9 @@ export function WorkshopHero({
                 Readiness
               </div>
               <div className="mt-2 flex items-end gap-2">
-                <span className="text-2xl font-semibold text-[var(--text-primary)]">{readinessScore}%</span>
+                <span className="text-2xl font-semibold text-[var(--text-primary)]">
+                  {readinessScore}%
+                </span>
                 <span className="pb-1 text-xs text-[var(--text-tertiary)]">{readinessCallout}</span>
               </div>
               <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--bg)]">
@@ -137,7 +139,11 @@ export function WorkshopHero({
               onClick={onToggleCompare}
               className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_72%,transparent)] px-4 py-2.5 text-sm font-semibold text-[var(--text-primary)] transition hover:border-[var(--brand)]"
             >
-              <Icon icon={compareMode ? 'lucide:layers-2' : 'lucide:git-compare'} width={16} height={16} />
+              <Icon
+                icon={compareMode ? 'lucide:layers-2' : 'lucide:git-compare'}
+                width={16}
+                height={16}
+              />
               {compareMode ? 'Disable Compare' : 'Create Challenger'}
             </button>
             {onExport && (
@@ -187,7 +193,9 @@ export function WorkshopHero({
           <div className="rounded-3xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_84%,transparent)] p-4 backdrop-blur">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-sm font-semibold text-[var(--text-primary)]">Starter Templates</h2>
+                <h2 className="text-sm font-semibold text-[var(--text-primary)]">
+                  Starter Templates
+                </h2>
                 <p className="mt-1 text-xs text-[var(--text-tertiary)]">
                   Jump to a proven posture, then remix it.
                 </p>
@@ -209,14 +217,22 @@ export function WorkshopHero({
                           {template.badge}
                         </div>
                         <div className="mt-2 flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
-                          <span>{persona?.emoji ?? 'AI'}</span>
+                          <span
+                            className="w-2.5 h-2.5 rounded-full shrink-0"
+                            style={{ backgroundColor: persona?.color ?? '#6B7280' }}
+                          />
                           {template.label}
                         </div>
                         <p className="mt-1 text-xs leading-5 text-[var(--text-tertiary)]">
                           {template.description}
                         </p>
                       </div>
-                      <Icon icon="lucide:arrow-up-right" width={16} height={16} className="text-[var(--text-tertiary)]" />
+                      <Icon
+                        icon="lucide:arrow-up-right"
+                        width={16}
+                        height={16}
+                        className="text-[var(--text-tertiary)]"
+                      />
                     </div>
                   </button>
                 )
@@ -241,12 +257,19 @@ export function WorkshopHero({
                     className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-3 text-left transition hover:border-[var(--brand)] hover:bg-[color-mix(in_srgb,var(--brand)_6%,var(--bg-elevated))]"
                   >
                     <div>
-                      <div className="text-sm font-semibold text-[var(--text-primary)]">{saved.label}</div>
+                      <div className="text-sm font-semibold text-[var(--text-primary)]">
+                        {saved.label}
+                      </div>
                       <div className="mt-1 text-xs text-[var(--text-tertiary)]">
                         {formatSavedTime(saved.savedAt)}
                       </div>
                     </div>
-                    <Icon icon="lucide:history" width={16} height={16} className="text-[var(--text-tertiary)]" />
+                    <Icon
+                      icon="lucide:history"
+                      width={16}
+                      height={16}
+                      className="text-[var(--text-tertiary)]"
+                    />
                   </button>
                 ))
               ) : (

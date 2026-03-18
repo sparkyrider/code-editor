@@ -481,7 +481,10 @@ export default function EditorLayout() {
               </div>
 
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-0.5 rounded-md border border-[var(--border)] bg-[var(--bg)] p-0.5">
+                <div
+                  className="flex items-center gap-0.5 border border-[var(--border)] bg-[var(--bg)] p-0.5"
+                  style={{ borderRadius: 'var(--radius-md)' }}
+                >
                   {MODE_BUTTONS.map((modeButton) => {
                     const active = mode === modeButton.id
                     return (

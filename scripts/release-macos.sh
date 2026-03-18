@@ -63,20 +63,14 @@ xcrun notarytool store-credentials --help > /dev/null 2>&1 || {
 command -v gh > /dev/null || { echo "  ✗ gh CLI not found"; exit 1; }
 echo "  ✓ All checks passed"
 
-# ── 2. Bump versions ────────────────────────────────────────────────
+# ── 2. Bump versions (all targets via sync-versions) ────────────────
 echo ""
-echo "▸ [2/10] Bumping version to ${VERSION}..."
+echo "▸ [2/10] Bumping version to ${VERSION} (desktop + iOS)..."
 
-# package.json
-sed -i '' "s/\"version\": \"[^\"]*\"/\"version\": \"${VERSION}\"/" package.json
+node scripts/sync-versions.mjs "${VERSION}"
+node scripts/sync-versions.mjs --check
 
-# tauri.conf.json
-sed -i '' "s/\"version\": \"[^\"]*\"/\"version\": \"${VERSION}\"/" src-tauri/tauri.conf.json
-
-# Cargo.toml (only the first version line)
-sed -i '' "0,/^version = \".*\"/s//version = \"${VERSION}\"/" src-tauri/Cargo.toml
-
-echo "  ✓ package.json, tauri.conf.json, Cargo.toml → ${VERSION}"
+echo "  ✓ All version locations → ${VERSION}"
 
 # ── 3. Build frontend + Tauri ───────────────────────────────────────
 echo ""
@@ -158,7 +152,7 @@ echo ""
 echo "▸ [9/10] Committing and tagging..."
 
 git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/Cargo.lock src-tauri/Entitlements.plist 2>/dev/null || true
-git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml
+git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/gen/apple/project.yml src-tauri/gen/apple/app_iOS/Info.plist
 git commit -m "chore: release v${VERSION}" --allow-empty 2>/dev/null || true
 git tag -f "v${VERSION}" -m "v${VERSION}"
 git push origin main 2>/dev/null || true

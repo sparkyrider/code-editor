@@ -1,17 +1,18 @@
 #!/usr/bin/env node
 /**
- * Release helper — bumps version, commits, tags, and optionally pushes.
+ * Release helper — bumps version across ALL targets, commits, tags, and optionally pushes.
  *
  * Usage:
  *   pnpm release <version> [--push]
  *
  * Examples:
- *   pnpm release 1.0.0          # bump + tag locally
- *   pnpm release 1.2.0 --push   # bump + tag + push (triggers CI release)
+ *   pnpm release 1.11.0          # bump + tag locally
+ *   pnpm release 1.11.0 --push   # bump + tag + push (triggers CI release)
+ *
+ * Bumps: package.json, tauri.conf.json, Cargo.toml, project.yml, Info.plist
  */
 
 import { execSync } from 'child_process'
-import { readFileSync, writeFileSync } from 'fs'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
@@ -20,7 +21,7 @@ const args = process.argv.slice(2)
 const version = args.find(a => /^\d+\.\d+\.\d+(\S+)?$/.test(a))
 
 if (!version) {
-  console.error('Usage: pnpm release <version>  e.g. pnpm release 1.0.0 --push')
+  console.error('Usage: pnpm release <version>  e.g. pnpm release 1.11.0 --push')
   process.exit(1)
 }
 
@@ -38,24 +39,23 @@ try {
   process.exit(1)
 }
 
-// ── Bump package.json ──────────────────────────────────────────────────────
-const pkgPath = resolve(root, 'package.json')
-const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'))
-const prev = pkg.version
-pkg.version = version
-writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n')
-console.log(`  package.json        ${prev} → ${version}`)
+// ── Bump ALL version locations via sync-versions ──────────────────────────
+execSync(`node scripts/sync-versions.mjs ${version}`, { stdio: 'inherit', cwd: root })
 
-// ── Bump src-tauri/tauri.conf.json ────────────────────────────────────────
-const tauriConfPath = resolve(root, 'src-tauri/tauri.conf.json')
-const tauriConf = JSON.parse(readFileSync(tauriConfPath, 'utf8'))
-tauriConf.version = version
-writeFileSync(tauriConfPath, JSON.stringify(tauriConf, null, 2) + '\n')
-console.log(`  tauri.conf.json     → ${version}`)
+// ── Verify they all match ─────────────────────────────────────────────────
+execSync('node scripts/sync-versions.mjs --check', { stdio: 'inherit', cwd: root })
 
 // ── Commit & tag ──────────────────────────────────────────────────────────
 const tag = `v${version}`
-execSync('git add package.json src-tauri/tauri.conf.json', { stdio: 'inherit', cwd: root })
+const filesToStage = [
+  'package.json',
+  'src-tauri/tauri.conf.json',
+  'src-tauri/Cargo.toml',
+  'src-tauri/gen/apple/project.yml',
+  'src-tauri/gen/apple/app_iOS/Info.plist',
+].join(' ')
+
+execSync(`git add ${filesToStage}`, { stdio: 'inherit', cwd: root })
 execSync(`git commit -m "chore: release ${tag}"`, { stdio: 'inherit', cwd: root })
 execSync(`git tag ${tag}`, { stdio: 'inherit', cwd: root })
 console.log(`\n  Tagged ${tag}`)

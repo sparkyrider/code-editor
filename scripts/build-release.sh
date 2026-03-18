@@ -110,15 +110,14 @@ verify() {
     ((FAIL++))
   fi
 
-  # 8. Version consistency
-  log "Version consistency…"
-  PKG_V=$(node -e "console.log(require('./package.json').version)")
-  TAURI_V=$(node -e "console.log(require('./src-tauri/tauri.conf.json').version)")
-  if [ "$PKG_V" = "$TAURI_V" ]; then
-    ok "Versions match: v$PKG_V"
+  # 8. Version consistency (desktop + iOS — all 5 locations)
+  log "Version consistency (all targets)…"
+  if node scripts/sync-versions.mjs --check 2>/dev/null; then
+    ok "All version locations match: v$(node -e "console.log(require('./package.json').version)")"
     ((PASS++))
   else
-    warn "Version mismatch: package.json=$PKG_V tauri.conf.json=$TAURI_V"
+    warn "Version drift detected — run: pnpm version:sync"
+    node scripts/sync-versions.mjs --check 2>&1 | grep "✗" || true
     ((FAIL++))
   fi
 

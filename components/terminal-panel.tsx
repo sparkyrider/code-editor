@@ -584,7 +584,7 @@ function TerminalPane({
 
             <div className="flex shrink-0 items-center gap-1.5">
               <button
-                onClick={() => emit('focus-terminal')}
+                onClick={() => session.xterm?.focus()}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-elevated)_78%,transparent)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[color-mix(in_srgb,var(--brand)_24%,var(--border))] hover:bg-[var(--bg-subtle)] transition-colors shrink-0"
                 title="Focus terminal"
               >
@@ -716,7 +716,7 @@ function TerminalPane({
             </div>
             <div className="flex items-center gap-2 whitespace-nowrap">
               <span>⌘J toggle</span>
-              <span>⌘⌥4 focus</span>
+              <span>Drag edge to resize</span>
             </div>
           </div>
         </div>

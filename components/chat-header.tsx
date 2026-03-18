@@ -88,7 +88,7 @@ export function ChatHeader({
         <div className="ml-2 flex shrink-0 items-center gap-1.5">
           {/* Model badge */}
           {modelName && (
-            <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-md border border-[var(--border)] bg-[var(--bg-subtle)] px-2 py-0.5 text-[9px] font-mono text-[var(--text-tertiary)]">
+            <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-md border border-[var(--border)] bg-[var(--bg-subtle)] px-2 py-0.5 text-[10px] font-mono text-[var(--text-tertiary)]">
               <Icon icon="lucide:sparkles" width={9} height={9} className="text-[var(--brand)]" />
               <span className="max-w-[90px] truncate">
                 {modelName
@@ -99,22 +99,31 @@ export function ChatHeader({
             </span>
           )}
           {isStreaming && activityCount > 0 && (
-            <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-md border border-[var(--border)] bg-[var(--bg-subtle)] px-1.5 py-0.5 text-[9px] text-[var(--text-disabled)]">
+            <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-md border border-[var(--border)] bg-[var(--bg-subtle)] px-1.5 py-0.5 text-[10px] text-[var(--text-disabled)]">
               <Icon icon="lucide:activity" width={9} height={9} className="text-[var(--brand)]" />
               {activityCount} ops
-              {filesChanged > 0 && (
-                <span className="text-amber-400">· {filesChanged} files</span>
-              )}
+              {filesChanged > 0 && <span className="text-amber-400">· {filesChanged} files</span>}
             </span>
           )}
           {/* Context token count */}
           {contextTokens > 0 && (
-            <span className={`inline-flex items-center gap-1 whitespace-nowrap text-[9px] tabular-nums ${
-              contextPct > 80 ? 'text-amber-400' : contextPct > 95 ? 'text-red-400' : 'text-[var(--text-disabled)]'
-            }`}>
+            <span
+              className={`inline-flex items-center gap-1 whitespace-nowrap text-[9px] tabular-nums ${
+                contextPct > 80
+                  ? 'text-amber-400'
+                  : contextPct > 95
+                    ? 'text-red-400'
+                    : 'text-[var(--text-disabled)]'
+              }`}
+            >
               <Icon icon="lucide:database" width={9} height={9} />
               {contextTokens >= 1000 ? `${(contextTokens / 1000).toFixed(0)}K` : contextTokens}
-              <span className="text-[8px]">/{maxContextTokens >= 1000 ? `${(maxContextTokens / 1000).toFixed(0)}K` : maxContextTokens}</span>
+              <span className="text-[9px]">
+                /
+                {maxContextTokens >= 1000
+                  ? `${(maxContextTokens / 1000).toFixed(0)}K`
+                  : maxContextTokens}
+              </span>
             </span>
           )}
           <span className="whitespace-nowrap text-[11px] text-[var(--text-disabled)]">

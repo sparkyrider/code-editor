@@ -3070,6 +3070,45 @@ p {
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
+.shell-mode-controller-btn,
+.shell-view-controller-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2rem;
+  border: 0;
+  border-radius: 16px;
+  padding: 0 0.8rem;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition:
+    color 180ms ease,
+    background 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.shell-mode-controller-btn:hover,
+.shell-view-controller-btn:hover {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--text-primary) 5%, transparent);
+}
+
+.shell-mode-controller-btn--active,
+.shell-view-controller-btn--active {
+  color: var(--text-primary);
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.08), transparent 38%),
+    color-mix(in srgb, var(--brand) 11%, var(--bg));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--brand) 16%, transparent),
+    0 8px 18px -16px color-mix(in srgb, var(--brand) 35%, rgba(0, 0, 0, 0.4));
+}
+
 [data-theme='supreme'] .folder-tab-strip {
   align-items: center;
   gap: 2px;
@@ -5048,6 +5087,213 @@ p {
 [data-theme='cybernord']:not(.dark) .md-preview code {
   background: #d9f0e0;
   color: #15803d;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Theme: Velvet Circuit — cyber-noir shell with orchid neon + sapphire bloom
+   ══════════════════════════════════════════════════════════════════ */
+.dark[data-theme='velvet-circuit'] {
+  --bg: #090814;
+  --bg-elevated: #121022;
+  --bg-subtle: #1a1630;
+  --bg-secondary: #0e0c1c;
+  --bg-tertiary: #221d3d;
+  --sidebar-bg: #0b0918;
+  --foreground: #f3ecff;
+  --subtle: #9d8fba;
+  --font-sans: 'IBM Plex Sans', Inter, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'JetBrains Mono', monospace;
+
+  --brand: #ff4fd8;
+  --brand-hover: #ff82e7;
+  --brand-muted: rgba(255, 79, 216, 0.12);
+
+  --success: #6ef3c5;
+  --warning: #ffc857;
+  --error: #ff6b8a;
+  --info: #64d7ff;
+
+  --text-primary: #f4efff;
+  --text-secondary: #c3b5e7;
+  --text-tertiary: #9d8fba;
+  --text-disabled: #70678d;
+
+  --border: #241f3b;
+  --border-hover: #332a54;
+  --border-focus: #ff4fd8;
+
+  --color-additions: #6ef3c5;
+  --color-deletions: #ff6b8a;
+  --on-additions: #090814;
+  --on-deletions: #ffffff;
+
+  --glass-bg: rgba(9, 8, 20, 0.9);
+  --glass-bg-hover: var(--bg-subtle);
+  --glass-bg-elevated: var(--bg-subtle);
+  --glass-border: var(--border);
+  --glass-border-hover: rgba(255, 79, 216, 0.22);
+  --glass-shadow: rgba(6, 4, 14, 0.9);
+  --brand-glow: rgba(255, 79, 216, 0.18);
+  --brand-glow-subtle: rgba(100, 215, 255, 0.08);
+  --brand-deep: #b32aa3;
+  --brand-chat: #3b1742;
+  --brand-contrast: #090814;
+
+  --shadow-2xs: 0 1px 2px rgba(6, 4, 14, 0.6);
+  --shadow-xs: 0 2px 4px rgba(6, 4, 14, 0.72);
+  --shadow-sm: 0 1px 3px rgba(6, 4, 14, 0.62);
+  --shadow: 0 2px 8px rgba(6, 4, 14, 0.76), 0 0 12px rgba(255, 79, 216, 0.05);
+  --shadow-md: 0 6px 18px rgba(6, 4, 14, 0.78);
+  --shadow-lg: 0 12px 32px rgba(6, 4, 14, 0.84), 0 0 26px rgba(100, 215, 255, 0.06);
+  --shadow-xl: 0 20px 52px rgba(6, 4, 14, 0.88), 0 0 34px rgba(255, 79, 216, 0.08);
+  --shadow-2xl: 0 28px 72px rgba(6, 4, 14, 0.92), 0 0 52px rgba(100, 215, 255, 0.1);
+
+  --kn-claw: var(--brand);
+  --vscode-text: var(--text-primary);
+  --vscode-subtle: var(--text-tertiary);
+  --vscode-muted: var(--text-secondary);
+
+  --overlay: rgba(7, 6, 16, 0.68);
+  --logo-filter: hue-rotate(298deg) saturate(1.25) brightness(1.2);
+
+  --scrollbar-thumb: #2a2444;
+  --scrollbar-thumb-hover: #3a3160;
+  --header-glass-bg: rgba(10, 9, 24, 0.92);
+  --shimmer-from: #100e1f;
+  --shimmer-via: #1a1630;
+
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+
+  --color-stage-review: #64d7ff;
+  --color-stage-review-bg: rgba(100, 215, 255, 0.1);
+  --color-stage-review-border: rgba(100, 215, 255, 0.28);
+  --color-stage-prepare: #ffc857;
+  --color-stage-prepare-bg: rgba(255, 200, 87, 0.1);
+  --color-stage-prepare-border: rgba(255, 200, 87, 0.28);
+  --color-stage-merge: #6ef3c5;
+  --color-stage-merge-bg: rgba(110, 243, 197, 0.1);
+  --color-stage-merge-border: rgba(110, 243, 197, 0.28);
+  --color-prereq-met: #6ef3c5;
+  --color-prereq-unmet: #ffc857;
+  --color-conflict: #ff6b8a;
+  --color-stale: #ffc857;
+  --color-merged: #c89cff;
+  --color-merged-muted: rgba(200, 156, 255, 0.12);
+  --color-merged-border: rgba(200, 156, 255, 0.3);
+  --color-closed: #ff6b8a;
+  --color-action-default: var(--text-secondary);
+  --color-ai: #ff4fd8;
+  --color-ai-muted: rgba(255, 79, 216, 0.12);
+  --color-ai-border: rgba(255, 79, 216, 0.24);
+  --color-ai-hover: #ff82e7;
+  --color-ai-hover-bg: rgba(255, 79, 216, 0.08);
+}
+
+[data-theme='velvet-circuit']:not(.dark) {
+  --bg: #fff7fd;
+  --bg-elevated: #ffffff;
+  --bg-subtle: #f8edf8;
+  --bg-secondary: #fdf2fb;
+  --bg-tertiary: #f1e3f3;
+  --sidebar-bg: #fbf0f9;
+  --foreground: #2d1931;
+  --subtle: #987e9c;
+  --font-sans: 'IBM Plex Sans', Inter, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'JetBrains Mono', monospace;
+
+  --brand: #d83fb4;
+  --brand-hover: #bf2e9d;
+  --brand-muted: rgba(216, 63, 180, 0.1);
+
+  --success: #0f9f7b;
+  --warning: #b7791f;
+  --error: #d6456d;
+  --info: #288cc7;
+
+  --text-primary: #2d1931;
+  --text-secondary: #6d4e76;
+  --text-tertiary: #987e9c;
+  --text-disabled: #a996ac;
+
+  --border: #ead8ea;
+  --border-hover: #dbc2dc;
+  --border-focus: #d83fb4;
+
+  --color-additions: #0f9f7b;
+  --color-deletions: #d6456d;
+  --on-additions: #ffffff;
+  --on-deletions: #ffffff;
+
+  --glass-bg: rgba(255, 247, 253, 0.92);
+  --glass-bg-hover: var(--bg-subtle);
+  --glass-bg-elevated: #ffffff;
+  --glass-border: var(--border);
+  --glass-border-hover: rgba(216, 63, 180, 0.18);
+  --glass-shadow: rgba(45, 25, 49, 0.08);
+  --brand-glow: rgba(216, 63, 180, 0.12);
+  --brand-glow-subtle: rgba(40, 140, 199, 0.05);
+  --brand-deep: #a52b87;
+  --brand-chat: #ffe1f5;
+  --brand-contrast: #ffffff;
+
+  --shadow-2xs: 0 1px 2px rgba(45, 25, 49, 0.04);
+  --shadow-xs: 0 1px 3px rgba(45, 25, 49, 0.06);
+  --shadow-sm: 0 1px 2px rgba(45, 25, 49, 0.06);
+  --shadow: 0 2px 6px rgba(45, 25, 49, 0.08);
+  --shadow-md: 0 4px 12px rgba(45, 25, 49, 0.08);
+  --shadow-lg: 0 10px 24px rgba(45, 25, 49, 0.1);
+  --shadow-xl: 0 18px 42px rgba(45, 25, 49, 0.12);
+  --shadow-2xl: 0 26px 58px rgba(45, 25, 49, 0.14);
+
+  --kn-claw: var(--brand);
+  --vscode-text: var(--text-primary);
+  --vscode-subtle: var(--text-tertiary);
+  --vscode-muted: var(--text-secondary);
+
+  --overlay: rgba(255, 247, 253, 0.56);
+  --logo-filter: hue-rotate(314deg) saturate(1.15) brightness(0.86);
+
+  --scrollbar-thumb: #d7bfd8;
+  --scrollbar-thumb-hover: #cba6cc;
+  --header-glass-bg: rgba(255, 247, 253, 0.95);
+  --shimmer-from: var(--bg-elevated);
+  --shimmer-via: var(--bg-subtle);
+
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+
+  --color-stage-review: #288cc7;
+  --color-stage-review-bg: rgba(40, 140, 199, 0.08);
+  --color-stage-review-border: rgba(40, 140, 199, 0.24);
+  --color-stage-prepare: #b7791f;
+  --color-stage-prepare-bg: rgba(183, 121, 31, 0.08);
+  --color-stage-prepare-border: rgba(183, 121, 31, 0.24);
+  --color-stage-merge: #0f9f7b;
+  --color-stage-merge-bg: rgba(15, 159, 123, 0.08);
+  --color-stage-merge-border: rgba(15, 159, 123, 0.24);
+  --color-prereq-met: #0f9f7b;
+  --color-prereq-unmet: #b7791f;
+  --color-conflict: #d6456d;
+  --color-stale: #b7791f;
+  --color-merged: #8e56d8;
+  --color-merged-muted: rgba(142, 86, 216, 0.08);
+  --color-merged-border: rgba(142, 86, 216, 0.24);
+  --color-closed: #d6456d;
+  --color-action-default: var(--text-secondary);
+  --color-ai: #d83fb4;
+  --color-ai-muted: rgba(216, 63, 180, 0.08);
+  --color-ai-border: rgba(216, 63, 180, 0.2);
+  --color-ai-hover: #bf2e9d;
+  --color-ai-hover-bg: rgba(216, 63, 180, 0.08);
+}
+
+[data-theme='velvet-circuit']:not(.dark) .prose-chat code,
+[data-theme='velvet-circuit']:not(.dark) .md-preview code {
+  background: #f4ddf0;
+  color: #a52b87;
 }
 
 /* ══════════════════════════════════════════════════════════════════

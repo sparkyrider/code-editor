@@ -929,6 +929,18 @@ export function GatewayTerminal() {
             {sending && <span className="text-[var(--brand)]">Running…</span>}
           </div>
         </div>
+        <div className="flex flex-wrap items-center gap-2 border-t border-[color-mix(in_srgb,var(--border)_60%,transparent)] px-4 py-2 text-[11px] text-[var(--text-secondary)]">
+          <span className="rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-elevated)_72%,transparent)] px-2.5 py-1 font-medium">
+            /help
+          </span>
+          <span className="rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-elevated)_72%,transparent)] px-2.5 py-1 font-medium">
+            /agents
+          </span>
+          <span className="rounded-full border border-[var(--border)] bg-[color-mix(in_srgb,var(--bg-elevated)_72%,transparent)] px-2.5 py-1 font-medium">
+            ask a shell question
+          </span>
+          <span className="ml-auto text-[var(--text-disabled)]">Click anywhere to type</span>
+        </div>
       </div>
       {/* Output */}
       <div

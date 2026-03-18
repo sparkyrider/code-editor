@@ -66,13 +66,17 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
     }
 
     // Ensure active view is valid in this mode.
-    // Chat mode is always chat-first, so force the chat view.
     if (mode === 'chat') {
       if (activeViewRef.current !== 'chat') {
         setView('chat')
       }
-      // Force collapse (bypass editor-view guard in setEditorCollapsed).
       dispatch({ type: 'SET_EDITOR_COLLAPSED', collapsed: true })
+    } else if (mode === 'tui') {
+      // TUI needs activeView === 'editor' so useCenteredTerminal activates
+      if (activeViewRef.current !== spec.defaultView) {
+        setView(spec.defaultView)
+      }
+      dispatch({ type: 'SET_EDITOR_COLLAPSED', collapsed: false })
     } else {
       if (!spec.visibleViews.includes(activeViewRef.current)) {
         setView(spec.defaultView)

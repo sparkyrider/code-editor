@@ -37,8 +37,10 @@ const FILE_PATH_REGEX = new RegExp(
   'g',
 )
 
-const SOLID_TERMINAL_BG = '#000000'
-const SOLID_TERMINAL_FG = '#e5e7eb'
+const SOLID_TERMINAL_BG_DARK = '#000000'
+const SOLID_TERMINAL_BG_LIGHT = '#ffffff'
+const SOLID_TERMINAL_FG_DARK = '#e5e7eb'
+const SOLID_TERMINAL_FG_LIGHT = '#1a1a1a'
 
 function findFileLinksInLine(
   lineText: string,
@@ -82,12 +84,11 @@ function buildXtermTheme(hasBgImage?: boolean, bgColor?: string | null) {
   const s = getComputedStyle(document.documentElement)
   const v = (name: string) => s.getPropertyValue(name).trim()
   const dark = document.documentElement.classList.contains('dark')
-  const solidBg = bgColor || SOLID_TERMINAL_BG
+  const solidBg = bgColor || (dark ? SOLID_TERMINAL_BG_DARK : SOLID_TERMINAL_BG_LIGHT)
+  const solidFg = dark ? SOLID_TERMINAL_FG_DARK : SOLID_TERMINAL_FG_LIGHT
   return {
     background: hasBgImage ? 'transparent' : solidBg,
-    foreground: hasBgImage
-      ? v('--text-primary') || (dark ? '#e5e5e5' : '#171717')
-      : SOLID_TERMINAL_FG,
+    foreground: hasBgImage ? v('--text-primary') || (dark ? '#e5e5e5' : '#171717') : solidFg,
     cursor: v('--brand') || '#a855f7',
     cursorAccent: hasBgImage ? 'transparent' : solidBg,
     selectionBackground: (v('--brand') || '#a855f7') + '40',
@@ -267,6 +268,7 @@ function TerminalPane({
   onChangeBgColor,
 }: TerminalPaneProps) {
   const hasBgImage = !!terminalBg
+  const [isDark, setIsDark] = useState(true)
   const [showBgPicker, setShowBgPicker] = useState(false)
   const [activeId, setActiveId] = useState<number | null>(session.terminalId)
   const [terminalError, setTerminalError] = useState<string | null>(null)
@@ -274,6 +276,10 @@ function TerminalPane({
   const onFileOpenRef = useRef(onFileOpen)
   const wasVisibleRef = useRef(false)
   const refreshTokenRef = useRef<string | undefined>(undefined)
+
+  useEffect(() => {
+    setIsDark(document.documentElement.classList.contains('dark'))
+  }, [themeVersion])
 
   useEffect(() => {
     onFileOpenRef.current = onFileOpen
@@ -630,20 +636,36 @@ function TerminalPane({
                           Background tint
                         </p>
                         <div className="grid grid-cols-6 gap-1.5 mb-2">
-                          {[
-                            '#000000',
-                            '#0a0a0a',
-                            '#1a1a2e',
-                            '#0d1117',
-                            '#1e1e2e',
-                            '#2d1b2e',
-                            '#0b132b',
-                            '#1b2a1b',
-                            '#2a1a0b',
-                            '#1a0a0a',
-                            '#0a1a2a',
-                            '#2a2a1a',
-                          ].map((c) => (
+                          {(isDark
+                            ? [
+                                '#000000',
+                                '#0a0a0a',
+                                '#1a1a2e',
+                                '#0d1117',
+                                '#1e1e2e',
+                                '#2d1b2e',
+                                '#0b132b',
+                                '#1b2a1b',
+                                '#2a1a0b',
+                                '#1a0a0a',
+                                '#0a1a2a',
+                                '#2a2a1a',
+                              ]
+                            : [
+                                '#ffffff',
+                                '#fafafa',
+                                '#f5f5f5',
+                                '#f0f0f5',
+                                '#f5f0e8',
+                                '#f0f5f0',
+                                '#e8f0f5',
+                                '#f5e8f0',
+                                '#f0f0e0',
+                                '#e8e8f0',
+                                '#f0e8e0',
+                                '#e0f0f0',
+                              ]
+                          ).map((c) => (
                             <button
                               key={c}
                               onClick={() => {
@@ -659,13 +681,17 @@ function TerminalPane({
                         <div className="flex items-center gap-2">
                           <input
                             type="color"
-                            value={terminalBgColor || '#000000'}
+                            value={
+                              terminalBgColor ||
+                              (isDark ? SOLID_TERMINAL_BG_DARK : SOLID_TERMINAL_BG_LIGHT)
+                            }
                             onChange={(e) => onChangeBgColor(e.target.value)}
                             className="w-6 h-6 rounded cursor-pointer border border-[var(--border)] bg-transparent p-0"
                             title="Custom color"
                           />
                           <span className="text-[10px] text-[var(--text-disabled)] font-mono flex-1">
-                            {terminalBgColor || '#000000'}
+                            {terminalBgColor ||
+                              (isDark ? SOLID_TERMINAL_BG_DARK : SOLID_TERMINAL_BG_LIGHT)}
                           </span>
                           {terminalBgColor && (
                             <button
@@ -725,7 +751,11 @@ function TerminalPane({
       {/* Terminal viewport */}
       <div
         className="flex-1 overflow-hidden relative"
-        style={{ backgroundColor: hasBgImage ? undefined : terminalBgColor || '#000000' }}
+        style={{
+          backgroundColor: hasBgImage
+            ? undefined
+            : terminalBgColor || (isDark ? SOLID_TERMINAL_BG_DARK : SOLID_TERMINAL_BG_LIGHT),
+        }}
       >
         {hasBgImage && (
           <>

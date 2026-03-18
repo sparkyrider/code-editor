@@ -584,37 +584,31 @@ export function ChatInputBar({
             />
 
             {/* Bottom toolbar row */}
-            <div className="flex items-center justify-between px-2.5 pb-1.5 pt-0.5">
-              <div className="flex items-center gap-0.5">
+            <div className="flex items-center justify-between px-2.5 pb-2 pt-0.5">
+              <div className="flex items-center gap-1.5">
                 <button
                   onClick={onFileAttach}
-                  className="p-2 sm:p-1.5 rounded-md text-[var(--text-disabled)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer"
+                  className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--bg)] text-[var(--text-disabled)] hover:text-[var(--text-secondary)] hover:border-[var(--border-hover)] transition-colors cursor-pointer"
                   title="Attach file"
                 >
-                  <Icon
-                    icon="lucide:paperclip"
-                    width={16}
-                    height={16}
-                    className="sm:w-[14px] sm:h-[14px]"
-                  />
+                  <Icon icon="lucide:paperclip" width={14} height={14} />
                 </button>
                 <button
                   onClick={onImageAttach}
-                  className="p-2 sm:p-1.5 rounded-md text-[var(--text-disabled)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer"
+                  className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--bg)] text-[var(--text-disabled)] hover:text-[var(--text-secondary)] hover:border-[var(--border-hover)] transition-colors cursor-pointer"
                   title="Attach image"
                 >
-                  <Icon
-                    icon="lucide:image-plus"
-                    width={16}
-                    height={16}
-                    className="sm:w-[14px] sm:h-[14px]"
-                  />
+                  <Icon icon="lucide:image-plus" width={14} height={14} />
                 </button>
-                <span className="ml-1 text-[11.5px] text-[var(--text-disabled)]">
+                <span className="text-[11.5px] text-[var(--text-disabled)]">
                   <kbd className="rounded border border-[var(--border)] px-1 py-px text-[10px] font-mono">
                     @
                   </kbd>
                 </span>
+                <div className="hidden sm:flex items-center gap-1.5 ml-0.5">
+                  <ModeSelector mode={agentMode} onChange={setAgentMode} />
+                  <span className="text-[9px] text-[var(--text-disabled)]">⇧Tab</span>
+                </div>
               </div>
               <div className="flex items-center gap-1">
                 {contextTokens > 0 && (
@@ -640,14 +634,10 @@ export function ChatInputBar({
                 </button>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Bottom bar — mode selector */}
-        <div className="flex items-center mt-1">
-          <div className="flex items-center gap-1.5">
-            <ModeSelector mode={agentMode} onChange={setAgentMode} />
-            <span className="hidden sm:inline text-[9px] text-[var(--text-disabled)]">⇧Tab</span>
+            {/* Mobile mode selector — below toolbar on small screens */}
+            <div className="flex sm:hidden items-center gap-1.5 px-2.5 pb-2">
+              <ModeSelector mode={agentMode} onChange={setAgentMode} />
+            </div>
           </div>
         </div>
       </div>

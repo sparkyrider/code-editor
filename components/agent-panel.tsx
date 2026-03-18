@@ -2110,77 +2110,31 @@ export function AgentPanel({ onClose }: { onClose?: () => void } = {}) {
 
   // ─── Picker data sources ──────────────────────────────────────
   const skillPickerItems = useMemo<PickerItem[]>(() => {
+    const enabledMap = new Map<string, boolean>()
     const stored =
       typeof window !== 'undefined' ? localStorage.getItem('knot-code:skills:runtime') : null
+
     if (stored) {
       try {
         const skills = JSON.parse(stored) as Array<{
           id: string
-          name: string
-          description?: string
           enabled?: boolean
         }>
-        return skills.map((s) => ({
-          id: s.id,
-          name: s.name,
-          description: s.description || 'No description',
-          icon: 'lucide:sparkles',
-          enabled: s.enabled ?? true,
-        }))
+        for (const skill of skills) {
+          enabledMap.set(skill.id, skill.enabled ?? true)
+        }
       } catch {
-        // Ignore parse errors, fall through to defaults
+        // Ignore parse errors and fall back to the bundled catalog.
       }
     }
-    return [
-      {
-        id: 'code-review',
-        name: 'Code Review',
-        description: 'Review code for bugs and improvements',
-        icon: 'lucide:scan-eye',
-      },
-      {
-        id: 'refactor',
-        name: 'Refactor',
-        description: 'Improve code structure and readability',
-        icon: 'lucide:refresh-cw',
-      },
-      {
-        id: 'test-gen',
-        name: 'Test Generator',
-        description: 'Generate unit tests for code',
-        icon: 'lucide:flask-conical',
-      },
-      {
-        id: 'doc-gen',
-        name: 'Documentation',
-        description: 'Generate documentation for code',
-        icon: 'lucide:file-text',
-      },
-      {
-        id: 'explain',
-        name: 'Explain Code',
-        description: 'Get a detailed explanation of code',
-        icon: 'lucide:book-open',
-      },
-      {
-        id: 'optimize',
-        name: 'Optimize',
-        description: 'Optimize code for performance',
-        icon: 'lucide:zap',
-      },
-      {
-        id: 'security',
-        name: 'Security Audit',
-        description: 'Check code for security vulnerabilities',
-        icon: 'lucide:shield',
-      },
-      {
-        id: 'debug',
-        name: 'Debug Helper',
-        description: 'Help identify and fix bugs',
-        icon: 'lucide:bug',
-      },
-    ]
+
+    return SKILLS_CATALOG.map((skill) => ({
+      id: skill.slug,
+      name: skill.title,
+      description: skill.shortDescription || 'No description',
+      icon: skill.icon || 'lucide:sparkles',
+      enabled: enabledMap.get(skill.id) ?? enabledMap.get(skill.slug) ?? true,
+    }))
   }, [])
 
   const promptPickerItems = useMemo<PickerItem[]>(() => {

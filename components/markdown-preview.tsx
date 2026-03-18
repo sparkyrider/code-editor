@@ -283,14 +283,14 @@ export function MarkdownPreview({
 
         // Style the <pre> in-place (no reparenting)
         pre.className =
-          'overflow-x-auto p-3 text-[11px] leading-[1.6] font-mono m-0 rounded-b-lg border border-[var(--border)] bg-[var(--bg)]'
+          'overflow-x-auto p-3 text-[12.5px] leading-[1.7] font-mono m-0 rounded-b-lg border border-[var(--border)] bg-[var(--bg)]'
         pre.style.marginTop = '0'
 
         // Insert a header *before* the <pre> as a sibling (not wrapping)
         const header = document.createElement('div')
         header.className =
           'code-block-header flex items-center justify-between h-7 px-3 bg-[var(--bg-secondary)] border border-b-0 border-[var(--border)] rounded-t-lg my-2 mb-0'
-        header.innerHTML = `<span class="text-[9px] font-mono text-[var(--text-disabled)] uppercase tracking-wider">${lang || 'code'}</span><button class="copy-btn flex items-center gap-1 text-[9px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer" title="Copy code">Copy</button>`
+        header.innerHTML = `<span class="text-[10.5px] font-mono text-[var(--text-disabled)] uppercase tracking-[0.16em]">${lang || 'code'}</span><button class="copy-btn flex items-center gap-1 text-[10.5px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer" title="Copy code">Copy</button>`
 
         const copyHandler = () => {
           copyToClipboard(rawText).then((ok) => {

@@ -301,9 +301,11 @@ export function SettingsPanel({ onBack }: { onBack: () => void }) {
                         <div className="mt-1 text-[11px] text-[var(--text-secondary)]">
                           {preset.id === 'supreme'
                             ? 'Metallic accents and luxury shell chrome.'
-                            : preset.group === 'core'
-                              ? 'Native palette tuned for the editor shell.'
-                              : 'Imported palette with custom texture and tone.'}
+                            : preset.id === 'velvet-circuit'
+                              ? 'CyberNord’s femme-tech sister: noir glass, orchid neon, sapphire haze.'
+                              : preset.group === 'core'
+                                ? 'Native palette tuned for the editor shell.'
+                                : 'Imported palette with custom texture and tone.'}
                         </div>
                       </button>
                     )

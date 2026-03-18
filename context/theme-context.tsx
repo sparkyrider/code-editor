@@ -12,7 +12,14 @@ import {
 
 export type ThemeMode = 'light' | 'dark' | 'system'
 export type ResolvedMode = 'light' | 'dark'
-export type ThemeId = 'obsidian' | 'neon' | 'catppuccin-mocha' | 'bone' | 'supreme' | 'claude' | string
+export type ThemeId =
+  | 'obsidian'
+  | 'neon'
+  | 'catppuccin-mocha'
+  | 'bone'
+  | 'supreme'
+  | 'claude'
+  | string
 export type EditorBgStyle = 'none' | 'grid' | 'dots' | 'gradient' | 'grid-logos'
 
 export interface ThemePreset {
@@ -36,6 +43,7 @@ export const THEME_PRESETS: ThemePreset[] = [
   { id: 'vintage-paper', label: 'Vintage Paper', color: '#8b5e3c', group: 'tweakcn' },
   { id: 'voodoo', label: 'VooDoo', color: '#8b5cf6', group: 'core' },
   { id: 'cybernord', label: 'CyberNord', color: '#00ff41', group: 'tweakcn' },
+  { id: 'velvet-circuit', label: 'Velvet Circuit', color: '#ff4fd8', group: 'core' },
   { id: 'prettypink', label: 'PrettyPink', color: '#F5A9B8', group: 'core' },
   { id: 'field-manual', label: 'Field Manual', color: '#4a6b2a', group: 'manual' },
   { id: 'navy-ops', label: 'Navy Ops', color: '#4682b4', group: 'manual' },
@@ -254,13 +262,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const setEditorBgStyle = useCallback((s: EditorBgStyle) => {
     setEditorBgStyleState(s)
-    try { localStorage.setItem('code-editor:editor-bg-style', s) } catch {}
+    try {
+      localStorage.setItem('code-editor:editor-bg-style', s)
+    } catch {}
   }, [])
 
   const setEditorBgOpacity = useCallback((v: number) => {
     const clamped = Math.min(100, Math.max(0, v))
     setEditorBgOpacityState(clamped)
-    try { localStorage.setItem('code-editor:editor-bg-opacity', String(clamped)) } catch {}
+    try {
+      localStorage.setItem('code-editor:editor-bg-opacity', String(clamped))
+    } catch {}
   }, [])
 
   const value = useMemo<ThemeContextValue>(

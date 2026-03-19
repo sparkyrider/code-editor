@@ -616,7 +616,7 @@ export function ChatInputBar({
                 </button>
                 <button
                   onClick={onImageAttach}
-                  className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--bg)] text-[var(--text-disabled)] hover:text-[var(--text-secondary)] hover:border-[var(--border-hover)] transition-colors cursor-pointer"
+                  className="ui-ghost-button--subtle flex h-8 w-8 items-center justify-center rounded-xl transition-colors cursor-pointer"
                   title="Attach image"
                 >
                   <Icon icon="lucide:image-plus" width={14} height={14} />

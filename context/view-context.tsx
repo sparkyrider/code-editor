@@ -16,6 +16,7 @@ export type ViewId =
   | 'editor'
   | 'preview'
   | 'planner'
+  | 'agents'
   | 'diff'
   | 'git'
   | 'kanban'
@@ -31,6 +32,7 @@ const VIEW_ORDER: ViewId[] = [
   'editor',
   'preview',
   'planner',
+  'agents',
   'git',
   'kanban',
   'skills',

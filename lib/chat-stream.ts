@@ -7,6 +7,7 @@ import { parseEditProposals, type EditProposal } from '@/lib/edit-parser'
 import { parsePlanSteps, isPlanContent } from '@/lib/plan-parser'
 import { diffEngine } from '@/lib/streaming-diff'
 import { emit } from '@/lib/events'
+import type { AgentTraceStep } from '@/lib/agent-trace'
 
 export interface ChatMessage {
   id: string
@@ -106,10 +107,8 @@ export function handleChatEvent(
       ? (p.session as Record<string, unknown>).key
       : undefined)) as string | undefined
 
-  // Ignore inline-completion traffic
   if (idempotencyKey?.startsWith('completion-')) return
 
-  // Match by idempotency key OR session key
   const matchesIdem = !!(idempotencyKey && state.sentKeys.has(idempotencyKey))
   const isReplyEvent =
     eventState === 'delta' ||
@@ -118,7 +117,6 @@ export function handleChatEvent(
     eventState === 'aborted' ||
     eventState === 'tool_use' ||
     eventState === 'tool_start'
-  // Session-key match: accept reply events for our session even if sentKeys was lost (HMR)
   const matchesSession = eventSessionKey === state.sessionKey && (state.isSending || isReplyEvent)
   if (!matchesIdem && !matchesSession) {
     debugLog('Ignoring unrelated chat event', {
@@ -131,7 +129,6 @@ export function handleChatEvent(
     return
   }
 
-  // Tool use events → thinking trail
   if (eventState === 'tool_use' || eventState === 'tool_start') {
     const toolName = (p.toolName as string) || (p.name as string) || ''
     const toolInput = p.input as Record<string, unknown> | undefined
@@ -155,7 +152,6 @@ export function handleChatEvent(
       }
       callbacks.setThinkingTrail((prev) => [...prev.slice(-5), step])
       callbacks.setIsStreaming(true)
-      // Track structured activity
       if (callbacks.setAgentActivities) {
         import('@/lib/agent-activity').then(({ parseToolActivity }) => {
           const activity = parseToolActivity(
@@ -163,6 +159,22 @@ export function handleChatEvent(
             toolInput as Record<string, unknown> | undefined,
           )
           callbacks.setAgentActivities!((prev) => [...prev, activity])
+          const traceStep: AgentTraceStep = {
+            id: activity.id,
+            runId: idempotencyKey ?? state.sessionKey,
+            sessionKey: state.sessionKey,
+            timestamp: activity.timestamp,
+            type: activity.type,
+            title: activity.label,
+            status: activity.status,
+            file: activity.file,
+            command: activity.command,
+            output: activity.output,
+            durationMs: activity.durationMs,
+            detail: activity.detail,
+            exitCode: activity.exitCode,
+          }
+          emit('agent-run-step', traceStep)
         })
       }
     }
@@ -174,7 +186,6 @@ export function handleChatEvent(
     if (text) {
       callbacks.setStreamBuffer((prev) => {
         if (!prev) return text
-        // Some gateways stream cumulative buffers; others stream chunks.
         if (text.startsWith(prev)) return text
         if (prev.endsWith(text)) return prev
         return prev + text
@@ -185,7 +196,6 @@ export function handleChatEvent(
         idempotencyKey,
         eventSessionKey,
       })
-      // Extract thinking trail from streamed content
       const trailPatterns = [
         {
           re: /Reading\s+`([^`]+)`/g,
@@ -214,7 +224,10 @@ export function handleChatEvent(
         }
       }
     }
-  } else if (eventState === 'final') {
+    return
+  }
+
+  if (eventState === 'final') {
     callbacks.setThinkingTrail([])
     const finalText = extractEventText(p)
     debugLog('Final chat event received', {
@@ -233,7 +246,6 @@ export function handleChatEvent(
     callbacks.setStreamBuffer((prev) => {
       const text = finalText || prev || ''
       if (text && !/^NO_REPLY$/i.test(text.trim())) {
-        // Dedupe: skip if identical content arrived within 8s
         const now = Date.now()
         const last = state.lastFinal
         if (last && last.content === text && now - last.ts < 8000) {
@@ -283,9 +295,20 @@ export function handleChatEvent(
       }
       return ''
     })
+
+    emit('agent-run-finished', {
+      runId: idempotencyKey ?? state.sessionKey,
+      sessionKey: state.sessionKey,
+      status: 'done',
+      latestStatus: 'Completed',
+      timestamp: Date.now(),
+    })
     callbacks.setIsStreaming(false)
     callbacks.setSending(false)
-  } else if (eventState === 'error') {
+    return
+  }
+
+  if (eventState === 'error') {
     callbacks.setThinkingTrail([])
     const errorMsg = (p.errorMessage as string) || 'Unknown error'
     debugLog('Chat stream error event', {
@@ -294,6 +317,13 @@ export function handleChatEvent(
       error: errorMsg,
     })
     if (idempotencyKey) state.sentKeys.delete(idempotencyKey)
+    emit('agent-run-finished', {
+      runId: idempotencyKey ?? state.sessionKey,
+      sessionKey: state.sessionKey,
+      status: 'error',
+      latestStatus: errorMsg,
+      timestamp: Date.now(),
+    })
     callbacks.setStreamBuffer('')
     callbacks.setMessages((msgs) => [
       ...msgs,
@@ -307,13 +337,23 @@ export function handleChatEvent(
     ])
     callbacks.setIsStreaming(false)
     callbacks.setSending(false)
-  } else if (eventState === 'aborted') {
+    return
+  }
+
+  if (eventState === 'aborted') {
     callbacks.setThinkingTrail([])
     debugLog('Chat stream aborted event', {
       idempotencyKey,
       eventSessionKey,
     })
     if (idempotencyKey) state.sentKeys.delete(idempotencyKey)
+    emit('agent-run-finished', {
+      runId: idempotencyKey ?? state.sessionKey,
+      sessionKey: state.sessionKey,
+      status: 'cancelled',
+      latestStatus: 'Cancelled',
+      timestamp: Date.now(),
+    })
     callbacks.setStreamBuffer((prev) => {
       if (prev) {
         callbacks.setMessages((msgs) => [

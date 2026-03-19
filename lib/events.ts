@@ -5,6 +5,7 @@
 
 import type { EditProposal } from '@/lib/edit-parser'
 import type { AgentMode } from '@/components/mode-selector'
+import type { AgentRunStatus, AgentTraceStep } from '@/lib/agent-trace'
 
 // ─── Event definitions ───────────────────────────────────
 
@@ -44,6 +45,21 @@ export interface AppEvents {
 
   // Agent / streaming
   'agent-reply': { content: string; sessionKey?: string; source?: 'chat' | 'terminal' }
+  'agent-run-started': {
+    runId: string
+    sessionKey: string
+    prompt: string
+    provider: 'gateway'
+    timestamp: number
+  }
+  'agent-run-step': AgentTraceStep
+  'agent-run-finished': {
+    runId: string
+    sessionKey: string
+    status: AgentRunStatus
+    latestStatus: string
+    timestamp: number
+  }
   'engine-status': { running: boolean }
 
   // Git

@@ -113,7 +113,7 @@ export function ProviderSelector({ size = 'sm' }: Props) {
       {open && (
         <>
           <div className="fixed inset-0 z-[9990]" onClick={() => setOpen(false)} />
-          <div className="absolute bottom-full left-0 mb-1.5 z-[9991] w-60 bg-[var(--bg-elevated)] border border-[var(--border)] rounded-xl shadow-xl overflow-hidden">
+          <div className="absolute bottom-full left-0 mb-1.5 z-[9991] w-64 bg-[var(--bg-elevated)] border border-[var(--border)] rounded-2xl shadow-xl overflow-hidden">
             <div className="px-3 pt-2.5 pb-1.5">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-disabled)]">
                 Provider

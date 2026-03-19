@@ -44,6 +44,10 @@ const PlannerView = dynamic(
   () => import('@/components/views/planner-view').then((m) => m.PlannerView),
   { ssr: false },
 )
+const AgentsView = dynamic(
+  () => import('@/components/views/agents-view').then((m) => m.AgentsView),
+  { ssr: false },
+)
 const WorkshopView = dynamic(
   () => import('@/components/views/workshop-view').then((m) => m.WorkshopView),
   { ssr: false },
@@ -129,6 +133,7 @@ export function ViewRouter() {
                 {activeView === 'chat' && <AgentPanel />}
                 {(activeView === 'editor' || activeView === 'preview') && <EditorView />}
                 {activeView === 'planner' && <PlannerView />}
+                {activeView === 'agents' && <AgentsView />}
                 {activeView === 'git' && <GitView />}
                 {activeView === 'kanban' && <KanbanView />}
                 {activeView === 'skills' && <SkillsView />}

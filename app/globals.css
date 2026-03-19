@@ -133,6 +133,35 @@
   box-shadow: none;
 }
 
+.ui-ghost-button {
+  min-height: 2.5rem;
+  min-width: 2.5rem;
+  border: 1px solid color-mix(in srgb, var(--border) 92%, transparent);
+  background: color-mix(in srgb, var(--bg-elevated) 88%, transparent);
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-xs);
+}
+
+.ui-ghost-button:hover {
+  border-color: var(--border-hover);
+  background: color-mix(in srgb, var(--text-primary) 7%, var(--bg-elevated));
+  color: var(--text-primary);
+}
+
+.ui-ghost-button--subtle {
+  min-height: 2.125rem;
+  min-width: 2.125rem;
+  border: 1px solid color-mix(in srgb, var(--border) 88%, transparent);
+  background: color-mix(in srgb, var(--bg-elevated) 80%, transparent);
+  color: var(--text-secondary);
+}
+
+.ui-ghost-button--subtle:hover {
+  border-color: var(--border-hover);
+  background: color-mix(in srgb, var(--text-primary) 6%, var(--bg-elevated));
+  color: var(--text-primary);
+}
+
 @media (max-width: 768px) {
   body {
     font-size: 15px;

@@ -7,6 +7,7 @@ import { EditorProvider } from '@/context/editor-context'
 import { LocalProvider } from '@/context/local-context'
 import { ViewProvider } from '@/context/view-context'
 import { GitHubAuthProvider } from '@/context/github-auth-context'
+import { AgentTraceProvider } from '@/context/agent-trace-context'
 import { PluginProvider } from '@/context/plugin-context'
 import { PreviewProvider } from '@/context/preview-context'
 import { ChatAppearanceProvider } from '@/context/chat-appearance-context'
@@ -44,29 +45,31 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <ThemeProvider>
             <GatewayProvider>
               <GitHubAuthProvider>
-                <RepoProvider>
-                  <EditorProvider>
-                    <LocalProvider>
-                      <ViewProvider>
-                        <LayoutProvider>
-                          <ThreadProvider>
-                            <AppModeProvider>
-                              <PreviewProvider>
-                                <ChatAppearanceProvider>
-                                  <PluginProvider>
-                                    <ToastProvider>
-                                      <Suspense fallback={<AppSkeleton />}>{children}</Suspense>
-                                    </ToastProvider>
-                                  </PluginProvider>
-                                </ChatAppearanceProvider>
-                              </PreviewProvider>
-                            </AppModeProvider>
-                          </ThreadProvider>
-                        </LayoutProvider>
-                      </ViewProvider>
-                    </LocalProvider>
-                  </EditorProvider>
-                </RepoProvider>
+                <AgentTraceProvider>
+                  <RepoProvider>
+                    <EditorProvider>
+                      <LocalProvider>
+                        <ViewProvider>
+                          <LayoutProvider>
+                            <ThreadProvider>
+                              <AppModeProvider>
+                                <PreviewProvider>
+                                  <ChatAppearanceProvider>
+                                    <PluginProvider>
+                                      <ToastProvider>
+                                        <Suspense fallback={<AppSkeleton />}>{children}</Suspense>
+                                      </ToastProvider>
+                                    </PluginProvider>
+                                  </ChatAppearanceProvider>
+                                </PreviewProvider>
+                              </AppModeProvider>
+                            </ThreadProvider>
+                          </LayoutProvider>
+                        </ViewProvider>
+                      </LocalProvider>
+                    </EditorProvider>
+                  </RepoProvider>
+                </AgentTraceProvider>
               </GitHubAuthProvider>
             </GatewayProvider>
           </ThemeProvider>

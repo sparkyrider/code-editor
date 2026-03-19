@@ -374,7 +374,7 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
                   label: 'Prompts',
                   shortcut: '⌘6',
                 },
-                { id: 'kanban' as const, icon: 'lucide:kanban', label: 'Kanban', shortcut: '⌘7' },
+                { id: 'kanban' as const, icon: 'lucide:kanban', label: 'Kanban', shortcut: '⌘8' },
               ].map((item) => (
                 <button
                   key={item.id}

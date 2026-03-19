@@ -534,11 +534,19 @@ export default function EditorLayout() {
 
                 <button
                   type="button"
+                  onClick={() => setView('agents')}
+                  className="ui-ghost-button flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition"
+                  title="Agents"
+                >
+                  <Icon icon="lucide:bot" width={18} height={18} />
+                </button>
+                <button
+                  type="button"
                   onClick={() => setView('settings')}
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-[var(--text-secondary)] transition hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
+                  className="ui-ghost-button flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition"
                   title="Settings"
                 >
-                  <Icon icon="lucide:settings-2" width={16} height={16} />
+                  <Icon icon="lucide:settings-2" width={18} height={18} />
                 </button>
               </div>
             </div>

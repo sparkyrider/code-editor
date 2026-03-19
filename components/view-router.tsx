@@ -61,6 +61,7 @@ const VIEW_ICONS: Record<string, { label: string }> = {
   kanban: { label: 'Kanban' },
   skills: { label: 'Skills' },
   prompts: { label: 'Prompts' },
+  agents: { label: 'Agents' },
   settings: { label: 'Settings' },
   terminal: { label: 'Gateway Terminal' },
   workshop: { label: 'Workshop' },

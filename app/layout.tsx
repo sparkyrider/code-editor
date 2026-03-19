@@ -39,7 +39,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="supreme" className="dark" suppressHydrationWarning>
+    <html lang="en" data-theme="claude" className="dark" suppressHydrationWarning>
       <body className="antialiased">
         <ErrorBoundary fallbackLabel="KnotCode encountered an error">
           <ThemeProvider>

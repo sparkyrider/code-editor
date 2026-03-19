@@ -1,33 +1,26 @@
 # KnotCode Desktop Workflow
 
-This project is now **desktop-first** (Tauri).
+This project is **desktop-first** (Tauri v2) with cross-platform support for macOS, Windows, and Linux.
 
 ## Primary Commands
 
 ```bash
-# Start desktop app for development
-pnpm desktop:dev
-
-# Type-check (run before commits)
-pnpm desktop:check
-
-# Production desktop build (DMG)
-pnpm desktop:build
-
-# Debug desktop build
-pnpm desktop:build:debug
-
-# Release flow (check + build)
-pnpm desktop:release
+pnpm desktop:dev          # Start desktop app for development
+pnpm desktop:check        # Type-check (run before commits)
+pnpm desktop:build        # Production build (.app only)
+pnpm desktop:package      # Full package (all installer formats)
+pnpm desktop:release      # Type-check + full package
+pnpm desktop:sign         # macOS signing + notarization
+pnpm desktop:build:debug  # Debug build (unoptimized, with devtools)
 ```
 
-## Quick Start (Daily)
+## Daily Workflow
 
 1. Start app:
    ```bash
    pnpm desktop:dev
    ```
-2. Make changes.
+2. Make changes — hot reload applies instantly.
 3. Validate before commit:
    ```bash
    pnpm desktop:check
@@ -37,19 +30,34 @@ pnpm desktop:release
    pnpm desktop:build
    ```
 
+## Release Workflow
+
+```bash
+pnpm release <version>          # Bump version, commit, tag
+pnpm release <version> --push   # Same + push to trigger CI
+```
+
+CI will build for all platforms (macOS, Windows, Linux) and publish to GitHub Releases with checksums.
+
+## Version Management
+
+```bash
+pnpm version:sync         # Sync version from package.json to all targets
+pnpm version:check        # Verify all version locations match
+```
+
+Managed locations: `package.json`, `tauri.conf.json`, `Cargo.toml`, `project.yml`, `Info.plist`
+
 ## If Dev Gets Stuck
 
 ```bash
-pnpm desktop:doctor
+pnpm desktop:doctor       # Kill stale processes, remove lock files
 pnpm desktop:dev
 ```
 
-`desktop:doctor` kills stale `next dev` / `tauri dev` processes and removes stale `.next/lock`.
-
 ## Notes
 
-- Tauri uses:
-  - `beforeDevCommand`: `pnpm frontend:dev`
-  - `beforeBuildCommand`: `pnpm frontend:build`
-- `dev`, `build`, and `check` aliases now map to desktop workflows.
-- Web-only run scripts were removed on purpose.
+- Tauri uses `beforeDevCommand: pnpm frontend:dev` and `beforeBuildCommand: pnpm frontend:build`
+- `dev`, `build`, and `check` aliases map to desktop workflows
+- Static export (`output: 'export'`) is used for all desktop/mobile builds
+- iOS has a separate build path: `pnpm ios:dev` / `pnpm ios:build`

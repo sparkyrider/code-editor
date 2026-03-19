@@ -1,5 +1,47 @@
 # Changelog
 
+## [1.11.0] — 2026-03-19
+
+### Highlights
+
+**The Cross-Platform Release** — comprehensive UI/UX polish, production-grade release automation for macOS, Windows, and Linux, and iOS hardening for TestFlight readiness.
+
+### UI/UX Polish
+
+- **Theme flash fix** — Layout default now matches theme-context default (`claude`), eliminating the brief Supreme-to-Claude flash on first paint
+- **Design token consistency** — Replaced all hardcoded hex colors (`#ef4444`, `#22c55e`, `#8b5cf6`, `text-amber-400`) with semantic CSS variables (`var(--error)`, `var(--success)`, `var(--brand)`, `var(--warning)`) across chat-home, chat-header, settings-panel, and code-editor
+- **Missing `--text-muted` variable** — Added `--text-muted` as an alias for `--text-tertiary` in the base theme, fixing 5 components that referenced an undefined variable
+- **Real recent chats** — Replaced mock/placeholder recent chats on the home screen with actual thread history from localStorage, wired to navigate on click
+- **View router completeness** — Added missing `agents` entry to the view label registry
+- **Sidebar shortcut alignment** — Fixed collapsed/expanded shortcut mismatch (Kanban was `⌘7` collapsed vs `⌘8` expanded); renumbered entire nav to a consistent ⌘1-⌘9 sequence with Planner now included in expanded view
+- **Cross-platform shortcuts** — Diff viewer now uses `formatShortcut()` for platform-aware shortcut display (⌘ on Mac, Ctrl on Windows/Linux)
+- **Accessibility pass** — Added `aria-label` attributes to all icon-only buttons in sidebar, floating panel, chat header, and activity bar; added `focus-visible:ring` styles to interactive elements
+- **Floating panel polish** — Improved dock icon semantics (`panel-left` instead of ambiguous `pin`), increased resize handle to touch-friendly 28px, added focus-visible support for keyboard users
+- **Inline style cleanup** — Replaced inline `style={{ opacity }}` with Tailwind utility classes in sidebar dividers, converted `style={{ background, color }}` to CSS variable classes in mini avatar
+
+### Release Automation
+
+- **Release workflow hardened** — GitHub Actions workflow now checks out the exact tag/version, verifies version sync before building, generates SHA256 checksums, and publishes structured release notes with a platform download table
+- **macOS signing readiness** — CI workflow includes conditional signing/notarization step that activates when Apple credentials are configured as secrets
+- **Version provenance** — All three platform build jobs verify version contract before building
+
+### iOS Hardening
+
+- **Export compliance** — Added `ITSAppUsesNonExemptEncryption = false` to both `Info.ios.plist` and generated `app_iOS/Info.plist` (was documented in changelog but missing from actual plist files)
+- **Release distribution guide** — Added TestFlight/App Store checklist, build commands, and draft App Store metadata to IOS.md
+
+### Documentation
+
+- **DESKTOP.md rewritten** — Updated from macOS-only to cross-platform (macOS, Windows, Linux), with accurate architecture diagram, platform matrix, prerequisite table, and current command reference
+- **DESKTOP_WORKFLOW.md updated** — Added release workflow, version management, and iOS build path references
+- **README refreshed** — Updated platform line to include iOS, corrected theme count from 7 to 24
+
+### By the Numbers
+
+- **13 files** modified
+- **0 TypeScript errors**
+- **Desktop + iOS versions aligned** at 1.11.0
+
 ## [1.10.0] — 2026-03-10
 
 ### ✨ Highlights
@@ -7,35 +49,41 @@
 **The World-Class Polish Release** — every surface refined, every interaction considered, every pixel intentional. Kanban gets board + card templates, and every component receives micro-interaction polish for an award-worthy experience.
 
 ### 📋 Kanban Templates
+
 - **9 Board Templates** — Create boards instantly from: Empty, Sprint Planning, Bug Triage, Security Audit, Test Coverage, Release Checklist, Feature Development, DevOps Pipeline, Research & Spike
 - **8 Card Templates** — Quick-add: Bug Report, Feature Request, Test Case, Security Issue, Refactor, Documentation, Code Review, Hotfix — each with priority, labels, and subtasks
 - **Smart Recommendations** — Board health score, WIP warnings, hygiene checks, productivity tips
 - **Template Picker** — Glass card grid with icons, descriptions, hover effects
 
 ### 🏠 Chat Home Polish
+
 - **Particle animation** — Subtle floating dots drifting in the background
 - **Gradient hover borders** — Suggestion cards glow with gradient border on hover
 - **Recent Chats** — Last 3 conversations shown below suggestions
 - **Composer glow** — Clean brand-color box-shadow on focus
 
 ### 💬 Agent Panel Refinements
+
 - **Message hover** — Micro-scale interaction on user message bubbles
 - **Code copy button** — Hover overlay on code blocks with clipboard copy + checkmark feedback
 - **Scroll-to-bottom FAB** — Floating button appears when scrolled up
 - **Date separators** — Centered day pills between messages from different days
 
 ### 🧭 Sidebar Improvements
+
 - **Group separators** — Subtle dividers between navigation sections
 - **Active animation** — Smooth background fill on active item
 - **User avatar** — Mini circle with initials at bottom of collapsed sidebar
 
 ### ⏱️ Status Bar Upgrade
+
 - **Line/column count** — Shows current cursor position
 - **Live clock** — Real-time HH:MM display, updates every minute
 - **Encoding indicator** — UTF-8 badge
 - **Clickable segments** — Hover feedback on all status bar items
 
 ### 🎨 Global CSS Enhancements
+
 - **Custom scrollbars** — Thin, brand-colored, rounded
 - **Selection color** — Brand accent at 25% opacity
 - **Focus-visible rings** — Consistent 2px accent outline on keyboard focus
@@ -44,38 +92,46 @@
 - **Universal feedback** — All buttons scale(0.98) on active
 
 ### 🖥️ Terminal Polish
+
 - **Connection indicator** — Green/red dot showing gateway status
 - **Clear button** — One-click terminal clear in header
 
 ### 🔔 Toast Upgrades
+
 - **Variant colors** — Success (green), Error (red), Warning (amber), Info (blue)
 - **Progress bar** — Auto-dismiss countdown visualization
 
 ### 📊 Diff Viewer
+
 - **Line hover highlights** — Each line highlights on hover
 - **Tinted backgrounds** — Green for additions, red for removals at 10% opacity
 
 ### 🔌 MCP Library Polish
+
 - **Install counts** — Mock download badges on server cards
 - **Category counts** — Badge numbers on filter pills
 - **Featured carousel** — Top row highlighting popular servers
 - **Empty search state** — Friendly "no results" with icon
 
 ### ⚙️ Settings Panel
+
 - **Collapsible sections** — Accordion animation for setting groups
 - **Search filter** — Find settings quickly
 - **Styled toggles** — Custom pill-style toggle switches
 
 ### 💻 Code Editor
+
 - **Skeleton loading** — Shimmer animation while Monaco initializes
 - **Welcome state** — Centered empty state with keyboard shortcut hints
 
 ### 🗺️ Breadcrumbs
+
 - **File icon** — Code file icon on the active segment
 - **Chevron separators** — Clean arrow separators replacing slashes
 - **Bold active segment** — Last breadcrumb visually emphasized
 
 ### 📊 By the Numbers
+
 - **14 files polished** in a single pass
 - **~750 lines** of refinements
 - **Every component** received attention
@@ -89,6 +145,7 @@
 **Knot Code 1.9 is the biggest single-release update in the editor's history** — 21 commits, ~9,000+ lines of new code, shipping a completely redesigned home screen, VS Code-style navigation, a full Kanban board, a transformed Agent Builder Workshop, 8 new tactical themes, and dozens of UX polish improvements.
 
 ### 🏠 Redesigned Home Screen
+
 - **Ambient gradient background** — Blue-purple radial glow on true black with animated grain texture
 - **Dynamic greeting** — Time-aware greetings ("Good morning", "Night owl mode" at 3 AM)
 - **Gradient tagline** — "What shall we build?" in blue→purple gradient text
@@ -97,6 +154,7 @@
 - **Premium composer** — Focus glow ring, cycling placeholder animation
 
 ### 🧭 VS Code-Style Navigation
+
 - **Sidebar activity bar** — Collapsed icons with 2px brand-color active indicator
 - **Expanded nav** — Labeled buttons with keyboard shortcuts on hover (⌘1-⌘9)
 - **Top tab bar removed** — Zero wasted vertical space
@@ -104,6 +162,7 @@
 - **View transitions** — Subtle 150ms fade between views via AnimatePresence
 
 ### 📋 Kanban Board (NEW)
+
 - **4 default columns** — Backlog, In Progress, Review, Done
 - **Rich cards** — Title, description, priority (P0-P3), labels, assignee, due dates, subtasks
 - **Drag & drop** — HTML5 native with visual drop indicators
@@ -114,6 +173,7 @@
 - **Persistence** — Full localStorage persistence across sessions
 
 ### 🏗️ Agent Builder Workshop (TRANSFORMED)
+
 - **Template Gallery** — 12 beautiful agent templates (Code Reviewer, PR Agent, DevOps Bot, etc.)
 - **Step-by-step Wizard** — 7-stage guided flow with progress bar and validation
 - **Live Preview** — Real-time system prompt + config JSON with token count
@@ -125,6 +185,7 @@
 - **Evaluation integration** — "Run Evaluation" button from review step
 
 ### 🎨 Themes
+
 - **Claude theme** (NEW DEFAULT) — True black (#000), blue accent (#3b82f6), premium squircle borders
 - **Field Manual collection** (8 NEW themes):
   - 🌿 Field Manual — OD green, typewriter font, earth tones
@@ -139,6 +200,7 @@
 - **Customizable editor background** — Grid, dots, gradient, or grid-logos patterns
 
 ### 🔌 MCP Library (NEW)
+
 - **Marketplace view** — Standalone view replacing Settings-embedded MCP tab (⌘5)
 - **20 servers** — PostgreSQL, Filesystem, Brave Search, GitHub, Slack, Linear, SQLite, Memory, Puppeteer, Fetch, Redis, MongoDB, Notion, Google Drive, Docker, Sentry, Supabase, Vercel, Cloudflare, Stripe
 - **Custom Server** — Add your own MCP server with custom command/URL
@@ -146,6 +208,7 @@
 - **Gateway RPC wiring** — Real mcp.list/add/remove/start/stop/sync calls
 
 ### 💬 Chat Improvements
+
 - **Inline pickers** — Type `/skill`, `/mcp`, or `/prompt` to see picker popup with search
 - **Contextual help** — Empty picker states show setup instructions instead of "No items found"
 - **Inline diff toolbar** — VS Code-style floating toolbar with per-hunk Undo/Keep (⌘Y/⌘N)
@@ -154,6 +217,7 @@
 - **Removed ugly focus glow** — Replaced rotating conic-gradient border with clean transition
 
 ### 🖥️ Editor Enhancements
+
 - **Breadcrumbs** — File path navigation above editor with clickable segments
 - **Monaco minimap** — Code overview enabled (maxColumn 80, renderCharacters false)
 - **Empty state redesign** — "Open a project to start coding" with glass card action buttons
@@ -161,6 +225,7 @@
 - **Preview split panel** — Cursor-style preview + chat side-by-side with draggable divider
 
 ### 🔧 Developer Experience
+
 - **Terminal auto-cd** — Terminal automatically changes directory when project switches
 - **Dev server detection** — Green indicator when localhost:3000 is reachable
 - **Toast notification system** — Provider + useToast() hook, glass cards, bottom-right stack
@@ -169,6 +234,7 @@
 - **Terminal event fix** — Added runId/idemKey fallbacks for gateway event matching
 
 ### 🐛 Bug Fixes
+
 - Fixed 12 unused imports/variables in agent-panel.tsx
 - Fixed React hook dependency warnings
 - Fixed YouTube status bar missing TrackInfo fields
@@ -177,6 +243,7 @@
 - Removed empty shell-topbar wasted space
 
 ### 📊 By the Numbers
+
 - **21 commits** in a single session
 - **~9,000+ lines** of new code
 - **5 new views** — MCP Library, Kanban, Workshop, Preview Split, Template Gallery

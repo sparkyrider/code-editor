@@ -168,6 +168,7 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
             onClick={() => setView('chat')}
             className={`activity-bar-btn ${activeView === 'chat' ? 'activity-bar-btn--active' : ''}`}
             title="Chat (⌘1)"
+            aria-label="Chat"
           >
             <Icon icon="lucide:message-circle" width={24} height={24} />
           </button>
@@ -176,6 +177,7 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
             onClick={() => setView('editor')}
             className={`activity-bar-btn ${activeView === 'editor' ? 'activity-bar-btn--active' : ''}`}
             title="Editor (⌘2)"
+            aria-label="Editor"
           >
             <Icon icon="lucide:code" width={24} height={24} />
           </button>
@@ -184,6 +186,7 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
             onClick={() => setView('preview')}
             className={`activity-bar-btn ${activeView === 'preview' ? 'activity-bar-btn--active' : ''}`}
             title="Preview (⌘3)"
+            aria-label="Preview"
           >
             <Icon icon="lucide:eye" width={24} height={24} />
           </button>
@@ -191,7 +194,8 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
           <button
             onClick={() => setView('planner')}
             className={`activity-bar-btn ${activeView === 'planner' ? 'activity-bar-btn--active' : ''}`}
-            title="Planner"
+            title="Planner (⌘4)"
+            aria-label="Planner"
           >
             <Icon icon="lucide:list-checks" width={24} height={24} />
           </button>
@@ -199,7 +203,8 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
           <button
             onClick={() => setView('git')}
             className={`activity-bar-btn ${activeView === 'git' ? 'activity-bar-btn--active' : ''}`}
-            title="Git (⌘4)"
+            title="Git (⌘5)"
+            aria-label="Git"
           >
             <Icon icon="lucide:git-branch" width={24} height={24} />
             {dirtyCount > 0 && (
@@ -210,7 +215,8 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
           <button
             onClick={() => setView('skills')}
             className={`activity-bar-btn ${activeView === 'skills' ? 'activity-bar-btn--active' : ''}`}
-            title="Skills (⌘5)"
+            title="Skills (⌘6)"
+            aria-label="Skills"
           >
             <Icon icon="lucide:wand-2" width={24} height={24} />
           </button>
@@ -218,7 +224,8 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
           <button
             onClick={() => setView('prompts')}
             className={`activity-bar-btn ${activeView === 'prompts' ? 'activity-bar-btn--active' : ''}`}
-            title="Prompts (⌘6)"
+            title="Prompts (⌘7)"
+            aria-label="Prompts"
           >
             <Icon icon="lucide:book-open" width={24} height={24} />
           </button>
@@ -226,7 +233,8 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
           <button
             onClick={() => setView('kanban')}
             className={`activity-bar-btn ${activeView === 'kanban' ? 'activity-bar-btn--active' : ''}`}
-            title="Kanban (⌘7)"
+            title="Kanban (⌘8)"
+            aria-label="Kanban"
           >
             <Icon icon="lucide:kanban" width={24} height={24} />
           </button>
@@ -235,6 +243,7 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
             onClick={() => setView('workshop')}
             className={`activity-bar-btn ${activeView === 'workshop' ? 'activity-bar-btn--active' : ''}`}
             title="Workshop (⌘9)"
+            aria-label="Workshop"
           >
             <Icon icon="lucide:hammer" width={24} height={24} />
           </button>
@@ -248,6 +257,7 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
             onClick={() => setView('settings')}
             className={`activity-bar-btn ${activeView === 'settings' ? 'activity-bar-btn--active' : ''}`}
             title="Settings"
+            aria-label="Settings"
           >
             <Icon icon="lucide:settings" width={24} height={24} />
           </button>
@@ -256,18 +266,16 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
             onClick={onToggle}
             className="activity-bar-btn"
             title={`Expand sidebar (${formatShortcut('meta+\\')})`}
+            aria-label="Expand sidebar"
           >
             <Icon icon="lucide:panel-left" width={24} height={24} />
           </button>
 
-          {/* Mini User Avatar */}
           <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-bold shrink-0"
-            style={{
-              background: 'var(--bg-elevated)',
-              color: 'var(--text-secondary)',
-            }}
+            className="w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-bold shrink-0 bg-[var(--bg-elevated)] text-[var(--text-secondary)]"
             title={workspaceLabel || 'KnotCode'}
+            aria-label={`Workspace: ${workspaceLabel || 'KnotCode'}`}
+            role="img"
           >
             {(workspaceLabel || 'V').charAt(0).toUpperCase()}
           </div>
@@ -329,7 +337,13 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
                 },
                 { id: 'editor' as const, icon: 'lucide:code', label: 'Editor', shortcut: '⌘2' },
                 { id: 'preview' as const, icon: 'lucide:eye', label: 'Preview', shortcut: '⌘3' },
-                { id: 'git' as const, icon: 'lucide:git-branch', label: 'Git', shortcut: '⌘4' },
+                {
+                  id: 'planner' as const,
+                  icon: 'lucide:list-checks',
+                  label: 'Planner',
+                  shortcut: '⌘4',
+                },
+                { id: 'git' as const, icon: 'lucide:git-branch', label: 'Git', shortcut: '⌘5' },
               ].map((item) => (
                 <button
                   key={item.id}
@@ -364,15 +378,15 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
                 </button>
               ))}
 
-              <div className="h-px my-1.5 bg-[var(--border)]" style={{ opacity: 0.3 }} />
+              <div className="h-px my-1.5 bg-[var(--border)] opacity-30" />
 
               {[
-                { id: 'skills' as const, icon: 'lucide:wand-2', label: 'Skills', shortcut: '⌘5' },
+                { id: 'skills' as const, icon: 'lucide:wand-2', label: 'Skills', shortcut: '⌘6' },
                 {
                   id: 'prompts' as const,
                   icon: 'lucide:book-open',
                   label: 'Prompts',
-                  shortcut: '⌘6',
+                  shortcut: '⌘7',
                 },
                 { id: 'kanban' as const, icon: 'lucide:kanban', label: 'Kanban', shortcut: '⌘8' },
               ].map((item) => (
@@ -402,7 +416,7 @@ export function WorkspaceSidebar({ collapsed, onToggle, repoName }: Props) {
                 </button>
               ))}
 
-              <div className="h-px my-1.5 bg-[var(--border)]" style={{ opacity: 0.3 }} />
+              <div className="h-px my-1.5 bg-[var(--border)] opacity-30" />
 
               {[
                 {

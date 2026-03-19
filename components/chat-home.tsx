@@ -17,13 +17,7 @@ import { getRecentFolders } from '@/context/local-context'
 import { getAgentConfig } from '@/lib/agent-session'
 import { fetchRepoByName, fetchAuthenticatedUser, type GitHubUser } from '@/lib/github-api'
 import { getFavorites, getRecents, addRecent, type SavedRepo } from '@/lib/github-repos-store'
-
-// Mock recent chats data
-const MOCK_RECENT_CHATS = [
-  { id: 1, title: 'Refactor authentication flow', timestamp: '2h ago' },
-  { id: 2, title: 'Add dark mode toggle', timestamp: 'Yesterday' },
-  { id: 3, title: 'Fix navigation bug', timestamp: '3d ago' },
-]
+import { useThread } from '@/context/thread-context'
 
 const STATIC_SUGGESTIONS = [
   {
@@ -35,22 +29,63 @@ const STATIC_SUGGESTIONS = [
   {
     icon: 'lucide:bug',
     label: 'Debug a React or TypeScript issue and explain the root cause.',
-    color: '#ef4444',
-    bg: 'color-mix(in srgb, #ef4444 8%, transparent)',
+    color: 'var(--error)',
+    bg: 'color-mix(in srgb, var(--error) 8%, transparent)',
   },
   {
     icon: 'lucide:git-pull-request',
     label: 'Review a set of code changes for bugs, regressions, and missing tests.',
-    color: '#22c55e',
-    bg: 'color-mix(in srgb, #22c55e 8%, transparent)',
+    color: 'var(--success)',
+    bg: 'color-mix(in srgb, var(--success) 8%, transparent)',
   },
   {
     icon: 'lucide:sparkles',
     label: 'Generate a complete component with types, tests, and documentation.',
-    color: '#8b5cf6',
-    bg: 'color-mix(in srgb, #8b5cf6 8%, transparent)',
+    color: 'var(--brand)',
+    bg: 'color-mix(in srgb, var(--brand) 8%, transparent)',
   },
 ]
+
+function getRecentChats(): Array<{ id: string; title: string; timestamp: string }> {
+  if (typeof window === 'undefined') return []
+  try {
+    const chats: Array<{ id: string; title: string; timestamp: string }> = []
+    const threadIds = ['main', 'thread-2', 'thread-3', 'thread-4']
+    const now = Date.now()
+    for (const tid of threadIds) {
+      const raw = localStorage.getItem(`code-editor:chat:${tid}`)
+      if (!raw) continue
+      const messages = JSON.parse(raw)
+      if (!Array.isArray(messages) || messages.length === 0) continue
+      const firstUserMsg = messages.find(
+        (m: { role?: string; content?: string }) => m.role === 'user' && m.content,
+      )
+      if (!firstUserMsg) continue
+      const title =
+        firstUserMsg.content.length > 60
+          ? firstUserMsg.content.slice(0, 57) + '...'
+          : firstUserMsg.content
+      const lastMsg = messages[messages.length - 1]
+      const ts = lastMsg?.timestamp ? new Date(lastMsg.timestamp).getTime() : 0
+      const ago = ts ? formatTimeAgo(now - ts) : ''
+      chats.push({ id: tid, title, timestamp: ago })
+    }
+    return chats.slice(0, 3)
+  } catch {
+    return []
+  }
+}
+
+function formatTimeAgo(ms: number): string {
+  const mins = Math.floor(ms / 60000)
+  if (mins < 1) return 'Just now'
+  if (mins < 60) return `${mins}m ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `${days}d ago`
+  return `${Math.floor(days / 7)}w ago`
+}
 
 // Animated placeholder texts
 const PLACEHOLDER_TEXTS = [
@@ -145,6 +180,8 @@ export const ChatHome = memo(function ChatHome({
   const [savedRecents, setSavedRecents] = useState<SavedRepo[]>([])
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768
+  const { setActiveThreadId } = useThread()
+  const recentChats = useMemo(() => getRecentChats(), [])
 
   // Fetch GitHub user when token is available
   useEffect(() => {
@@ -292,32 +329,31 @@ export const ChatHome = memo(function ChatHome({
     contextCards.push({
       icon: 'lucide:shield-check',
       label: `Review the current changes for bugs, regressions, and missing tests before I commit.`,
-      color: '#ef4444',
-      bg: 'color-mix(in srgb, #ef4444 8%, transparent)',
+      color: 'var(--error)',
+      bg: 'color-mix(in srgb, var(--error) 8%, transparent)',
     })
 
     if (branchName) {
       contextCards.push({
         icon: 'lucide:git-compare-arrows',
         label: `Summarize what changed on ${branchName} and list the highest-priority follow-ups.`,
-        color: '#22c55e',
-        bg: 'color-mix(in srgb, #22c55e 8%, transparent)',
+        color: 'var(--success)',
+        bg: 'color-mix(in srgb, var(--success) 8%, transparent)',
       })
     } else {
       contextCards.push({
         icon: 'lucide:test-tubes',
         label: `Add tests around the most critical paths in this ${langLabel} project.`,
-        color: '#22c55e',
-        bg: 'color-mix(in srgb, #22c55e 8%, transparent)',
+        color: 'var(--success)',
+        bg: 'color-mix(in srgb, var(--success) 8%, transparent)',
       })
     }
 
-    // Always add the 4th sparkles card for workspace view
     contextCards.push({
       icon: 'lucide:sparkles',
       label: 'Generate a complete component with types, tests, and documentation.',
-      color: '#8b5cf6',
-      bg: 'color-mix(in srgb, #8b5cf6 8%, transparent)',
+      color: 'var(--brand)',
+      bg: 'color-mix(in srgb, var(--brand) 8%, transparent)',
     })
 
     return contextCards.slice(0, 4)
@@ -395,7 +431,7 @@ export const ChatHome = memo(function ChatHome({
                             <Icon
                               icon="lucide:star"
                               width={12}
-                              className="text-amber-400 shrink-0"
+                              className="text-[var(--warning)] shrink-0"
                             />
                             <span className="text-[12px] text-[var(--text-primary)] truncate flex-1">
                               {r.fullName}
@@ -490,7 +526,7 @@ export const ChatHome = memo(function ChatHome({
                     <button
                       onClick={handleRepoConnect}
                       disabled={repoLoading || !repoInput.trim()}
-                      className="shrink-0 px-3 py-2 rounded-lg text-[12px] font-medium cursor-pointer disabled:opacity-40 bg-[var(--brand)] text-[var(--brand-contrast,#fff)]"
+                      className="shrink-0 px-3 py-2 rounded-lg text-[12px] font-medium cursor-pointer disabled:opacity-40 bg-[var(--brand)] text-[var(--brand-contrast)]"
                     >
                       {repoLoading ? '…' : 'Go'}
                     </button>
@@ -575,32 +611,38 @@ export const ChatHome = memo(function ChatHome({
         </div>
 
         {/* Recent Chats section — desktop only */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.7 }}
-          className="hidden sm:block mb-5"
-        >
-          <p className="mb-2.5 px-1 text-[11px] text-[var(--text-disabled)]">Recent Chats</p>
-          <div className="space-y-2">
-            {MOCK_RECENT_CHATS.map((chat) => (
-              <button
-                key={chat.id}
-                onClick={() => console.log('Open chat', chat.id)}
-                className="recent-chat-card w-full flex items-center justify-between gap-3 p-3 text-left cursor-pointer group"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-[13px] text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors truncate">
-                    {chat.title}
-                  </p>
-                </div>
-                <span className="text-[10px] text-[var(--text-disabled)] font-mono shrink-0">
-                  {chat.timestamp}
-                </span>
-              </button>
-            ))}
-          </div>
-        </motion.div>
+        {recentChats.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.7 }}
+            className="hidden sm:block mb-5"
+          >
+            <p className="mb-2.5 px-1 text-[11px] text-[var(--text-disabled)]">Recent Chats</p>
+            <div className="space-y-2">
+              {recentChats.map((chat) => (
+                <button
+                  key={chat.id}
+                  onClick={() => {
+                    setActiveThreadId(chat.id as 'main' | 'thread-2' | 'thread-3' | 'thread-4')
+                    setView('chat')
+                  }}
+                  className="recent-chat-card w-full flex items-center justify-between gap-3 p-3 text-left cursor-pointer group"
+                  aria-label={`Open chat: ${chat.title}`}
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors truncate">
+                      {chat.title}
+                    </p>
+                  </div>
+                  <span className="text-[10px] text-[var(--text-disabled)] font-mono shrink-0">
+                    {chat.timestamp}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
 
         {/* Model selector — ChatGPT/Cursor-style, above composer */}
         <motion.div
@@ -693,7 +735,7 @@ export const ChatHome = memo(function ChatHome({
                 aria-label={input.trim() ? 'Send message' : 'Start chat'}
                 className={`codex-send-btn flex h-9 w-9 items-center justify-center rounded-xl transition-colors cursor-pointer ${
                   input.trim()
-                    ? 'bg-[var(--brand)] text-[var(--brand-contrast,#fff)] hover:opacity-90'
+                    ? 'bg-[var(--brand)] text-[var(--brand-contrast)] hover:opacity-90'
                     : 'bg-[var(--bg)] text-[var(--text-tertiary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-secondary)]'
                 }`}
               >

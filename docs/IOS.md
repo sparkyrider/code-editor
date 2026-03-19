@@ -141,6 +141,38 @@ Deliverables:
 - Unsupported desktop features are hidden or clearly unavailable
 - No critical crashes during a defined beta soak period
 
+## Release Distribution
+
+### Build
+
+```bash
+pnpm ios:build            # Full iOS production build
+pnpm ios:dev              # iOS simulator dev mode
+```
+
+### TestFlight / App Store Checklist
+
+- [ ] Version synced across all targets (`pnpm version:check`)
+- [ ] `ITSAppUsesNonExemptEncryption = false` in both `Info.ios.plist` and `gen/apple/app_iOS/Info.plist`
+- [ ] App icon set complete in `gen/apple/Assets.xcassets/AppIcon.appiconset/`
+- [ ] Privacy manifest (`PrivacyInfo.xcprivacy`) added if required by Apple
+- [ ] Bundle identifier: `ai.openknot.code-editor`
+- [ ] Development team: configured in `tauri.conf.json` bundle.iOS section
+- [ ] Minimum iOS version: 17.0
+- [ ] Archive and export via Xcode or `xcodebuild`
+- [ ] Upload via Transporter, `xcrun altool`, or Xcode Organizer
+- [ ] App Store Connect metadata: description, keywords, screenshots, support URL, privacy policy URL
+
+### App Store Metadata (Draft)
+
+- **Name**: KnotCode
+- **Subtitle**: AI coding, without the bloat
+- **Category**: Developer Tools
+- **Description**: A lightweight, AI-native code editor. Connect to your own AI gateway, edit code, review diffs, and commit changes — all from your phone. No subscription required.
+- **Keywords**: code editor, AI, developer, git, programming, coding, IDE
+- **Privacy Policy URL**: https://openknot.ai/privacy
+- **Support URL**: https://github.com/OpenKnots/code-editor/issues
+
 ## Open Decisions
 
 - Primary iOS use case: review edits, author edits, or both?

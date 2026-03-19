@@ -98,17 +98,19 @@ export function ChatHeader({
             <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-md border border-[var(--border)] bg-[var(--bg-subtle)] px-1.5 py-0.5 text-[10px] text-[var(--text-disabled)]">
               <Icon icon="lucide:activity" width={9} height={9} className="text-[var(--brand)]" />
               {activityCount} ops
-              {filesChanged > 0 && <span className="text-amber-400">· {filesChanged} files</span>}
+              {filesChanged > 0 && (
+                <span className="text-[var(--warning)]">· {filesChanged} files</span>
+              )}
             </span>
           )}
           {/* Context token count */}
           {contextTokens > 0 && (
             <span
               className={`inline-flex items-center gap-1 whitespace-nowrap text-[9px] tabular-nums ${
-                contextPct > 80
-                  ? 'text-amber-400'
-                  : contextPct > 95
-                    ? 'text-red-400'
+                contextPct > 95
+                  ? 'text-[var(--error)]'
+                  : contextPct > 80
+                    ? 'text-[var(--warning)]'
                     : 'text-[var(--text-disabled)]'
               }`}
             >
@@ -128,8 +130,9 @@ export function ChatHeader({
           {onClose && (
             <button
               onClick={onClose}
-              className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--text-disabled)] hover:text-[var(--text-secondary)] hover:bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] transition-colors cursor-pointer"
+              className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--text-disabled)] hover:text-[var(--text-secondary)] hover:bg-[color-mix(in_srgb,var(--text-primary)_8%,transparent)] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] transition-colors cursor-pointer"
               title="Close panel"
+              aria-label="Close chat panel"
             >
               <Icon icon="lucide:panel-right-close" width={14} height={14} />
             </button>

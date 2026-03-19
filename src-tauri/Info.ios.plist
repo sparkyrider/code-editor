@@ -4,5 +4,7 @@
 <dict>
   <key>NSLocalNetworkUsageDescription</key>
   <string>KnotCode needs local network access to connect to the local development server during iOS development.</string>
+  <key>ITSAppUsesNonExemptEncryption</key>
+  <false/>
 </dict>
 </plist>

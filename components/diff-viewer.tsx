@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useCallback, useEffect, useRef } from 'react'
 import { Icon } from '@iconify/react'
+import { formatShortcut } from '@/lib/platform'
 
 interface DiffViewerProps {
   filePath: string
@@ -170,7 +171,7 @@ export function DiffViewer({ filePath, original, modified, onApply, onReject }: 
         hunkElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
       }
     },
-    [currentHunkIndex, hunks.length]
+    [currentHunkIndex, hunks.length],
   )
 
   const handleCurrentHunkAction = useCallback(
@@ -182,7 +183,7 @@ export function DiffViewer({ filePath, original, modified, onApply, onReject }: 
         handleRejectHunk(currentHunkIndex)
       }
     },
-    [currentHunkIndex, hunks.length, handleAcceptHunk, handleRejectHunk]
+    [currentHunkIndex, hunks.length, handleAcceptHunk, handleRejectHunk],
   )
 
   // Keyboard shortcuts
@@ -350,21 +351,25 @@ export function DiffViewer({ filePath, original, modified, onApply, onReject }: 
                           className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-colors"
                         >
                           Undo
-                          <span className="text-[10px] text-[var(--text-disabled)]">⌘N</span>
+                          <span className="text-[10px] text-[var(--text-disabled)]">
+                            {formatShortcut('meta+n')}
+                          </span>
                         </button>
                         <button
                           onClick={() => handleAcceptHunk(hunkIdx)}
                           className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors"
                           style={{
-                            backgroundColor: 'color-mix(in srgb, var(--color-additions) 15%, transparent)',
-                            borderColor: 'color-mix(in srgb, var(--color-additions) 30%, transparent)',
+                            backgroundColor:
+                              'color-mix(in srgb, var(--color-additions) 15%, transparent)',
+                            borderColor:
+                              'color-mix(in srgb, var(--color-additions) 30%, transparent)',
                             color: 'var(--color-additions)',
                             borderWidth: '1px',
                             borderStyle: 'solid',
                           }}
                         >
                           Keep
-                          <span className="text-[10px] opacity-70">⌘Y</span>
+                          <span className="text-[10px] opacity-70">{formatShortcut('meta+y')}</span>
                         </button>
                       </>
                     )}
@@ -469,7 +474,9 @@ export function DiffViewer({ filePath, original, modified, onApply, onReject }: 
               className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-medium border border-[var(--border)] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] transition-colors"
             >
               Undo All
-              <span className="text-[10px] text-[var(--text-disabled)]">⌘⌫</span>
+              <span className="text-[10px] text-[var(--text-disabled)]">
+                {formatShortcut('meta+backspace')}
+              </span>
             </button>
             <button
               onClick={handleKeepAll}
@@ -483,7 +490,7 @@ export function DiffViewer({ filePath, original, modified, onApply, onReject }: 
               }}
             >
               Keep All
-              <span className="text-[10px] opacity-70">⌘⏎</span>
+              <span className="text-[10px] opacity-70">{formatShortcut('meta+enter')}</span>
             </button>
           </div>
 

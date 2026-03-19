@@ -133,15 +133,17 @@ export function FloatingPanel({
         <div className="flex items-center gap-1.5 tauri-no-drag">
           <button
             onClick={onDock}
-            className="cursor-pointer rounded-lg p-2.5 text-[var(--text-tertiary)] transition-colors hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
-            title="Dock"
+            className="cursor-pointer rounded-lg p-2.5 text-[var(--text-tertiary)] transition-colors hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+            title="Dock panel"
+            aria-label="Dock panel"
           >
-            <Icon icon="lucide:pin" width={16} height={16} />
+            <Icon icon="lucide:panel-left" width={16} height={16} />
           </button>
           <button
             onClick={onClose}
-            className="cursor-pointer rounded-lg p-2.5 text-[var(--text-tertiary)] transition-colors hover:bg-[color-mix(in_srgb,var(--color-deletions)_10%,transparent)] hover:text-[var(--color-deletions)]"
+            className="cursor-pointer rounded-lg p-2.5 text-[var(--text-tertiary)] transition-colors hover:bg-[color-mix(in_srgb,var(--color-deletions)_10%,transparent)] hover:text-[var(--color-deletions)] focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
             title="Close"
+            aria-label="Close panel"
           >
             <Icon icon="lucide:x" width={16} height={16} />
           </button>
@@ -151,9 +153,9 @@ export function FloatingPanel({
       <div className="flex-1 min-h-0 overflow-hidden">{children}</div>
 
       <button
-        className="absolute bottom-1.5 right-1.5 flex h-6 w-6 cursor-nwse-resize items-center justify-center rounded-lg border border-transparent text-[var(--text-disabled)] opacity-0 transition-all hover:border-[var(--border)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-secondary)] group-hover:opacity-100 tauri-no-drag"
+        className="absolute bottom-1.5 right-1.5 flex h-7 w-7 cursor-nwse-resize items-center justify-center rounded-lg border border-transparent text-[var(--text-disabled)] opacity-0 transition-opacity hover:border-[var(--border)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-secondary)] group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] tauri-no-drag"
         onMouseDown={onResizeStart}
-        aria-label="Resize"
+        aria-label="Resize panel"
         title="Resize"
       >
         <Icon icon="lucide:chevrons-right" width={14} height={14} className="rotate-45" />

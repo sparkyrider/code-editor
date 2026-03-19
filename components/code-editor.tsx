@@ -837,7 +837,8 @@ export function CodeEditor() {
             className="h-5 rounded animate-pulse"
             style={{
               width: `${width}%`,
-              background: 'linear-gradient(90deg, var(--bg-subtle) 0%, var(--bg-elevated) 50%, var(--bg-subtle) 100%)',
+              background:
+                'linear-gradient(90deg, var(--bg-subtle) 0%, var(--bg-elevated) 50%, var(--bg-subtle) 100%)',
               backgroundSize: '200% 100%',
               animation: `shimmer 1.5s ease-in-out infinite ${i * 0.1}s`,
               opacity: 0.6,
@@ -1042,7 +1043,7 @@ export function CodeEditor() {
               <video
                 src={file.content}
                 controls
-                className="max-w-full max-h-full rounded border border-[var(--border)] bg-black"
+                className="max-w-full max-h-full rounded border border-[var(--border)] bg-[var(--bg)]"
               />
             ) : (
               <div className="text-center text-[var(--text-tertiary)]">

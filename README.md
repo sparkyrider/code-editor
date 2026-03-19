@@ -2,7 +2,7 @@
 
 **AI coding, without the bloat.**
 
-A lightweight, AI-native code editor powered by [OpenClaw](https://github.com/openclaw/openclaw). Your agent, your gateway, your data. Browser + Desktop (Tauri).
+A lightweight, AI-native code editor powered by [OpenClaw](https://github.com/openclaw/openclaw). Your agent, your gateway, your data. Desktop (macOS, Windows, Linux) + iOS + Browser.
 
 <p align="center">
   <img src="assets/start-chat.png" alt="Knot Code — Start screen" width="720" />
@@ -10,16 +10,16 @@ A lightweight, AI-native code editor powered by [OpenClaw](https://github.com/op
 
 ## Screenshots
 
-| Chat | Agent Workshop |
-| :--: | :--: |
+|                   Chat                   |                 Agent Workshop                 |
+| :--------------------------------------: | :--------------------------------------------: |
 | ![Chat screen](./assets/chat-screen.png) | ![Agent Workshop](./assets/agent-workshop.png) |
 
-| Prompt Library | Skills Library |
-| :--: | :--: |
+|                 Prompt Library                 |                Skills Library                |
+| :--------------------------------------------: | :------------------------------------------: |
 | ![Prompt Library](./assets/prompt-library.png) | ![Skills Library](assets/skills-library.png) |
 
-| Project Tasks |
-| :--: |
+|                Project Tasks                 |
+| :------------------------------------------: |
 | ![Project Tasks](./assets/project-tasks.png) |
 
 ## How It Compares
@@ -35,12 +35,25 @@ A lightweight, AI-native code editor powered by [OpenClaw](https://github.com/op
 | **Data Privacy**         |      **100% local**       | Sent to Cursor | Sent to Codeium |    Sent to GitHub     |   **All cloud**    |
 | **BYO Model**            | ✅ Any model via OpenClaw | ❌ Cursor only |   ❌ Limited    |    ❌ Copilot only    |      **0/3**       |
 | **Custom System Prompt** |  ✅ Agent Builder wizard  |       ❌       |       ❌        |          ❌           |      **0/3**       |
-| **Themes**               |        7 built-in         |       3        | VS Code themes  |    VS Code themes     |         —          |
+| **Themes**               |        24 built-in        |       3        | VS Code themes  |    VS Code themes     |         —          |
 | **Offline AI**           | ✅ Local models supported |       ❌       |       ❌        |          ❌           |      **0/3**       |
 | **Subscription**         |     **Free forever**      |     $20/mo     |     $15/mo      |        $10/mo         |    **~$15/mo**     |
 | **Open Source**          |       ✅ Apache 2.0       | ❌ Proprietary | ❌ Proprietary  |       Partially       |     **0.5/3**      |
 
 > **Why so light?** Knot Code uses Tauri (Rust + native WebKit) instead of Electron. No bundled Chromium. No background processes phoning home. The AI runs through your own [OpenClaw](https://github.com/openclaw/openclaw) gateway — your keys, your models, your data stays on your machine.
+
+## Platform Availability
+
+<p align="center">
+  <img src="assets/knotcode-platforms.png" alt="KnotCode — Available on macOS, Windows, Linux, and iOS" width="720" />
+</p>
+
+| Platform              | Format              | Status      |
+| --------------------- | ------------------- | ----------- |
+| macOS (Apple Silicon) | `.dmg`              | Available   |
+| Windows (x64)         | `.msi`, `.exe`      | Available   |
+| Linux (x64)           | `.AppImage`, `.deb` | Available   |
+| iOS (iPhone/iPad)     | App Store           | Coming Soon |
 
 ## Quick Start
 
@@ -87,7 +100,7 @@ Copy `.env.example` to `.env` and configure. All variables are optional — the 
 - **AI Agent Chat** — Ask, Agent, and Plan modes with streaming responses
 - **Agent Builder** — Choose a persona, customize your system prompt, configure behaviors
 - **Inline Edits** — Agent proposes changes, you review diffs and accept/reject per-hunk
-- **7 Themes** — Obsidian, Bone, Neon, Catppuccin, VooDoo, CyberNord, PrettyPink
+- **24 Themes** — Claude, Supreme, Obsidian, Neon, Catppuccin, VooDoo, CyberNord, PrettyPink, and 16 more
 - **Monaco Editor** — Multi-tab, Vim mode, syntax highlighting, Cmd/Ctrl+P quick open
 - **GitHub Integration** — Token-based auth, commit, push, branch switching
 - **Terminal** — Integrated xterm.js with gateway slash commands

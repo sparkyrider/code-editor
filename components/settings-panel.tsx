@@ -280,7 +280,7 @@ export function SettingsPanel({ onBack }: { onBack: () => void }) {
                       >
                         <div className="mb-3 flex items-center justify-between gap-3">
                           <span
-                            className="h-9 w-9 rounded-[14px] border border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.3)]"
+                            className="h-9 w-9 rounded-[14px] border border-[color-mix(in_srgb,var(--text-primary)_10%,transparent)] shadow-[inset_0_1px_0_color-mix(in_srgb,var(--text-primary)_15%,transparent)]"
                             style={{ backgroundColor: preset.color }}
                           />
                           {active ? (
@@ -609,7 +609,11 @@ export function SettingsPanel({ onBack }: { onBack: () => void }) {
                     key={r.fullName}
                     className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[color-mix(in_srgb,var(--text-primary)_4%,transparent)] group"
                   >
-                    <Icon icon="lucide:star" width={12} className="text-amber-400 shrink-0" />
+                    <Icon
+                      icon="lucide:star"
+                      width={12}
+                      className="text-[var(--warning)] shrink-0"
+                    />
                     <span className="text-[12px] text-[var(--text-primary)] flex-1 truncate">
                       {r.fullName}
                     </span>
@@ -671,7 +675,7 @@ export function SettingsPanel({ onBack }: { onBack: () => void }) {
                             width={13}
                             className={
                               fav
-                                ? 'text-amber-400'
+                                ? 'text-[var(--warning)]'
                                 : 'text-[var(--text-disabled)] opacity-40 group-hover:opacity-100'
                             }
                           />

@@ -150,10 +150,10 @@ if [ "$SKIP_BUILD" = false ]; then
   rustup target add aarch64-apple-darwin 2>/dev/null || true
 
   APPLE_SIGNING_IDENTITY="$APPLE_SIGNING_IDENTITY" \
-  APPLE_ID="$APPLE_ID" \
+  APPLE_ID="${APPLE_ID:-}" \
   APPLE_TEAM_ID="$APPLE_TEAM_ID" \
-  APPLE_APP_SPECIFIC_PASSWORD="$APPLE_APP_SPECIFIC_PASSWORD" \
-    pnpm tauri build --target aarch64-apple-darwin
+  APPLE_PASSWORD="${APPLE_APP_SPECIFIC_PASSWORD:-}" \
+    npx @tauri-apps/cli build --target aarch64-apple-darwin
 
   ok "Tauri build complete"
 else

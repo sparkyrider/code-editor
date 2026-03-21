@@ -82,6 +82,22 @@ const MODE_BUTTONS: Array<{ id: AppMode; icon: string; label: string }> = [
 
 const TERMINAL_SPRING = { type: 'spring' as const, stiffness: 500, damping: 35 }
 
+function hasFocusedEditableElement(): boolean {
+  if (typeof document === 'undefined') return false
+  const active = document.activeElement
+  if (!active || !(active instanceof HTMLElement)) return false
+
+  if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) {
+    return !active.readOnly && !active.disabled
+  }
+
+  if (active instanceof HTMLSelectElement) {
+    return !active.disabled
+  }
+
+  return active.isContentEditable || active.getAttribute('role') === 'textbox'
+}
+
 export default function EditorLayout() {
   const { status } = useGateway()
   const { repo, setRepo } = useRepo()
@@ -162,12 +178,24 @@ export default function EditorLayout() {
     if (!isMobile) return
     const vv = window.visualViewport
     if (!vv) return
-    const onResize = () => {
-      const offset = window.innerHeight - vv.height
-      setKeyboardOffset(offset > 50 ? offset : 0) // only respond to real keyboard
+
+    const syncKeyboardOffset = () => {
+      const occludedHeight = Math.max(0, window.innerHeight - (vv.height + vv.offsetTop))
+      const keyboardOpen = hasFocusedEditableElement() && occludedHeight > 80
+      setKeyboardOffset(keyboardOpen ? occludedHeight : 0)
     }
-    vv.addEventListener('resize', onResize)
-    return () => vv.removeEventListener('resize', onResize)
+
+    syncKeyboardOffset()
+    vv.addEventListener('resize', syncKeyboardOffset)
+    vv.addEventListener('scroll', syncKeyboardOffset)
+    document.addEventListener('focusin', syncKeyboardOffset)
+    document.addEventListener('focusout', syncKeyboardOffset)
+    return () => {
+      vv.removeEventListener('resize', syncKeyboardOffset)
+      vv.removeEventListener('scroll', syncKeyboardOffset)
+      document.removeEventListener('focusin', syncKeyboardOffset)
+      document.removeEventListener('focusout', syncKeyboardOffset)
+    }
   }, [isMobile])
 
   // ─── Auto-populate RepoContext from local git remote ───

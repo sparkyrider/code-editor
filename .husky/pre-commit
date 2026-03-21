@@ -1,3 +1,5 @@
+export PATH="/opt/homebrew/bin:$PATH"
+
 pnpm secrets:scan:staged
 pnpm policy:skill-first
 pnpm exec lint-staged
